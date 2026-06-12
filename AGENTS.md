@@ -11,5 +11,5 @@ Instructions for AI coding agents (Codex, Cursor, etc.). This repo's primary age
 ## Non-negotiables (mechanically enforced, tool-independent)
 
 - Conventional Commits — the husky `commit-msg` hook (commitlint) rejects non-conforming messages.
-- Prettier formatting — auto-applied to staged files on commit. Run `bun install` at the repo root once after clone to activate both hooks.
+- Formatting/linting — auto-applied to staged files on commit: Biome for JS/TS/JSON/CSS (`biome.json` at root), Prettier for Markdown only. Run `bun install` at the repo root once after clone to activate the hooks. Manual run: `bun run format` / `bun run lint`.
 - Source of truth: `docs/kawan-spec.md` decides; `docs/prd.md`, `docs/trd.md`, `docs/task-list.md` are derived views. On conflict, the spec wins — flag, don't silently pick.
