@@ -1,0 +1,251 @@
+{
+  "version": 1,
+  "skills": {
+    "caveman": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/productivity/caveman/SKILL.md",
+      "computedHash": "934433479903febc585bf6deb5f0cebc63137e3f86b7babe0aab1ecb94d6d7a4"
+    },
+    "diagnose": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/diagnose/SKILL.md",
+      "computedHash": "15939a26f86edec2d4862042b8564e5a062cb81d04e047a0cea6305c8830b5f5"
+    },
+    "grill-me": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/productivity/grill-me/SKILL.md",
+      "computedHash": "784f0dbb7403b0f00324bce9a112f715342777a0daee7bbb7385f9c6f0a170ea"
+    },
+    "grill-with-docs": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/grill-with-docs/SKILL.md",
+      "computedHash": "a5c65e76275008b469962f7bee8b34866f1c9b0709f4886e71c8e731735640e4"
+    },
+    "hackathon-code-implementer": {
+      "source": "bernieweb3/hackathon-ai-devkit",
+      "sourceType": "github",
+      "skillPath": "skills/hackathon-code-implementer/SKILL.md",
+      "computedHash": "4fa01923d97959866e6468df4c0ec6a146639a0bcae5bab10b952e12fd6227f8"
+    },
+    "hackathon-demo-script": {
+      "source": "bernieweb3/hackathon-ai-devkit",
+      "sourceType": "github",
+      "skillPath": "skills/hackathon-demo-script/SKILL.md",
+      "computedHash": "f0bbd7b292a9bb17b8ae5b10107fe6884cca86312e8baff9f74dab7236c9da37"
+    },
+    "hackathon-demo-video": {
+      "source": "bernieweb3/hackathon-ai-devkit",
+      "sourceType": "github",
+      "skillPath": "skills/hackathon-demo-video/SKILL.md",
+      "computedHash": "3e84461e263ea369afb6f6329dc14243fe8b61e1992fe0b78181cc8a3956b6da"
+    },
+    "hackathon-deployment-prep": {
+      "source": "bernieweb3/hackathon-ai-devkit",
+      "sourceType": "github",
+      "skillPath": "skills/hackathon-deployment-prep/SKILL.md",
+      "computedHash": "05b5a11a7899afa6a5fe06c165be1a93606def939e204d3c661c80ceae4bd767"
+    },
+    "hackathon-doc-writer": {
+      "source": "bernieweb3/hackathon-ai-devkit",
+      "sourceType": "github",
+      "skillPath": "skills/hackathon-doc-writer/SKILL.md",
+      "computedHash": "7f08dd7544aad18f8ef88a4ede1a46c1a78e2f7f34f670ce0545688b031fe4ca"
+    },
+    "hackathon-event-parser": {
+      "source": "bernieweb3/hackathon-ai-devkit",
+      "sourceType": "github",
+      "skillPath": "skills/hackathon-event-parser/SKILL.md",
+      "computedHash": "414a244f00b8d69ee3d0dcbd28fa4291fee8b3f0504e1c497f6460a334f242bd"
+    },
+    "hackathon-git-master": {
+      "source": "bernieweb3/hackathon-ai-devkit",
+      "sourceType": "github",
+      "skillPath": "skills/hackathon-git-master/SKILL.md",
+      "computedHash": "dd21e1292236364d4abf1724a7f5f51306ec3ad624748636ebb72bef4c001425"
+    },
+    "hackathon-idea-generator": {
+      "source": "bernieweb3/hackathon-ai-devkit",
+      "sourceType": "github",
+      "skillPath": "skills/hackathon-idea-generator/SKILL.md",
+      "computedHash": "d65015a959e23a242d76af0ac5d76de7b982831c62ef7a2222d76e3032c87f04"
+    },
+    "hackathon-idea-scoring": {
+      "source": "bernieweb3/hackathon-ai-devkit",
+      "sourceType": "github",
+      "skillPath": "skills/hackathon-idea-scoring/SKILL.md",
+      "computedHash": "d4b809d7e923993ed42c30d6d444f334be88ba4f7327c218b38a81d8cf164047"
+    },
+    "hackathon-judge-simulator": {
+      "source": "bernieweb3/hackathon-ai-devkit",
+      "sourceType": "github",
+      "skillPath": "skills/hackathon-judge-simulator/SKILL.md",
+      "computedHash": "1908f12a027c662aecc9b57aeb2cd747bcfe94584c3fe6032b5d9452a9396d94"
+    },
+    "hackathon-milestone-monitor": {
+      "source": "bernieweb3/hackathon-ai-devkit",
+      "sourceType": "github",
+      "skillPath": "skills/hackathon-milestone-monitor/SKILL.md",
+      "computedHash": "010cc38b72d92acd01437eba2c2ac2c0707932a6606b0b2ff0507fd51197660f"
+    },
+    "hackathon-mock-data-generator": {
+      "source": "bernieweb3/hackathon-ai-devkit",
+      "sourceType": "github",
+      "skillPath": "skills/hackathon-mock-data-generator/SKILL.md",
+      "computedHash": "0c9579f7b3fb69f70699abdc2bdbc00e8b0e0d2e6f14d75d835b556b0e89935b"
+    },
+    "hackathon-pitchdeck": {
+      "source": "bernieweb3/hackathon-ai-devkit",
+      "sourceType": "github",
+      "skillPath": "skills/hackathon-pitchdeck/SKILL.md",
+      "computedHash": "4f31297046bde546073801e9b8d43c560b2cf9ef771e998b33617908f978fc9e"
+    },
+    "hackathon-post-mortem": {
+      "source": "bernieweb3/hackathon-ai-devkit",
+      "sourceType": "github",
+      "skillPath": "skills/hackathon-post-mortem/SKILL.md",
+      "computedHash": "0203cbab713ee50be81048797c91f4d2a47d4b24189f5533a7d45b07516d79f1"
+    },
+    "hackathon-problem-space": {
+      "source": "bernieweb3/hackathon-ai-devkit",
+      "sourceType": "github",
+      "skillPath": "skills/hackathon-problem-space/SKILL.md",
+      "computedHash": "ba7bf2d1181d56a2a0bdbc7517636cc59106c10db0affdc20576d83fde0b9744"
+    },
+    "hackathon-repo-bootstrap": {
+      "source": "bernieweb3/hackathon-ai-devkit",
+      "sourceType": "github",
+      "skillPath": "skills/hackathon-repo-bootstrap/SKILL.md",
+      "computedHash": "a03dd504f8ace1d05bc47354472aacbf34a09e0663541541ad0cdcc56b80f46e"
+    },
+    "hackathon-risk-analyzer": {
+      "source": "bernieweb3/hackathon-ai-devkit",
+      "sourceType": "github",
+      "skillPath": "skills/hackathon-risk-analyzer/SKILL.md",
+      "computedHash": "a9e7dc66790228355ce6c487b83da3ed26f5689eba351e3423c23dabe4e44346"
+    },
+    "hackathon-role-allocator": {
+      "source": "bernieweb3/hackathon-ai-devkit",
+      "sourceType": "github",
+      "skillPath": "skills/hackathon-role-allocator/SKILL.md",
+      "computedHash": "ccf42fca371f0e01a64d3938d09813932c7a917a04d4f853278422d440990575"
+    },
+    "hackathon-scope-cutter": {
+      "source": "bernieweb3/hackathon-ai-devkit",
+      "sourceType": "github",
+      "skillPath": "skills/hackathon-scope-cutter/SKILL.md",
+      "computedHash": "ea179744b35a11738a6a218a25b2c442a8751e30a16ce9f110b96e25ab908901"
+    },
+    "hackathon-shared-resources": {
+      "source": "bernieweb3/hackathon-ai-devkit",
+      "sourceType": "github",
+      "skillPath": "skills/hackathon-shared-resources/SKILL.md",
+      "computedHash": "9034c1eb0085edf9b092ad2e95e55e7c194e1d0551f01744046a2388fc5f7c70"
+    },
+    "hackathon-sponsor-integrator": {
+      "source": "bernieweb3/hackathon-ai-devkit",
+      "sourceType": "github",
+      "skillPath": "skills/hackathon-sponsor-integrator/SKILL.md",
+      "computedHash": "250c5d77b31899f7a1bbc3a5c5ef7408e5b16615cca49685f2dc033c2b7b7f83"
+    },
+    "hackathon-submission-prep": {
+      "source": "bernieweb3/hackathon-ai-devkit",
+      "sourceType": "github",
+      "skillPath": "skills/hackathon-submission-prep/SKILL.md",
+      "computedHash": "292d729e6869569d387b038710635618a1cae290b88c07d2d34a14ca6536dd77"
+    },
+    "hackathon-task-planner": {
+      "source": "bernieweb3/hackathon-ai-devkit",
+      "sourceType": "github",
+      "skillPath": "skills/hackathon-task-planner/SKILL.md",
+      "computedHash": "a6dbf6dd822505ea0e37d39302178dac2cc0f68c28f1fa374dbc48e3a3c2464e"
+    },
+    "hackathon-team-recruiter": {
+      "source": "bernieweb3/hackathon-ai-devkit",
+      "sourceType": "github",
+      "skillPath": "skills/hackathon-team-recruiter/SKILL.md",
+      "computedHash": "077abaa6bb41a6a15e90615e355bc689761bd5b030e423ba139562ac28384741"
+    },
+    "hackathon-test-generator": {
+      "source": "bernieweb3/hackathon-ai-devkit",
+      "sourceType": "github",
+      "skillPath": "skills/hackathon-test-generator/SKILL.md",
+      "computedHash": "c136c915e8984eaba00b58e5e337ea7b79ce197b2d0c8bb848376c68568c4f8d"
+    },
+    "hackathon-track-analyzer": {
+      "source": "bernieweb3/hackathon-ai-devkit",
+      "sourceType": "github",
+      "skillPath": "skills/hackathon-track-analyzer/SKILL.md",
+      "computedHash": "27fe8184df2aa946832e6277988f04e2caa70cd233a32f28b3ec6f017eb66177"
+    },
+    "hackathon-wow-detector": {
+      "source": "bernieweb3/hackathon-ai-devkit",
+      "sourceType": "github",
+      "skillPath": "skills/hackathon-wow-detector/SKILL.md",
+      "computedHash": "b5d0cf010581786d032f38f76aeec4fdac825d038edd563a5a1e65c548fb3c46"
+    },
+    "handoff": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/productivity/handoff/SKILL.md",
+      "computedHash": "1a78d774f8a59db5daa6e65e20a6596872fa8cde769f9a6e3a09b678dd5ae8cc"
+    },
+    "improve-codebase-architecture": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/improve-codebase-architecture/SKILL.md",
+      "computedHash": "ef32aea0a8fab9b365ff9e08a95f8d353e20ca21ea46ec2e73587c86dd341351"
+    },
+    "prototype": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/prototype/SKILL.md",
+      "computedHash": "e4d0c8f8cb3fc096ee99405a15491da466545cf4a3694bee5a0c9db2fa621a43"
+    },
+    "setup-matt-pocock-skills": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/setup-matt-pocock-skills/SKILL.md",
+      "computedHash": "0164a8b1ef998abca426056c6ed8a7716a9d4692fc6daa5378f68381a6dafd24"
+    },
+    "tdd": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/tdd/SKILL.md",
+      "computedHash": "15a7b5e36383ebadb2dec5e586679e55e9663d292da418926b8da6fc0ef27d84"
+    },
+    "to-issues": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/to-issues/SKILL.md",
+      "computedHash": "47f648f3414848ccfc62cb41d2828b7e575fb5e7cbd6c4bdf630c063b5dc5e82"
+    },
+    "to-prd": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/to-prd/SKILL.md",
+      "computedHash": "6d741474efd4bc3db55fabc2722ed78ca9c374cabcb6212936d79d4fd4a30fcb"
+    },
+    "triage": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/triage/SKILL.md",
+      "computedHash": "2b6efb6da12d92551772fcc04acf331f4e0e6f7bd9d4cb23ce0b301e0b128feb"
+    },
+    "write-a-skill": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/productivity/write-a-skill/SKILL.md",
+      "computedHash": "b44d8aab2ead83c716e01af4c9a24ccc4575ce70ad58ec4f1749fb88c9cc82ba"
+    },
+    "zoom-out": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/zoom-out/SKILL.md",
+      "computedHash": "8357aeaece3b709c442eab67e64b86844e05e2f1ea95b109565eba50b6def36e"
+    }
+  }
+}

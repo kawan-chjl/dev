@@ -1,0 +1,15 @@
+{
+  "scripts": {
+    "format": "prettier --write .",
+    "git:yolo": "git add . && git commit -m '⠀' && git pull --rebase && git push",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*": "prettier --write --ignore-unknown"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.5",
+    "prettier": "^3.8.3"
+  }
+}
