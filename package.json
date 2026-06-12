@@ -2,7 +2,6 @@
   "scripts": {
     "format": "biome check --write . && prettier --write '**/*.md'",
     "lint": "biome check .",
-    "git:yolo": "git add . && git commit -m '⠀' && git pull --rebase && git push",
     "prepare": "husky"
   },
   "lint-staged": {
