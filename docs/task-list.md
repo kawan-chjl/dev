@@ -38,24 +38,26 @@ Lane responsibilities and task breakdown for the 4-person team, derived from `ka
 | 4     | D13–16 | Depth: habit loop, proposal-apply, audit view, Web Push, tone passes, TEE badge, variant-persona QA. **Feature freeze D17.**                                        |
 | 5     | D17–20 | Daily demo dry-runs; video recorded by D19; Devpost + README + buffer D20.                                                                                          |
 
-## 4. Phase 1 — de-risk spikes (D1–2, all-hands)
+## 4. Phase 1 — de-risk spikes (D1–2, all-hands) — ✅ GATE PASSED 12–13 Jun
 
-| ID  | Spike                   | Lane | Done when                                                                                                                                                                                                                                                  |
-| --- | ----------------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| S1  | SIWC round-trip         | B    | Login → user token → one gemma completion **verified billed to that user** in the dashboard. Spike both hosts (`llm.` vs `lm.chutes.ai`) (Q1). Also check whether `chutes:invoke` authorizes `/users/me` balance display or `billing:read` is needed (Q4). |
-| S2  | Vision-judge call       | C    | One TEE vision call on a real screenshot returns a structured verdict (spec §13-b: day-1, ~1 h).                                                                                                                                                           |
-| S3  | Live2D + lip-sync       | A    | Chosen model renders and lip-syncs from a Piper WAV. Model + engine **locked** after this.                                                                                                                                                                 |
-| S4  | Pro-tier model coverage | C    | Test call per judge model + `GET /users/me/subscription_usage` confirms Pro tier covers them (spec §3.2, §14 Q2); else PAYG fallback noted.                                                                                                                |
+All four executed before lane assignment; full results in spec §13 (D1–2 block). Key carry-forwards per lane below.
+
+| ID  | Spike                   | Lane | Status                                                                                                                                                                                                                                     |
+| --- | ----------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| S1  | SIWC round-trip         | B    | ✅ **PASS** (dashboard billing eyeball pending) — PKCE + refresh OK; OAuth token: `llm.` 200 / **`lm.` 403** (use `llm.` only); `/users/me` works with `chutes:invoke` — no `billing:read`. App `cid_…` registered; secret in team `.env`. |
+| S2  | Vision-judge call       | C    | ✅ **PASS** — strict `json_schema` verdict via failover pair; judge correctly returned `unclear` on a static screenshot → judge prompts need commitment context (calibration input for C2/C3).                                             |
+| S3  | Live2D + lip-sync       | A    | ✅ **PASS** — Haru + PixiJS 6.5.10 + pixi-live2d-display 0.4.0, hand-rolled AnalyserNode lip-sync (no patch pkg). **Model + engine locked.** Spike page: `frontend/spike-live2d.html`; A1 gotchas in spec §13.                             |
+| S4  | Pro-tier model coverage | C    | ✅ **PASS** — all 4 pipeline models 200 under Pro. ⚠️ All but gemma are reasoning models: budget `max_tokens` for thinking tokens in every schema call.                                                                                    |
 
 ### Open questions carried from spec §14 (each ≤1 day)
 
-| Q   | Question (short)                                          | Owner | Due                                  | Covered by |
-| --- | --------------------------------------------------------- | ----- | ------------------------------------ | ---------- |
-| Q1  | SIWC token works against `llm.` (vs `lm.`)?               | B     | D1                                   | S1         |
-| Q2  | Pro tier covers all judge models?                         | C     | D1                                   | S4         |
-| Q3  | Hero persona voice/register (BM/English/Manglish mix?)    | Team  | **D2–3** (taste decision)            | feeds C4   |
-| Q4  | `chutes:invoke` enough for `/users/me` balance?           | B     | D1                                   | S1         |
-| Q5  | _(Optional courtesy)_ LiveroiD creator permission inquiry | A     | Anytime (Haru-R/Hiyori are fallback) | —          |
+| Q   | Question (short)                                          | Owner | Due                                  | Status                                             |
+| --- | --------------------------------------------------------- | ----- | ------------------------------------ | -------------------------------------------------- |
+| Q1  | SIWC token works against `llm.` (vs `lm.`)?               | B     | D1                                   | ✅ Resolved by S1 — `llm.` only                    |
+| Q2  | Pro tier covers all judge models?                         | C     | D1                                   | ✅ Resolved by S4                                  |
+| Q3  | Hero persona voice/register (BM/English/Manglish mix?)    | Team  | **D2–3** (taste decision)            | Open — feeds C4                                    |
+| Q4  | `chutes:invoke` enough for `/users/me` balance?           | B     | D1                                   | ✅ Resolved by S1 — yes; `billing:read` privileged |
+| Q5  | _(Optional courtesy)_ LiveroiD creator permission inquiry | A     | Anytime (Haru-R/Hiyori are fallback) | Open                                               |
 
 ## 5. Lane task breakdown
 
