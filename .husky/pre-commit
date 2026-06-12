@@ -1,1 +1,1 @@
-bunx --no lint-staged
+bunx lint-staged
