@@ -26,7 +26,8 @@ bun install                 # root: husky hooks + formatting tooling
 cd frontend && bun install && bun dev
 
 # backend (http://localhost:8000, needs uv: https://docs.astral.sh/uv/)
-cd backend && cp .env.example .env && uv sync && uv run uvicorn app.main:app --reload
+cp .env.example .env   # once, at repo root
+cd backend && uv sync && uv run uvicorn app.main:app --reload
 ```
 
 Health check: `curl http://localhost:8000/api/health` → `{"status":"ok"}`.
