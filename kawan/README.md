@@ -20,13 +20,13 @@ Kawan helps you plan and holds you accountable. It **never does the work** and n
 ## Quickstart
 
 ```bash
-bun install                 # root: husky hooks + formatting tooling
+bun install                 # at the repo root (one level up): husky hooks + formatting tooling
 
 # frontend (http://localhost:5173, proxies /api and /ws to :8000)
 cd frontend && bun install && bun dev
 
 # backend (http://localhost:8000, needs uv: https://docs.astral.sh/uv/)
-cp .env.example .env   # once, at repo root
+cp .env.example .env   # once, here in kawan/
 cd backend && uv sync && uv run uvicorn app.main:app --reload
 ```
 
@@ -41,7 +41,7 @@ Live2D models (not in git): `./scripts/download_models.sh` → `frontend/public/
 - **C — AI layer**
 - **D — Voice, integration, demo**
 
-Lane responsibilities and the task breakdown live in [`docs/task-list.md`](./docs/task-list.md) (canonical), running D1–D20 → submission 30 Jun 23:59 MYT. GitHub Issues are optional per teammate; lane labels and phase-gate milestones exist on the repo if you want them.
+Lane responsibilities and the task breakdown live in [`docs/task-list.md`](../docs/task-list.md) (canonical), running D1–D20 → submission 30 Jun 23:59 MYT. GitHub Issues are optional per teammate; lane labels and phase-gate milestones exist on the repo if you want them.
 
 ## Attribution
 

@@ -88,7 +88,7 @@ Single-page app. The **character stage is persistent**; the context panel swaps.
 - **TR-09** The LLM `emotion` enum field MUST drive Live2D expressions (emotion-tag pattern); motions trigger on events (celebration, greeting) (spec §9.2-A, §4.3).
 - **TR-10** Compose (V2 step 1) MUST be pure GUI — sentence constructor `I will [action ▾] [deliverable ✎] by [deadline 📅]` — with zero AI calls; validation rejects past deadlines and confirms <1 h deadlines (spec §5.1, §6.3).
 - **TR-11** Plan + Settings (V2 step 3) MUST be pure GUI: the LLM pre-fills defaults only; only user controls set values. Verification panel MUST include a `Test connection` dry-run of the adapter's `fetch()` (spec §5.1).
-- **TR-12** Live2D model files MUST stay out of the repo: `.gitignore` + `scripts/download_models.sh` fetching the verified URLs; credit lines (Live2D notice, #LiveroiD) in README (spec §4.4).
+- **TR-12** Live2D model files MUST stay out of the repo: `.gitignore` + `kawan/scripts/download_models.sh` fetching the verified URLs; credit lines (Live2D notice, #LiveroiD) in README (spec §4.4).
 - **TR-13** Idle state (no active commitment) MUST swap the V3 header for a compose CTA; workspace chat disabled except a single re-commit prompt (spec §5.5).
 
 ## 4. Backend Architecture

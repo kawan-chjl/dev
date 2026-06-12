@@ -1,0 +1,34 @@
+# Node / frontend
+node_modules/
+dist/
+*.local
+.vite/
+
+# Python / backend
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# SQLite
+*.db
+*.sqlite3
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+
+# Logs
+*.log
+
+# Live2D model files — fetched via scripts/download_models.sh, never committed (license: spec 4.4)
+frontend/public/models/

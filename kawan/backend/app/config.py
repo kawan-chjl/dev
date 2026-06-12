@@ -2,13 +2,13 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-_REPO_ROOT = Path(__file__).resolve().parents[2]
+_KAWAN_ROOT = Path(__file__).resolve().parents[2]
 
 
 class Settings(BaseSettings):
-    """App configuration. Values come from environment / <repo-root>/.env (see .env.example)."""
+    """App configuration. Values come from environment / <kawan-root>/.env (see .env.example)."""
 
-    model_config = SettingsConfigDict(env_file=_REPO_ROOT / ".env", env_prefix="KAWAN_")
+    model_config = SettingsConfigDict(env_file=_KAWAN_ROOT / ".env", env_prefix="KAWAN_")
 
     database_url: str = "sqlite+aiosqlite:///./kawan.db"
     frontend_origin: str = "http://localhost:5173"
