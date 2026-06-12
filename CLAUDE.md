@@ -250,3 +250,5 @@ All commits MUST follow [Conventional Commits](https://www.conventionalcommits.o
 ## Source of truth
 
 `docs/kawan-spec.md` decides. `docs/prd.md` (product), `docs/trd.md` (technical), and `docs/task-list.md` (lane assignments) are derived views — when they conflict with the spec, the spec wins; flag the discrepancy instead of silently picking one.
+
+Platform reference for Chutes API work lives in `docs/reference/` (chutes-llms.md is a snapshot of https://chutes.ai/llms.txt; the live URL is authoritative for API details).
