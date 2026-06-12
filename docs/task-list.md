@@ -2,13 +2,13 @@
 
 Lane responsibilities and task breakdown for the 4-person team, derived from `kawan-spec.md` §12.1 (lanes), §12.2 (phase gates) and §12.3 (MVP cut).
 
-| Meta            |                                                                                                                                                                                  |
-| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Version         | 0.1                                                                                                                                                                              |
-| Date            | 2026-06-12                                                                                                                                                                       |
-| Source of truth | [`kawan-spec.md`](./kawan-spec.md) — this doc summarizes, the spec decides                                                                                                       |
-| Companion docs  | [`prd.md`](./prd.md) (what & why) · [`trd.md`](./trd.md) (how)                                                                                                                   |
-| Tracking        | GitHub Issues mirror these tasks (labels `lane:A`–`lane:D`, 5 milestones). Using Issues is per-teammate preference; **this file is the canonical assignment of responsibility.** |
+| Meta            |                                                                                                                                                                                                                                                                                   |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Version         | 0.2                                                                                                                                                                                                                                                                               |
+| Date            | 2026-06-12                                                                                                                                                                                                                                                                        |
+| Source of truth | [`kawan-spec.md`](./kawan-spec.md) — this doc summarizes, the spec decides                                                                                                                                                                                                        |
+| Companion docs  | [`prd.md`](./prd.md) (what & why) · [`trd.md`](./trd.md) (how)                                                                                                                                                                                                                    |
+| Tracking        | **This file is the canonical assignment of responsibility.** No GitHub Issues currently mirror these tasks (the earlier mirror was deleted); teammates may opt into Issues individually — `lane:A`–`lane:D` labels and the 5 milestones still exist on the repo for that purpose. |
 
 ## 1. Calendar & day mapping
 
@@ -40,12 +40,22 @@ Lane responsibilities and task breakdown for the 4-person team, derived from `ka
 
 ## 4. Phase 1 — de-risk spikes (D1–2, all-hands)
 
-| ID  | Spike                   | Lane | Done when                                                                                                                                 |
-| --- | ----------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| S1  | SIWC round-trip         | B    | Login → user token → one gemma completion **verified billed to that user** in the dashboard. Spike both hosts (`llm.` vs `lm.chutes.ai`). |
-| S2  | Vision-judge call       | C    | One TEE vision call on a real screenshot returns a structured verdict.                                                                    |
-| S3  | Live2D + lip-sync       | A    | Chosen model renders and lip-syncs from a Piper WAV. Model + engine **locked** after this.                                                |
-| S4  | Pro-tier model coverage | C    | Test call per judge model confirms Pro tier covers them (spec §3.2 Q2); else PAYG fallback noted.                                         |
+| ID  | Spike                   | Lane | Done when                                                                                                                                                                                                                                                  |
+| --- | ----------------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S1  | SIWC round-trip         | B    | Login → user token → one gemma completion **verified billed to that user** in the dashboard. Spike both hosts (`llm.` vs `lm.chutes.ai`) (Q1). Also check whether `chutes:invoke` authorizes `/users/me` balance display or `billing:read` is needed (Q4). |
+| S2  | Vision-judge call       | C    | One TEE vision call on a real screenshot returns a structured verdict (spec §13-b: day-1, ~1 h).                                                                                                                                                           |
+| S3  | Live2D + lip-sync       | A    | Chosen model renders and lip-syncs from a Piper WAV. Model + engine **locked** after this.                                                                                                                                                                 |
+| S4  | Pro-tier model coverage | C    | Test call per judge model + `GET /users/me/subscription_usage` confirms Pro tier covers them (spec §3.2, §14 Q2); else PAYG fallback noted.                                                                                                                |
+
+### Open questions carried from spec §14 (each ≤1 day)
+
+| Q   | Question (short)                                          | Owner | Due                                  | Covered by |
+| --- | --------------------------------------------------------- | ----- | ------------------------------------ | ---------- |
+| Q1  | SIWC token works against `llm.` (vs `lm.`)?               | B     | D1                                   | S1         |
+| Q2  | Pro tier covers all judge models?                         | C     | D1                                   | S4         |
+| Q3  | Hero persona voice/register (BM/English/Manglish mix?)    | Team  | **D2–3** (taste decision)            | feeds C4   |
+| Q4  | `chutes:invoke` enough for `/users/me` balance?           | B     | D1                                   | S1         |
+| Q5  | _(Optional courtesy)_ LiveroiD creator permission inquiry | A     | Anytime (Haru-R/Hiyori are fallback) | —          |
 
 ## 5. Lane task breakdown
 
@@ -53,41 +63,41 @@ Acceptance = the gate it must satisfy. `Deps` reference task IDs. Day estimates 
 
 ### Lane A — Character & frontend (14d)
 
-| ID  | Task                         | Est. | Phase | Deps   | Acceptance                                                                                                      |
-| --- | ---------------------------- | ---- | ----- | ------ | --------------------------------------------------------------------------------------------------------------- |
-| A1  | Live2D stage + lip-sync      | 3d   | 2     | S3     | Stage component with expression hooks; lip-sync driven by TTS audio in-app.                                     |
-| A2  | Compose + Plan/Settings GUIs | 3d   | 2     | B1     | Sentence-builder (<30 s to compose); hard fields GUI-set, AI-read-only (trd §5).                                |
-| A3  | Workspace chat UI            | 3d   | 3     | A1, C2 | Goal-scoped chat (voice/text), slot-fill display, in-character reactions.                                       |
-| A4  | Timeline / momentum view     | 2d   | 4     | B3     | Check-in timeline + momentum dots + celebration/identity beats; shows scheduler activity without waiting on it. |
-| A5  | Frontend polish pass         | 3d   | 4     | A1–A4  | Responsive PWA, TEE attestation badge, persona picker refinement. Freeze D17.                                   |
+| ID  | Task                         | Est. | Phase | Deps   | Acceptance                                                                                                                                                                                                   |
+| --- | ---------------------------- | ---- | ----- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| A1  | Live2D stage + lip-sync      | 3d   | 2     | S3     | Stage component with expression hooks; lip-sync driven by TTS audio in-app.                                                                                                                                  |
+| A2  | Compose + Plan/Settings GUIs | 3d   | 2     | B1     | Sentence-builder (<30 s to compose); hard fields GUI-set, AI-read-only (trd §5). Includes the **first-run persona picker** (3 presets) — the picker itself is MVP, built week 1–2 (spec §12.2 phase-4 note). |
+| A3  | Workspace chat UI            | 3d   | 3     | A1, C2 | Goal-scoped chat (voice/text), slot-fill display, in-character reactions, proposal card overlay with `[Apply]`/`[Dismiss]` (spec §5.2).                                                                      |
+| A4  | Timeline / momentum view     | 2d   | 4     | B3     | Check-in timeline + momentum dots + celebration/identity beats + habit-loop close (one-question debrief, seeded next commitment / `Repeat this`, spec §5.6); shows scheduler activity without waiting on it. |
+| A5  | Frontend polish pass         | 3d   | 4     | A1–A4  | Responsive PWA, TEE attestation badge, audit-log "who changed what" view (spec §8.2), persona picker refinement. Freeze D17.                                                                                 |
 
 ### Lane B — Backend core (12d)
 
-| ID  | Task                           | Est. | Phase | Deps | Acceptance                                                                                                                                       |
-| --- | ------------------------------ | ---- | ----- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| B1  | FastAPI + SQLite skeleton      | 2d   | 2     | —    | Single-process app, async SQLAlchemy, commitment CRUD persists.                                                                                  |
-| B2  | SIWC end-to-end auth + billing | 3d   | 2     | S1   | OAuth2 PKCE, HttpOnly session, user token → inference billed to user. Week-1 item.                                                               |
-| B3  | Scheduler + WS + push delivery | 4d   | 3     | B1   | APScheduler jobs (cadence/deadline/win-back) rebuilt from DB at boot; delivery ladder WS → Web Push → timeline; `check now` independent of cron. |
-| B4  | State machine + audit log      | 3d   | 3     | B1   | Per-commitment lifecycle, miss path + stake email, audit log with AI-actor-unrepresentable CHECK constraint.                                     |
+| ID  | Task                           | Est. | Phase | Deps | Acceptance                                                                                                                                                                                                                      |
+| --- | ------------------------------ | ---- | ----- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| B1  | FastAPI + SQLite skeleton      | 2d   | 2     | —    | Single-process app, async SQLAlchemy, commitment CRUD persists.                                                                                                                                                                 |
+| B2  | SIWC end-to-end auth + billing | 3d   | 2     | S1   | OAuth2 PKCE, HttpOnly session, user token → inference billed to user; balance display via `/users/me`; labeled guest-mode `cpk_` fallback exists but is never demoed (spec §9.1, §12.4). Week-1 item.                           |
+| B3  | Scheduler + WS + push delivery | 4d   | 3     | B1   | APScheduler jobs (cadence/deadline/win-back) rebuilt from DB at boot; delivery ladder WS → Web Push → timeline; `check now` independent of cron.                                                                                |
+| B4  | State machine + audit log      | 3d   | 3     | B1   | Per-commitment lifecycle, miss path + stake email (SMTP/Resend, spec A5), win-back, proposal-apply endpoint (user session only), `success_patterns` write on outcome, audit log with AI-actor-unrepresentable CHECK constraint. |
 
 ### Lane C — AI layer (14d)
 
-| ID  | Task                                      | Est. | Phase | Deps   | Acceptance                                                                                                                                              |
-| --- | ----------------------------------------- | ---- | ----- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| C1  | Chutes client + structured-output harness | 2d   | 2     | S1     | json_schema strict harness + inline failover routing between model pairs.                                                                               |
-| C2  | Four prompt/schema sets                   | 5d   | 2–3   | C1     | Intake Q&A, plan proposal, evidence judging, workspace chat — incl. scope-boundary refusal enum. **Tuned before 22 Jun.**                               |
-| C3  | Evidence adapters + judge                 | 4d   | 3     | C1, S2 | Pluggable interface; GitHub adapter (trivial-commit filter `stats.total < 3`); screenshot → TEE vision; three-valued verdict, `unclear` never punishes. |
-| C4  | Persona tone tuning                       | 3d   | 4     | C2     | Skeptical-but-fair register across touchpoints; variant-persona QA (3 presets). Resolves spec Q3.                                                       |
+| ID  | Task                                      | Est. | Phase | Deps   | Acceptance                                                                                                                                                                                                            |
+| --- | ----------------------------------------- | ---- | ----- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| C1  | Chutes client + structured-output harness | 2d   | 2     | S1     | json_schema strict harness + inline failover routing between model pairs.                                                                                                                                             |
+| C2  | Four prompt/schema sets                   | 5d   | 2–3   | C1     | Intake Q&A, plan proposal, evidence judging, workspace chat — incl. scope-boundary refusal enum. **Tuned before 22 Jun.**                                                                                             |
+| C3  | Evidence adapters + judge                 | 4d   | 3     | C1, S2 | Pluggable interface; GitHub adapter (trivial-commit filter `stats.total < 3`); screenshot → TEE vision; three-valued verdict, `unclear` never punishes.                                                               |
+| C4  | Persona tone tuning                       | 3d   | 4     | C2     | Skeptical-but-fair register across touchpoints; variant-persona QA (3 presets). Implements the register chosen for Q3 (team taste decision due **D2–3**, not here); hero passes ideally land pre-22 Jun (spec §11.2). |
 
 ### Lane D — Voice, integration, demo (14d)
 
-| ID  | Task                          | Est. | Phase | Deps      | Acceptance                                                                                       |
-| --- | ----------------------------- | ---- | ----- | --------- | ------------------------------------------------------------------------------------------------ |
-| D1  | Piper + Whisper Docker stack  | 3d   | 2     | —         | wyoming-piper TTS + wyoming-faster-whisper STT in Docker, wired to backend.                      |
-| D2  | WebSpeech fallback path       | 1d   | 2     | —         | Web Speech API as demo-default voice path (no Docker dependency on stage).                       |
-| D3  | Web Push                      | 2d   | 3     | B3        | Service-worker push for closed-tab check-ins; falls back to timeline.                            |
-| D4  | Integration QA                | 4d   | 4     | all lanes | Full demo thread tested incl. determinism levers (`?demo_deadline=+5m`, pre-staged 2nd account). |
-| D5  | Demo script + video + Devpost | 4d   | 5     | D4        | 5-min script rehearsed (spec §12.5); video by D19; Devpost + README by D20.                      |
+| ID  | Task                          | Est. | Phase | Deps      | Acceptance                                                                                                                                                                                       |
+| --- | ----------------------------- | ---- | ----- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| D1  | Piper + Whisper Docker stack  | 3d   | 2     | —         | wyoming-piper TTS + wyoming-faster-whisper STT in Docker, wired to backend.                                                                                                                      |
+| D2  | WebSpeech fallback path       | 1d   | 2     | —         | Web Speech API as demo-default voice path (no Docker dependency on stage).                                                                                                                       |
+| D3  | Web Push                      | 2d   | 3     | B3        | Service-worker push for closed-tab check-ins; falls back to timeline.                                                                                                                            |
+| D4  | Integration QA                | 4d   | 4     | all lanes | Full demo thread tested incl. determinism levers (`?demo_deadline=+5m`, pre-staged 2nd account, pre-seeded momentum history on the demo account — spec §6.4).                                    |
+| D5  | Demo script + video + Devpost | 4d   | 5     | D4        | 5-min script (spec §12.5) with **daily dry-runs D17–20**, incl. deliberately triggering the scope-boundary refusal (spec §12.4); recorded backup footage; video by D19; Devpost + README by D20. |
 
 ## 6. Cross-lane dependency map
 
@@ -105,8 +115,8 @@ Integration choke points (watch weekly): **B3↔A4/D3** (delivery ladder), **C3�
 
 ## 7. MVP cut order (if a gate slips — spec §12.3)
 
-- **MUST (demo thread, cut bottom-up only if forced):** SIWC sign-in → persona pick → Compose → Context chat → Plan+Settings → `check now` GitHub verify → screenshot TEE judge → deadline verify (demo clock) → celebration/momentum → staged miss → stake email + win-back. Live2D + lip-synced TTS throughout.
-- **SHOULD (post-freeze, in order):** share card · trust meter · public-URL adapter · variant-persona tone QA · server-Whisper · closed-tab push · guard classifier · Kokoro TTS.
+- **MUST (demo thread, cut bottom-up only if forced):** SIWC sign-in **with balance display** → persona pick (3 presets, hero fully tuned) → Compose → Context chat (text; voice if stable) → Plan+Settings → Start → `check now` GitHub verify with in-character reaction → screenshot TEE judge → deadline verify (demo clock `?demo_deadline=+5m`) → celebration + identity + momentum → staged miss (pre-staged 2nd account) → stake email + win-back. Live2D + lip-synced TTS throughout; **real scheduler exists** (shown via timeline, not waited on).
+- **SHOULD (post-freeze, in priority order):** ① share card · ② trust meter · ③ public-URL adapter · ④ variant-persona tone QA · ⑤ server-Whisper · ⑥ closed-tab push · ⑦ guard classifier · ⑧ Kokoro TTS · expression variety · mobile polish · calibration suggestions.
 - **OUT (roadmap):** monetary stakes · more adapters · GitHub OAuth/private repos · multi-commitment · auto-recurring · crew/leaderboards · native mobile · true barge-in · retention features.
 
 ## 8. Working agreements
@@ -116,3 +126,5 @@ Integration choke points (watch weekly): **B3↔A4/D3** (delivery ladder), **C3�
 - **No SDK/engine migration after S3 locks** the Live2D stack.
 - **Demo determinism:** every demo beat fires from a deterministic trigger; nothing waits on a cron.
 - **Feature freeze D17** — after that, only SHOULD-list items and polish.
+- **Live2D assets never enter the repo:** raw model files stay `.gitignore`d; `scripts/download_models.sh` fetches them; Live2D copyright notice + #LiveroiD credit lines in README (spec §4.4).
+- **Shared Chutes account discipline:** quotas are per account with 4-h rolling-window smoothing — batch bulk eval loops off-hours; never architect features around subscription quotas (spec §3.2).

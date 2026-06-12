@@ -4,7 +4,7 @@
 >
 > |                     |                                                                                                               |
 > | ------------------- | ------------------------------------------------------------------------------------------------------------- |
-> | **Version**         | 0.1                                                                                                           |
+> | **Version**         | 0.2                                                                                                           |
 > | **Date**            | 2026-06-12                                                                                                    |
 > | **Source of truth** | `docs/kawan-spec.md` (10 Jun 2026). On conflict, the spec wins; flag the conflict, don't silently resolve it. |
 > | **Audience**        | Hackathon team + coding agents                                                                                |
@@ -127,7 +127,8 @@ Single-page app. The **character stage is persistent**; the context panel swaps.
 stateDiagram-v2
     [*] --> draft : compose
     draft --> active : Start
-    active --> lapsed : 2 consecutive silent check-ins
+    active --> active : check-in ticks (escalation up/down)
+    active --> lapsed : 2 consecutive silent check-ins (no evidence, no contact)
     lapsed --> active : user returns
     active --> verifying : deadline
     lapsed --> verifying : deadline
@@ -136,12 +137,16 @@ stateDiagram-v2
     grace --> completed : PASS within window
     grace --> missed : window expires
     verifying --> missed : FAIL, no grace
+    completed --> [*] : habit loop; seed next
+    missed --> [*] : stake fires (if opted); recovery offer
 ```
 
 - **TR-20** Grace window MUST be 6 h and MUST consume a skip-day (none left → no grace) (spec §5.3 `[DECISION]`).
 - **TR-21** Abandoning an active commitment with a stake on MUST trigger a confirm dialog and, on confirm, follow the `missed` path (stake fires) (spec §6.3 `[DECISION]`).
 - **TR-22** The WS hub MUST be per-user and broadcast to all of a user's connections; last-write-wins on chat (spec §6.3).
-- **TR-23** Win-back: exactly **one** nudge per lapse; idle >5 days earns one Monday "fresh start" nudge, then silence (spec §5.4, §5.6).
+- **TR-23** Win-back: exactly **one** nudge per lapse (a second lapse leaves the door open quietly); idle >5 days earns one Monday "fresh start" nudge, then silence (spec §5.4, §5.6).
+- **TR-69** Outcome flows MUST close the loop (spec §5.4, §5.6): on `completed` — celebration (motion + voice, specific to the evidence) → one-question debrief stored in `success_patterns.features` → seeded next commitment (V2 reopens pre-filled from calibration) + one-tap `Repeat this`. On `missed` — honest reckoning; if stake on, a **templated** email to the contact with the copy shown to the user; then an immediately offered smaller pre-composed rebuild draft (one tap → V2 step 3).
+- **TR-70** If notification permission is denied, check-ins MUST land in the in-app timeline; email is a fallback for **win-back and stake messages only**, never routine check-ins (spec §6.3).
 
 ## 5. Data Model (spec §8.1)
 
@@ -165,6 +170,7 @@ SQLite DDL, Postgres-portable. Tables:
 - **TR-26** Hard fields appear in prompts as `<read_only>` context, but nothing may depend on the model respecting it — a confused model can at worst _propose_ (spec §8.2).
 - **TR-27** GUI-only fields — repo URLs, stake contact names/emails — MUST never enter any LLM prompt or response (spec §5.1, §9.2-B PII rule).
 - **TR-28** The audit log MUST render as a "who changed what" UI view (judge-Q&A artifact: shown, not asserted) (spec §8.2).
+- **TR-71** The full DDL in spec §8.1 is normative, including columns not summarized above: `checkins.evidence_id`, `audit_log.{old_value,new_value,via_proposal_id}`, `proposals.{created_at,applied_at}`, `evidence.raw_ref` (commit SHAs / file path; file deleted post-verdict), `commitments.{skip_days_total DEFAULT 1, skip_days_used, escalation 0|1|2}`. Schema drift requires a spec update, not a silent change.
 
 ## 6. AI Layer (spec §9)
 
@@ -180,7 +186,7 @@ SQLite DDL, Postgres-portable. Tables:
 | Evidence judging (vision)                | `moonshotai/Kimi-K2.6-TEE,Qwen/Qwen3.5-397B-A17B-TEE`                                   | Strongest multimodal TEE; rare calls                                 |
 | Persona overrides                        | hero→gemma · "Adik"→`Qwen/Qwen3.6-27B-TEE` · "Cik Maid"→`deepseek-ai/DeepSeek-V3.2-TEE` | Per-persona model id (spec §11.3)                                    |
 
-- **TR-31** `GLM-5.1-TEE` is **text-only** and MUST NOT be routed screenshot-judging work (spec §3.1 correction).
+- **TR-31** `zai-org/GLM-5.1-TEE` is **text-only** and MUST NOT be routed any screenshot-judging work (spec §3.1 correction). Model ids MUST carry their org prefixes (`google/…`, `moonshotai/…`, `zai-org/…`).
 - **TR-32** Robustness = strict schemas + Pydantic re-validation of every structured response + one retry + inline failover (~50 lines, no framework) (spec §7.6-D2).
 - **TR-33** The proxy host `research-data-opt-in-proxy.chutes.ai` MUST NOT be used (records prompts; contradicts the privacy story) (spec §3.1).
 
@@ -204,6 +210,13 @@ SQLite DDL, Postgres-portable. Tables:
 - **TR-39** Verdict schema (strict json_schema, `additionalProperties:false`): `{verdict: enum["pass","fail","unclear"], confidence: number, observations: string[], reasoning: string, follow_up_request: string|null}` — all required.
 - **TR-40** Three-valued fairness rules MUST be enforced in the judge prompt: `pass` requires observations that _specifically_ connect to the deliverable; plausible-but-unprovable → `unclear` (never `fail`) + `follow_up_request`; `fail` reserved for contradiction or absence at final verify. `unclear` MUST never punish (spec §9.3, §2.2-H1).
 - **TR-41** Screenshot judging MUST use the OpenAI-vision message shape (text part with commitment + claimed progress, `image_url` data-URI part) against the vision failover pair (TR-30).
+
+### 6.4 Personas & engagement (spec §11)
+
+- **TR-72** Exactly **3 preset personas**, COMMITTED scope: data-driven via `personas.json` entries `{id, name, archetype, live2d, voice, llm, tone}` plus the `users.persona` column — picked once at first run (one screen after sign-in), switchable anytime in V6. Personas are **stateless presets**: switching mid-commitment changes the messenger, never the commitment state (spec §11.0–11.2). Mapping (spec §11.3): hero **"Kawan"** (skeptical concierge) = Haru-Receptionist + `google/gemma-4-31B-turbo-TEE` (MVP, deep tone QA); **"Adik"** (gentle cheerleader) = Hiyori + `Qwen/Qwen3.6-27B-TEE`; **"Cik Maid"** (playful taskmaster) = LiveroiD + `deepseek-ai/DeepSeek-V3.2-TEE` (variants ship functional). Under crunch, the de-scope lever is variant tone-QA depth — never the picker.
+- **TR-73** A persona varies ONLY: tone prompt fragment, Live2D model + expression mapping, Piper voice id, Chutes model id. Everything else MUST be invariant: all schemas (§9.2), permissions model, state machine, evidence pipeline, verdict rules, escalation ladder, scope boundary, cadence/stakes/habit mechanics (spec §11.1).
+- **TR-74** Identity titles (MVP): `Starter → Finisher → Shipper → Serial Shipper` at 1/3/5/10 **verified** wins, derived from `success_patterns` (no schema change), shown on V5 and woven into spoken lines (spec §11.4).
+- **TR-75** Engagement rule: gamify the relationship and verified wins, **never raw activity counts** (spec §11). Trust meter and win-receipt share card are post-freeze NICE items (priority ①–② in spec §12.3); if built, the share card MUST be a client-rendered PNG, **user-triggered only — never auto-posted** (spec §11.4); the trust meter never resets to zero. Crew/leaderboard/co-commitments are `[ROADMAP]` — do not build (spec §11.5).
 
 ## 7. Evidence Adapters (spec §10)
 
@@ -232,6 +245,7 @@ class EvidenceAdapter(Protocol):
 - **TR-52** Inference MUST be billed to the signed-in user: the stored SIWC access token is the Bearer on every chat-completions call (TR-29). This is the special-track core — the UI MUST display the user's Chutes balance (`GET /users/me`).
 - **TR-53** Guest mode: an env-var team `cpk_` key MAY power a **visibly-labeled** guest fallback if SIWC hiccups; SIWC remains the demoed default (spec §9.1 `[DECISION]`).
 - **TR-54** Token expiry mid-session: backend refresh-grant retry MUST be transparent; a second 401 surfaces a re-auth prompt (spec §6.3).
+- **TR-76** Flow details (spec §9.4): app registration includes `redirect_uris` (localhost + prod) and `allowed_scopes: ["openid","profile","chutes:invoke"]`; login generates a `code_verifier` (43–128 chars) + S256 challenge + `state`; callback sequence = verify `state` → `POST /idp/token` (form-encoded: code + verifier + client creds) → encrypt + store tokens → `GET /idp/userinfo` → upsert user → set HttpOnly session cookie.
 
 ## 9. Voice Pipeline (spec §7.4)
 
@@ -248,17 +262,17 @@ Mic → STT (WebSpeech default | wyoming-faster-whisper Docker, 300–600 ms CPU
 
 ## 10. Non-Functional Requirements
 
-| ID        | Area               | Requirement                                                                                                                                                                                                                                                                                    |
-| --------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **TR-58** | Security           | Structural permissions (TR-24–TR-27) are the safety model; prompt obedience MUST NOT be load-bearing anywhere.                                                                                                                                                                                 |
-| **TR-59** | Security           | Secrets (`cpk_`, `cid_`/`csc_`, Fernet key, VAPID keys, SMTP creds) live in env only; never committed.                                                                                                                                                                                         |
-| **TR-60** | Privacy/TEE        | All models TEE (`confidential_compute: true`); the UI 🔒 badge MUST link to the live attestation endpoint `GET api.chutes.ai/chutes/{chute_id}/evidence`; screenshots deleted post-verdict (spec §3.1, §9.3, §10.3).                                                                           |
-| **TR-61** | Determinism (demo) | Every accountability event MUST be triggerable deterministically: `Check now` (one code path), demo-clock flag `?demo_deadline=+5m`, intake demo cap of 3 questions, pre-staged second account for the miss path, low temperature + pre-tested images for the judge (spec §6.4, §12.3, §12.5). |
-| **TR-62** | Resilience         | Server restart mid-commitment MUST be safe: jobs rebuilt from DB at boot (TR-15); `check now` works independently of cron (spec §12.4).                                                                                                                                                        |
-| **TR-63** | Resilience         | Inline model failover pairs (TR-30) + one structured-output retry on every LLM call.                                                                                                                                                                                                           |
-| **TR-64** | Honesty            | No streaks anywhere; rewards bind to verified completions only, never stated intentions; misses render as neutral gaps, never red (spec §2.1, §5.4, §11.4).                                                                                                                                    |
-| **TR-65** | Honesty            | Stake email bounce MUST be logged and told to the user ("that one's on the house") — no silent fake accountability (spec §6.3).                                                                                                                                                                |
-| **TR-66** | Provenance         | Commit progressively from day 1; visibly attribute adapted OSS in README + commit messages (git history is judged; ZIP dumps disqualify) (spec §3.4).                                                                                                                                          |
+| ID        | Area               | Requirement                                                                                                                                                                                                                                                                                                                                     |
+| --------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **TR-58** | Security           | Structural permissions (TR-24–TR-27) are the safety model; prompt obedience MUST NOT be load-bearing anywhere.                                                                                                                                                                                                                                  |
+| **TR-59** | Security           | Secrets (`cpk_`, `cid_`/`csc_`, Fernet key, VAPID keys, SMTP creds) live in env only; never committed.                                                                                                                                                                                                                                          |
+| **TR-60** | Privacy/TEE        | All models TEE (`confidential_compute: true`); the UI 🔒 badge MUST link to the live attestation endpoint `GET api.chutes.ai/chutes/{chute_id}/evidence`; screenshots deleted post-verdict (spec §3.1, §9.3, §10.3).                                                                                                                            |
+| **TR-61** | Determinism (demo) | Every accountability event MUST be triggerable deterministically: `Check now` (one code path), demo-clock flag `?demo_deadline=+5m`, intake demo cap of 3 questions, pre-staged second account for the miss path, pre-seeded momentum history on the demo account, low temperature + pre-tested images for the judge (spec §6.4, §12.3, §12.5). |
+| **TR-62** | Resilience         | Server restart mid-commitment MUST be safe: jobs rebuilt from DB at boot (TR-15); `check now` works independently of cron (spec §12.4).                                                                                                                                                                                                         |
+| **TR-63** | Resilience         | Inline model failover pairs (TR-30) + one structured-output retry on every LLM call.                                                                                                                                                                                                                                                            |
+| **TR-64** | Honesty            | No streaks anywhere; rewards bind to verified completions only, never stated intentions; misses render as neutral gaps, never red (spec §2.1, §5.4, §11.4).                                                                                                                                                                                     |
+| **TR-65** | Honesty            | Stake email bounce MUST be logged and told to the user ("that one's on the house") — no silent fake accountability (spec §6.3).                                                                                                                                                                                                                 |
+| **TR-66** | Provenance         | Commit progressively from day 1; visibly attribute adapted OSS in README + commit messages (git history is judged; ZIP dumps disqualify) (spec §3.4).                                                                                                                                                                                           |
 
 ## 11. Environments & Config
 
@@ -295,7 +309,8 @@ App + SQLite run on a single VM/localhost + tunnel; voice containers on one team
 | Guest mode           | Visibly-labeled `cpk_` fallback                  | §9.1  |
 
 - **TR-67** Demo flags MUST be implemented as parameters of the _real_ code paths (e.g. demo deadline still goes through the genuine `deadline` job + final verify), never as separate stub flows.
-- **TR-68** Day-1/2 de-risk gate (spec §12.2): SIWC round-trip with inference verifiably billed to the user · one live vision-judge call · Live2D render with lip-sync from a Piper WAV · Pro-tier coverage check for the judge models. All four by D2 or the cut order (spec §12.3, bottom-up) begins. LLM-heavy tuning MUST finish before 22 Jun (Pro expiry).
+- **TR-68** Day-1/2 de-risk gate (spec §12.2): SIWC round-trip with inference verifiably billed to the user · one live vision-judge call · Live2D render with lip-sync from a Piper WAV · Pro-tier coverage check for the judge models (test call per judge model + `GET /users/me/subscription_usage`). All four by D2 or the cut order (spec §12.3, bottom-up) begins. LLM-heavy tuning MUST finish before 22 Jun (Pro expiry); quota is per-account, smoothed by a 4-hour rolling window — batch bulk eval loops off-hours (spec §3.2).
+- **TR-77** Scope guard (spec §12.2–12.3): feature freeze D17, demo video recorded by D19. The MUST set is the §12.3 demo-thread list, cuttable bottom-up only; NICE-to-haves land **post-freeze only**, in the spec's priority order (① share card · ② trust meter · ③ public-URL adapter · ④ variant tone QA · ⑤ server-Whisper · ⑥ closed-tab Web Push · ⑦ guard classifier · ⑧ Kokoro). Nothing tagged `[ROADMAP]` is built.
 
 ## 12. Technical Risks & Mitigations (spec §12.4, technical subset)
 
