@@ -242,3 +242,19 @@ rtk init --global       # Add RTK to ~/.claude/CLAUDE.md
 Overall average: **60-90% token reduction** on common development operations.
 
 <!-- /rtk-instructions -->
+
+# Kawan Project Conventions
+
+## Commit messages — Conventional Commits (enforced)
+
+All commits MUST follow [Conventional Commits](https://www.conventionalcommits.org/): `type(scope): subject`.
+
+- Allowed types: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `perf`, `build`, `ci`, `style`, `revert`.
+- Scope is optional but encouraged — use the lane or area: `feat(frontend): ...`, `fix(ai): ...`, `chore(tooling): ...`, `docs: ...`.
+- Subject in lower case, imperative mood, no trailing period.
+- Enforcement is mechanical: the husky `commit-msg` hook runs commitlint (rules in `commitlint.config.js`); non-conforming messages are rejected. Write conforming messages on the first attempt.
+- Judges review this repo's git history — keep messages meaningful; never use empty or placeholder messages.
+
+## Source of truth
+
+`docs/kawan-spec.md` decides. `docs/prd.md` (product), `docs/trd.md` (technical), and `docs/task-list.md` (lane assignments) are derived views — when they conflict with the spec, the spec wins; flag the discrepancy instead of silently picking one.
