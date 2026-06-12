@@ -79,15 +79,7 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ### Issue tracker
 
-GitHub Issues at `limyk0409/aicai-chjl` via the `gh` CLI. See `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-Default canonical labels: needs-triage, needs-info, ready-for-agent, ready-for-human, wontfix. See `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-Single-context: one `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+This repo is `kawan-chjl/dev` (`gh` CLI). Issue tracking is optional per teammate; `docs/task-list.md` is the canonical task assignment. Lane labels `lane:A`–`lane:D` and the five phase-gate milestones exist if you choose to file issues.
 
 <!-- matt-pocock-skills -->
 

@@ -17,6 +17,20 @@ Kawan helps you plan and holds you accountable. It **never does the work** and n
 | `frontend/` | React 18 + Vite + TypeScript, Live2D stage, PWA     | A    |
 | `backend/`  | FastAPI + SQLite + APScheduler, SIWC auth, AI layer | B/C  |
 
+## Quickstart
+
+```bash
+bun install                 # root: husky hooks + formatting tooling
+
+# frontend (http://localhost:5173, proxies /api and /ws to :8000)
+cd frontend && bun install && bun dev
+
+# backend (http://localhost:8000, needs uv: https://docs.astral.sh/uv/)
+cd backend && cp .env.example .env && uv sync && uv run uvicorn app.main:app --reload
+```
+
+Health check: `curl http://localhost:8000/api/health` → `{"status":"ok"}`.
+
 ## Team lanes
 
 - **A — Character & frontend**
@@ -24,7 +38,7 @@ Kawan helps you plan and holds you accountable. It **never does the work** and n
 - **C — AI layer**
 - **D — Voice, integration, demo**
 
-Task tracking lives in [Issues](../../issues) (labels `lane:A`–`lane:D`) with five phase-gate [milestones](../../milestones) running D1–D20 → submission 30 Jun 23:59 MYT.
+Lane responsibilities and the task breakdown live in [`docs/task-list.md`](./docs/task-list.md) (canonical), running D1–D20 → submission 30 Jun 23:59 MYT. GitHub Issues are optional per teammate; lane labels and phase-gate milestones exist on the repo if you want them.
 
 ## Attribution
 
