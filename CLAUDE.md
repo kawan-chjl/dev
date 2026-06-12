@@ -89,6 +89,8 @@ This repo is `kawan-chjl/dev` (`gh` CLI). Issue tracking is optional per teammat
 
 ## Golden Rule
 
+**Only if `rtk` is installed** (`which rtk`) — not all teammates have it. If it's missing, run commands directly and ignore this entire RTK section.
+
 **Always prefix commands with `rtk`**. If RTK has a dedicated filter, it uses it. If not, it passes through unchanged. This means RTK is always safe to use.
 
 **Important**: Even in command chains with `&&`, use `rtk`:
@@ -252,3 +254,7 @@ All commits MUST follow [Conventional Commits](https://www.conventionalcommits.o
 `docs/kawan-spec.md` decides. `docs/prd.md` (product), `docs/trd.md` (technical), and `docs/task-list.md` (lane assignments) are derived views — when they conflict with the spec, the spec wins; flag the discrepancy instead of silently picking one.
 
 Platform reference for Chutes API work lives in `docs/reference/` (chutes-llms.md is a snapshot of https://chutes.ai/llms.txt; the live URL is authoritative for API details).
+
+## Library docs — don't trust memory on pinned versions
+
+Before writing code against this repo's pinned libraries — **PixiJS v6 + pixi-live2d-display, React 18, FastAPI, SQLAlchemy 2 async, APScheduler 3.x** — verify current, version-correct APIs via the Context7 MCP tools rather than memory. Training-data drift on these (especially PixiJS, which is v8+ upstream while we pin v6) is the main source of subtle breakage.
