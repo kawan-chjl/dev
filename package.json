@@ -1,7 +1,7 @@
 {
   "scripts": {
     "format": "biome check --write . && prettier --write '**/*.md'",
-    "lint": "biome check .",
+    "lint": "biome check . && prettier --check '**/*.md'",
     "prepare": "husky"
   },
   "lint-staged": {
