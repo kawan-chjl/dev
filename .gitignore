@@ -29,3 +29,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Live2D model files — fetched via scripts/download_models.sh, never committed (license: spec 4.4)
+frontend/public/models/
