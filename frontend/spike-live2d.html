@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>S3 Spike — Live2D + Lip-Sync</title>
+    <!-- Cubism 4 core MUST load before the ES module -->
+    <script src="/live2dcubismcore.min.js"></script>
+    <style>
+      body {
+        margin: 0;
+        background: #0d0d1a;
+        color: #e0e0ff;
+        font-family: system-ui, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 16px;
+        gap: 12px;
+      }
+      h1 { font-size: 1.1rem; margin: 0; }
+      #status { font-size: 0.85rem; opacity: 0.75; min-height: 1.2em; }
+      canvas { border-radius: 8px; display: block; }
+      button {
+        padding: 10px 24px;
+        font-size: 1rem;
+        background: #5050cc;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      button:disabled { opacity: 0.4; cursor: default; }
+    </style>
+  </head>
+  <body>
+    <h1>Spike S3 — Live2D render + WAV lip-sync</h1>
+    <p id="status">Loading…</p>
+    <canvas id="live2d-canvas" width="600" height="700"></canvas>
+    <button id="play-btn" disabled>▶ Play WAV (lip-sync)</button>
+    <script type="module" src="/src/spike/live2d-spike.ts"></script>
+  </body>
+</html>
