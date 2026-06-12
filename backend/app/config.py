@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     chutes_inference_base_url: str = "https://llm.chutes.ai/v1"
     chutes_api_key: str = ""  # team cpk_ token (dev/spikes); user SIWC tokens replace this per-request in prod
     siwc_client_id: str = ""
+    siwc_client_secret: str = ""
+    siwc_app_id: str = ""
     siwc_redirect_uri: str = "http://localhost:5173/auth/callback"
     session_secret: str = "dev-only-change-me"
 
