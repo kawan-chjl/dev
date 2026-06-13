@@ -23,7 +23,8 @@ outbox: list[dict] = []
 async def send_email(to_email: str, subject: str, body: str) -> bool:
     if not settings.resend_api_key:
         outbox.append({"to": to_email, "subject": subject, "body": body})
-        logger.info("outbox (no RESEND_API_KEY): to=%s subject=%s", to_email, subject)
+        # Recipient is stake-contact PII — keep it out of logs (TR-27).
+        logger.info("outbox (no RESEND_API_KEY): queued %r (recipient redacted)", subject)
         return True
     try:
         async with httpx.AsyncClient(timeout=30) as client:

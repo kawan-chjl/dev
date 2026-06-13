@@ -135,6 +135,19 @@ async def test_proposal_apply_requires_a_session(db):
     assert r.status_code == 401
 
 
+async def test_proposal_apply_rejects_non_whitelisted_field(client, db):
+    """A proposal naming a non-hard-field (e.g. status) must not reach setattr — that
+    would be a state-machine bypass (TR-37)."""
+    cid = (await client.post("/api/commitments",
+                             json={"action": "ship", "deliverable": "d", "deadline": _future()})).json()["id"]
+    p = Proposal(commitment_id=cid, field="status", proposed_value="completed", reason="sneaky")
+    db.add(p)
+    await db.commit()
+    r = await client.post(f"/api/commitments/{cid}/proposals/{p.id}/apply")
+    assert r.status_code == 422
+    assert (await db.get(Commitment, cid)).status == "draft"  # untouched
+
+
 # --- TR-21: abandon-with-stake follows the missed path ----------------------------
 
 async def test_abandon_with_stake_follows_missed_path(client):

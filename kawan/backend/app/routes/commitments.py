@@ -22,6 +22,7 @@ router = APIRouter(prefix="/commitments")
 
 _SOFT_SLOTS = ("why", "obstacles", "time_constraints", "skill")
 _OPEN_STATUSES = ("draft", "active", "lapsed", "verifying", "grace")
+_PROPOSAL_FIELDS = ("deadline", "deliverable", "cadence", "evidence_type", "stake")  # TR-37 enum
 
 
 async def _owned(commitment_id: str, user: User = Depends(current_user),
@@ -154,11 +155,18 @@ async def apply_proposal(pid: str, c: Commitment = Depends(_owned), db: AsyncSes
         raise HTTPException(status.HTTP_404_NOT_FOUND, "proposal not found")
     if p.status != "open":
         raise HTTPException(status.HTTP_409_CONFLICT, "proposal already resolved")
+    if p.field not in _PROPOSAL_FIELDS:
+        # Whitelist the mutable hard fields (TR-37) — a stray field must never reach setattr,
+        # or the apply becomes a state-machine bypass.
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "proposal field not allowed")
 
     field = p.field
     if field == "deadline":
         old = c.deadline
-        c.deadline = datetime.fromisoformat(p.proposed_value) if isinstance(p.proposed_value, str) else p.proposed_value
+        try:
+            c.deadline = datetime.fromisoformat(p.proposed_value) if isinstance(p.proposed_value, str) else p.proposed_value
+        except (TypeError, ValueError):
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "invalid proposed deadline") from None
     elif field == "stake":
         val = p.proposed_value or {}
         old = c.stake_enabled

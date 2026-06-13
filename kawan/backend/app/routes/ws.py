@@ -51,4 +51,6 @@ async def workspace(ws: WebSocket):
                     result["proposal_id"] = prop.id
             await ws.send_json({"type": "workspace", **result})
     except WebSocketDisconnect:
-        hub.disconnect(uid, ws)
+        pass
+    finally:
+        hub.disconnect(uid, ws)  # always release the hub slot, even on unexpected errors

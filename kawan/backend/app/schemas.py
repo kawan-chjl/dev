@@ -19,7 +19,8 @@ class CommitmentCreate(BaseModel):
     @field_validator("deadline")
     @classmethod
     def _future(cls, v: datetime) -> datetime:
-        if as_utc(v) <= now_utc():
+        v = as_utc(v)  # normalize naive input to UTC so downstream comparisons stay aware
+        if v <= now_utc():
             raise ValueError("deadline must be in the future")
         return v
 

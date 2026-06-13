@@ -69,13 +69,18 @@ async def handle_callback(request: Request, code: str, state: str, db: AsyncSess
         if tok.status_code != 200:
             raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"token exchange failed: {tok.text[:200]}")
         body = tok.json()
+        if "access_token" not in body or "refresh_token" not in body:
+            raise HTTPException(status.HTTP_502_BAD_GATEWAY, "token response missing tokens")
         info = await client.get(settings.idp_userinfo_url,
                                 headers={"Authorization": f"Bearer {body['access_token']}"})
         if info.status_code != 200:
             raise HTTPException(status.HTTP_502_BAD_GATEWAY, "userinfo failed")
         claims = info.json()
 
-    uid = str(claims.get("user_id") or claims.get("sub"))
+    uid = claims.get("user_id") or claims.get("sub")
+    if not uid:  # never attach a session to a synthesized "None" user
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "userinfo missing subject")
+    uid = str(uid)
     username = claims.get("username") or claims.get("preferred_username") or claims.get("name") or uid
     user = await _upsert_user(db, uid, username, body)
     request.session["user_id"] = uid
