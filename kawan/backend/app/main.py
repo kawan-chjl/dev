@@ -2,21 +2,32 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 
+from app import models  # noqa: F401 - registers all tables on Base.metadata before create_all
+from app import scheduler as sched
 from app.config import settings
 from app.db import Base, engine
+from app.routes import auth, commitments, me, push, ws
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Dev convenience until proper migrations land; scheduler jobs are also rebuilt here later (TR: restart resilience)
+    # Dev convenience until proper migrations land.
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    yield
+    sched.start()
+    await sched.rebuild_from_db()  # restart resilience: jobs rebuilt from DB (TR-15)
+    try:
+        yield
+    finally:
+        sched.shutdown()
 
 
 app = FastAPI(title="Kawan API", lifespan=lifespan)
 
+# SessionMiddleware: HttpOnly signed cookie carrying user_id only (tokens stay server-side).
+app.add_middleware(SessionMiddleware, secret_key=settings.session_secret, same_site="lax", https_only=False)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[settings.frontend_origin],
@@ -29,3 +40,8 @@ app.add_middleware(
 @app.get("/api/health")
 async def health() -> dict:
     return {"status": "ok"}
+
+
+for _router in (auth.router, commitments.router, me.router, push.router):
+    app.include_router(_router, prefix="/api")
+app.include_router(ws.router)  # WS at /ws (vite proxies it unprefixed)

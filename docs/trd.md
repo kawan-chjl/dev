@@ -109,6 +109,7 @@ Single-page app. The **character stage is persistent**; the context panel swaps.
 | `POST /commitments/{id}/start`                  | → active; register jobs                             |
 | `POST /commitments/{id}/check`                  | **On-demand check-in — the demo determinism lever** |
 | `POST /commitments/{id}/evidence`               | Screenshot upload → judge → verdict                 |
+| `POST /commitments/{id}/abandon`                | Abandon → missed path; stake fires (TR-21, §6.3)    |
 | `POST /commitments/{id}/proposals/{pid}/apply`  | User applies an AI proposal                         |
 | `GET /commitments/{id}/timeline`                | Event feed                                          |
 | `WS /ws`                                        | Chat turns ↑ · check-ins / verdicts / audio ↓       |
@@ -152,25 +153,25 @@ stateDiagram-v2
 
 SQLite DDL, Postgres-portable. Tables:
 
-| Table                | Purpose                                                                                                                                             | Write access                                        |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| `users`              | Chutes user id, username, persona, **encrypted** OAuth tokens (Fernet, key in env)                                                                  | Auth layer                                          |
-| `commitments`        | **HARD FIELDS** — action, deliverable, deadline, cadence, evidence_type/config, stake (enabled + contact name/email), skip_days, status, escalation | GUI handlers + scheduler/verifier **only**          |
-| `soft_context`       | `{why, obstacles, time_constraints, skill}`                                                                                                         | **The ONLY table the AI may write** (intake UPSERT) |
-| `plans`              | `roadmap_json` `[{order,title,est_minutes,note}]` + rationale — **advice only**, no per-step state                                                  | Plan handler                                        |
-| `proposals`          | AI-suggested hard-field changes; `status ∈ open\|applied\|dismissed`                                                                                | AI creates; only user session applies               |
-| `checkins`           | kind (`cadence\|on_demand\|deadline\|winback`), message, escalation, `delivered_via` (`ws\|webpush\|timeline`)                                      | Pipeline                                            |
-| `evidence`           | adapter (`github\|screenshot`), raw_ref, verdict (`pass\|fail\|unclear`), confidence, reasoning                                                     | Adapters/judge                                      |
-| `success_patterns`   | outcome + features JSON (`deadline_hour, cadence, duration_days, used_skip`) — habit calibration                                                    | Completion/miss handlers                            |
-| `audit_log`          | Every hard-field mutation with actor                                                                                                                | Apply/system handlers                               |
-| `push_subscriptions` | Web Push subscriptions                                                                                                                              | Push endpoint                                       |
+| Table                | Purpose                                                                                                                                                                           | Write access                                        |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| `users`              | Chutes user id, username, persona, **encrypted** OAuth tokens (Fernet, key in env)                                                                                                | Auth layer                                          |
+| `commitments`        | **HARD FIELDS** — action, deliverable, deadline, cadence, evidence_type/config, stake (enabled + contact name/email), skip_days, status, escalation, `last_contact_at` (ADR-0002) | GUI handlers + scheduler/verifier **only**          |
+| `soft_context`       | `{why, obstacles, time_constraints, skill}`                                                                                                                                       | **The ONLY table the AI may write** (intake UPSERT) |
+| `plans`              | `roadmap_json` `[{order,title,est_minutes,note}]` + rationale — **advice only**, no per-step state                                                                                | Plan handler                                        |
+| `proposals`          | AI-suggested hard-field changes; `status ∈ open\|applied\|dismissed`                                                                                                              | AI creates; only user session applies               |
+| `checkins`           | kind (`cadence\|on_demand\|deadline\|winback`), message, escalation, `delivered_via` (`ws\|webpush\|timeline`)                                                                    | Pipeline                                            |
+| `evidence`           | adapter (`github\|screenshot`), raw_ref, verdict (`pass\|fail\|unclear`), confidence, reasoning                                                                                   | Adapters/judge                                      |
+| `success_patterns`   | outcome + features JSON (`deadline_hour, cadence, duration_days, used_skip`) — habit calibration                                                                                  | Completion/miss handlers                            |
+| `audit_log`          | Every hard-field mutation with actor                                                                                                                                              | Apply/system handlers                               |
+| `push_subscriptions` | Web Push subscriptions                                                                                                                                                            | Push endpoint                                       |
 
 - **TR-24** The `audit_log.actor` column MUST carry `CHECK (actor IN ('user','system'))` — an AI actor is **unrepresentable by schema** (spec §8.1).
 - **TR-25** Permissions MUST be structural, not prompt-based (spec §8.2): the agent layer MUST have **no write path** to `commitments`; the only DB write reachable from any LLM output is the `soft_context` UPSERT. AI hard-field suggestions can only become `proposals` rows; applying requires the user's session and writes `audit_log` with `actor='user'`.
 - **TR-26** Hard fields appear in prompts as `<read_only>` context, but nothing may depend on the model respecting it — a confused model can at worst _propose_ (spec §8.2).
 - **TR-27** GUI-only fields — repo URLs, stake contact names/emails — MUST never enter any LLM prompt or response (spec §5.1, §9.2-B PII rule).
 - **TR-28** The audit log MUST render as a "who changed what" UI view (judge-Q&A artifact: shown, not asserted) (spec §8.2).
-- **TR-71** The full DDL in spec §8.1 is normative, including columns not summarized above: `checkins.evidence_id`, `audit_log.{old_value,new_value,via_proposal_id}`, `proposals.{created_at,applied_at}`, `evidence.raw_ref` (commit SHAs / file path; file deleted post-verdict), `commitments.{skip_days_total DEFAULT 1, skip_days_used, escalation 0|1|2}`. Schema drift requires a spec update, not a silent change.
+- **TR-71** The full DDL in spec §8.1 is normative, including columns not summarized above: `checkins.evidence_id`, `audit_log.{old_value,new_value,via_proposal_id}`, `proposals.{created_at,applied_at}`, `evidence.raw_ref` (commit SHAs / file path; file deleted post-verdict), `commitments.{skip_days_total DEFAULT 1, skip_days_used, escalation 0|1|2, last_contact_at}`. Schema drift requires a spec update, not a silent change — `commitments.last_contact_at` is the one ratified addition (the Lapse "no contact" signal, **ADR-0002**), now reflected in spec §8.1.
 
 ## 6. AI Layer (spec §9)
 
@@ -239,7 +240,7 @@ class EvidenceAdapter(Protocol):
 
 ## 8. Auth & Billing — SIWC (spec §3.3, §9.4)
 
-- **TR-49** OAuth2 Authorization Code + **PKCE S256** against `idp.chutes.ai` OIDC discovery (authorize/token/userinfo at `/idp/authorize`, `/idp/token`, `/idp/userinfo`); scopes `["openid","profile","chutes:invoke"]` (+`billing:read` only if `/users/me` balance requires it — day-1 check Q4). `state` MUST be verified on callback.
+- **TR-49** OAuth2 Authorization Code + **PKCE S256** against Chutes' OIDC endpoints at **`api.chutes.ai/idp/*`** (`/idp/authorize`, `/idp/token`, `/idp/userinfo`) — host confirmed by the platform reference (`docs/reference/chutes-llms.md`) and the S1 spike; **not** `idp.chutes.ai`. Scopes `["openid","profile","chutes:invoke"]` (+`billing:read` only if `/users/me` balance requires it — resolved by Q4: not needed). `state` MUST be verified on callback.
 - **TR-50** App registered once via `POST /idp/apps` (team `cpk_` key) → `cid_`/`csc_` stored in env, never in the repo.
 - **TR-51** Tokens (access ≈1 h, refresh grant) MUST be encrypted at rest (Fernet, key in env) and **never reach the browser**; the client holds only an HttpOnly session cookie (spec §8.1, §9.4).
 - **TR-52** Inference MUST be billed to the signed-in user: the stored SIWC access token is the Bearer on every chat-completions call (TR-29). This is the special-track core — the UI MUST display the user's Chutes balance (`GET /users/me`).

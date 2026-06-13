@@ -11,6 +11,10 @@ dependencies = [
     "apscheduler>=3.10,<4",
     "pydantic-settings>=2.6",
     "httpx>=0.27",
+    "itsdangerous>=2.2",        # Starlette SessionMiddleware (signed cookie)
+    "cryptography>=43",         # Fernet token-at-rest (TR-51)
+    "pywebpush>=2.0",           # Web Push send side (TR-17)
+    "python-multipart>=0.0.9",  # evidence screenshot upload
 ]
 
 [dependency-groups]
@@ -26,3 +30,4 @@ target-version = "py312"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+pythonpath = ["."]
