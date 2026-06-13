@@ -105,7 +105,15 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ### Issue tracker
 
-This repo is `kawan-chjl/dev` (`gh` CLI). Issue tracking is optional per teammate; `docs/task-list.md` is the canonical task assignment. Lane labels `lane:A`–`lane:D` and the five phase-gate milestones exist if you choose to file issues.
+Issues live in the `kawan-chjl/dev` GitHub repo via the `gh` CLI. Tracking is optional per teammate — `docs/task-list.md` stays the canonical task assignment; `lane:A`–`lane:D` and the five phase-gate milestones exist if you choose to file issues. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Five canonical triage roles map to identically-named labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` + `docs/adr/` at the repo root (created lazily by `/grill-with-docs`). See `docs/agents/domain.md`.
 
 <!-- matt-pocock-skills -->
 
