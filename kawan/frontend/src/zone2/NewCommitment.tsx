@@ -137,9 +137,10 @@ interface PlanProps {
   commitment: Commitment
   onCommitmentChange: (c: Commitment) => void
   starting: boolean
+  startError: string | null
 }
 
-function PlanStep({ commitment, onCommitmentChange, starting }: PlanProps) {
+function PlanStep({ commitment, onCommitmentChange, starting, startError }: PlanProps) {
   const evidenceType = commitment.evidence_type as EvidenceType
   const repo =
     commitment.evidence_config !== null && typeof commitment.evidence_config.repo === 'string'
@@ -147,6 +148,11 @@ function PlanStep({ commitment, onCommitmentChange, starting }: PlanProps) {
       : ''
 
   async function handleCadenceChange(value: string) {
+    if (MOCK_AUTH) {
+      // Mock mode: no network call — update local state only.
+      onCommitmentChange({ ...commitment, cadence: value })
+      return
+    }
     try {
       const updated = await patchCommitment(commitment.id, { cadence: value })
       onCommitmentChange(updated)
@@ -156,6 +162,12 @@ function PlanStep({ commitment, onCommitmentChange, starting }: PlanProps) {
   }
 
   async function handleEvidenceTypeChange(value: EvidenceType) {
+    if (MOCK_AUTH) {
+      // Mock mode: no network call — update local state only.
+      const evidence_config = value === 'github' ? (commitment.evidence_config ?? {}) : null
+      onCommitmentChange({ ...commitment, evidence_type: value, evidence_config })
+      return
+    }
     try {
       // Clear repo when switching away from github
       const evidence_config = value === 'github' ? (commitment.evidence_config ?? {}) : null
@@ -170,6 +182,11 @@ function PlanStep({ commitment, onCommitmentChange, starting }: PlanProps) {
   }
 
   async function handleRepoChange(value: string) {
+    if (MOCK_AUTH) {
+      // Mock mode: no network call — update local state only.
+      onCommitmentChange({ ...commitment, evidence_config: { repo: value } })
+      return
+    }
     try {
       const updated = await patchCommitment(commitment.id, {
         evidence_config: { repo: value }
@@ -181,6 +198,11 @@ function PlanStep({ commitment, onCommitmentChange, starting }: PlanProps) {
   }
 
   async function handleSkipDaysChange(value: number) {
+    if (MOCK_AUTH) {
+      // Mock mode: no network call — update local state only.
+      onCommitmentChange({ ...commitment, skip_days_total: value })
+      return
+    }
     try {
       const updated = await patchCommitment(commitment.id, { skip_days_total: value })
       onCommitmentChange(updated)
@@ -220,6 +242,8 @@ function PlanStep({ commitment, onCommitmentChange, starting }: PlanProps) {
           Roadmap appears here once Kawan reviews your context — coming with the AI layer (Lane C)
         </p>
       </div>
+
+      {startError && <p className="compose-error">{startError}</p>}
 
       {/* Safe hard-field GUI controls (GUI-set, user session, never AI — TR-25/26) */}
       <div className="plan-settings">
@@ -317,6 +341,7 @@ export function NewCommitment() {
   // Created commitment (holds id + server defaults for Plan step).
   const [commitment, setCommitment] = useState<Commitment | null>(null)
   const [starting, setStarting] = useState(false)
+  const [startError, setStartError] = useState<string | null>(null)
 
   // ── Compose → Continue ────────────────────────────────────────────────────
 
@@ -380,13 +405,14 @@ export function NewCommitment() {
     }
 
     setStarting(true)
+    setStartError(null)
     try {
       await startCommitment(commitment.id)
       navigate('/home')
-    } catch {
-      // Start failed — navigate anyway; the commitment remains in draft.
-      // In production this should surface an error but the plan scopes "navigate /home" as success path.
-      navigate('/home')
+    } catch (err) {
+      // Start failed — stay on the Plan step and surface the error so it isn't silently hidden.
+      const msg = err instanceof Error ? err.message : 'Failed to start commitment. Please try again.'
+      setStartError(msg)
     } finally {
       setStarting(false)
     }
@@ -424,7 +450,12 @@ export function NewCommitment() {
     }
     // step === 2
     return commitment !== null ? (
-      <PlanStep commitment={commitment} onCommitmentChange={setCommitment} starting={starting} />
+      <PlanStep
+        commitment={commitment}
+        onCommitmentChange={setCommitment}
+        starting={starting}
+        startError={startError}
+      />
     ) : (
       // Fallback: commitment missing (shouldn't happen; user can't skip Compose).
       <div className="plan-step">
