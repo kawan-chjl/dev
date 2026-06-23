@@ -13,7 +13,8 @@
     "pixi-live2d-display": "^0.4.0",
     "pixi.js": "6",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^7.18.0"
   },
   "devDependencies": {
     "@types/node": "^24.12.3",

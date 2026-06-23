@@ -1,0 +1,61 @@
+/* Warm Witness design tokens — design.md §2–§4 */
+:root {
+  /* Color tokens */
+  --bg: #f4f0e9;
+  --surface: #fbf9f4;
+  --surface-sunk: #e7e0d4;
+  --ink: #2a211c;
+  --ink-soft: #6b5f55;
+  --muted: #b8afa2;
+  --line: #2a211c1f;
+  --accent: #c16a47;
+  --accent-press: #a8552f;
+  --sage: #afc2b4;
+  --sage-deep: #7e9684;
+  --evening: #2e2722;
+
+  /* Typography */
+  --font-display: "Fraunces", Georgia, serif;
+  --font-body: "Inter", system-ui, sans-serif;
+
+  /* Type scale (rem, 1rem = 16px) */
+  --text-display: 3rem; /* 48px, range 2.5–3.5rem */
+  --text-h1: 2rem; /* 32px */
+  --text-h2: 1.5rem; /* 24px */
+  --text-h3: 1.25rem; /* 20px */
+  --text-body: 1rem; /* 16px */
+  --text-small: 0.875rem; /* 14px */
+  --text-caption: 0.75rem; /* 12px */
+
+  /* Line heights */
+  --lh-heading: 1.15;
+  --lh-body: 1.55;
+
+  /* Radii */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+
+  /* Spacing (4px scale) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Shadows (soft warm-tinted) */
+  --shadow-sm: 0 2px 8px rgba(42, 33, 28, 0.06);
+  --shadow-md: 0 8px 24px rgba(42, 33, 28, 0.08);
+
+  /* Breakpoint */
+  --bp-mobile: 768px;
+
+  /* Motion */
+  --duration-ui: 180ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
