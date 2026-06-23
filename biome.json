@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!kawan/frontend/public"]
+    "includes": ["**", "!kawan/frontend/public", "!kawan/frontend/spike-live2d.html"]
   },
   "formatter": {
     "enabled": true,
