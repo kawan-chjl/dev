@@ -1,5 +1,8 @@
-// AuthCallback — /auth/callback (stub — no real token exchange)
-// Shows a spinner and mock-redirects to /welcome after a short delay.
+// AuthCallback — /auth/callback
+// Resilience shim: if the Chutes IdP redirected here (i.e. the .env KAWAN_SIWC_REDIRECT_URI
+// points at /auth/callback instead of /api/auth/siwc/callback), forward the OAuth params to
+// the backend so it can complete the exchange natively.
+// If there are no OAuth params (stale bookmark, direct visit), go straight to /.
 
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -8,9 +11,14 @@ export function AuthCallback() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    // MOCK: In production, exchange PKCE code + state here via POST /api/auth/siwc/callback.
-    const timer = setTimeout(() => navigate('/welcome'), 1500)
-    return () => clearTimeout(timer)
+    const search = window.location.search
+    const params = new URLSearchParams(search)
+    if (params.has('code') || params.has('state')) {
+      // Forward to the backend callback; it sets the session cookie and 303s back to /.
+      window.location.replace(`/api/auth/siwc/callback${search}`)
+    } else {
+      navigate('/', { replace: true })
+    }
   }, [navigate])
 
   return (

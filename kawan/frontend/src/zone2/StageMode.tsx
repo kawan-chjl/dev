@@ -2,8 +2,8 @@
 // Driven by mock conversation turns. Tap-to-advance through dialogue.
 
 import { useRef } from 'react'
+import { useAuth } from '../auth/AuthProvider'
 import type { ConversationTurn } from '../mock/fixtures'
-import { getMe } from '../mock/provider'
 import type { Emotion } from '../types/api'
 import type { Live2DStageHandle } from './live2d/Live2DStageView'
 import { Live2DStageView } from './live2d/Live2DStageView'
@@ -21,7 +21,8 @@ export function StageMode({ turns, currentIndex, onAdvance }: StageModeProps) {
   const current = turns[currentIndex]
   const isKawan = current?.speaker === 'kawan'
   const hasAction = current?.action != null
-  const persona = getMe().persona
+  const { me } = useAuth()
+  const persona = me?.persona ?? 'kawan'
 
   const stageRef = useRef<Live2DStageHandle>(null)
 

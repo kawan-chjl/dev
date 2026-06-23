@@ -2,16 +2,20 @@
 // Persona switcher (3 presets), Chutes balance, push toggle, stake contact book, logout.
 
 import { useState } from 'react'
-import { getMe, listPersonas } from '../../mock/provider'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../auth/AuthProvider'
+import { listPersonas } from '../../mock/provider'
 import type { Persona } from '../../types/api'
 import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
 
 export function Settings() {
-  const me = getMe()
+  const { me, signOut } = useAuth()
+  const navigate = useNavigate()
   const personas = listPersonas()
-  const [selectedPersona, setSelectedPersona] = useState<Persona>(me.persona)
+  const [selectedPersona, setSelectedPersona] = useState<Persona>(me?.persona ?? 'kawan')
   const [pushEnabled, setPushEnabled] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
 
   return (
     <div className="shell-page">
@@ -53,7 +57,7 @@ export function Settings() {
         <Card>
           <div className="balance-row">
             <span className="balance-label">Available</span>
-            <span className="balance-value">{me.balance != null ? `$${me.balance.toFixed(2)}` : '—'}</span>
+            <span className="balance-value">{me?.balance != null ? `$${me.balance.toFixed(2)}` : '—'}</span>
           </div>
           <p className="balance-note">Inference is billed to your Chutes account via SIWC.</p>
         </Card>
@@ -101,7 +105,21 @@ export function Settings() {
 
       {/* Logout */}
       <section className="settings-section settings-danger">
-        <Button variant="secondary">Sign out</Button>
+        <Button
+          variant="secondary"
+          disabled={signingOut}
+          onClick={async () => {
+            setSigningOut(true)
+            try {
+              await signOut()
+              navigate('/')
+            } finally {
+              setSigningOut(false)
+            }
+          }}
+        >
+          Sign out
+        </Button>
       </section>
     </div>
   )

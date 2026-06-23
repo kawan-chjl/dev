@@ -1,12 +1,16 @@
 // Landing — Zone 0, / (public, no shell chrome)
 // Full-bleed warm cream editorial hero. Single CTA: "Sign in with Chutes".
-// SIWC auth deferred — CTA routes to /welcome for now.
 
-import { useNavigate } from 'react-router-dom'
+import { Navigate } from 'react-router-dom'
+import { useAuth } from '../auth/AuthProvider'
+import { loginRedirect } from '../auth/api'
 import { Button } from '../ui/Button'
 
 export function Landing() {
-  const navigate = useNavigate()
+  const { status } = useAuth()
+
+  // Authenticated users visiting / (e.g. after the IdP redirect) go straight to the app.
+  if (status === 'authenticated') return <Navigate to="/home" replace />
 
   return (
     <div className="landing-root">
@@ -38,7 +42,7 @@ export function Landing() {
           <Button
             variant="accent"
             className="landing-cta-btn"
-            onClick={() => navigate('/welcome')}
+            onClick={() => loginRedirect()}
             aria-label="Sign in with Chutes to get started"
           >
             Sign in with Chutes
