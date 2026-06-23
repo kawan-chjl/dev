@@ -1,8 +1,10 @@
-"""SIWC auth + guest endpoints (spec §7.5). The backend handles the OAuth callback
-directly and only ever sets an HttpOnly session cookie — tokens stay server-side."""
+"""SIWC auth + guest + email/password endpoints (spec §7.5). The backend handles
+the OAuth callback directly and only ever sets an HttpOnly session cookie — tokens
+stay server-side. Email/password is a PO-authorized spec deviation (see CONTEXT.md)."""
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import auth
@@ -10,6 +12,7 @@ from app.config import settings
 from app.db import get_session
 from app.deps import current_user
 from app.models import User
+from app.schemas import LoginIn, RegisterIn
 
 router = APIRouter(prefix="/auth")
 
@@ -45,3 +48,27 @@ async def guest(request: Request, db: AsyncSession = Depends(get_session)):
     await auth.ensure_guest_user(db)
     request.session["user_id"] = auth.GUEST_USER_ID
     return {"ok": True, "guest": True}
+
+
+@router.post("/register", status_code=status.HTTP_201_CREATED)
+async def register(body: RegisterIn, request: Request, db: AsyncSession = Depends(get_session)):
+    """Create an email/password user and auto-login (no separate verify step — hackathon scope).
+    409 on duplicate email; 422 on validation failure (short password, bad email).
+    Security note: email verification and rate-limiting are known gaps; flag for post-hackathon."""
+    try:
+        user = await auth.create_email_user(db, body.email, body.password)
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status.HTTP_409_CONFLICT, "email already registered")
+    request.session["user_id"] = user.id
+    return {"ok": True, "guest": False}
+
+
+@router.post("/login")
+async def login(body: LoginIn, request: Request, db: AsyncSession = Depends(get_session)):
+    """Verify email/password and set the session cookie. 401 on bad credentials."""
+    user = await auth.get_user_by_email(db, body.email)
+    if user is None or user.password_hash is None or not auth.verify_password(user.password_hash, body.password):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "wrong email or password")
+    request.session["user_id"] = user.id
+    return {"ok": True, "guest": False}
