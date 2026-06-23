@@ -2,7 +2,7 @@
 // design.md §6 Zone 1, layer 2.
 
 import { Link, useLocation } from 'react-router-dom'
-import { getMe } from '../mock/provider'
+import { useAuth } from '../auth/AuthProvider'
 
 interface TopbarProps {
   onMenuOpen: () => void
@@ -25,8 +25,8 @@ function useRouteTitle(): string {
 
 export function Topbar({ onMenuOpen }: TopbarProps) {
   const title = useRouteTitle()
-  const me = getMe()
-  const balanceDisplay = me.balance != null ? `$${me.balance.toFixed(2)}` : '—'
+  const { me } = useAuth()
+  const balanceDisplay = me?.balance != null ? `$${me.balance.toFixed(2)}` : '—'
 
   return (
     <header className="topbar">
@@ -44,7 +44,7 @@ export function Topbar({ onMenuOpen }: TopbarProps) {
         <span className="topbar-balance" title="Chutes balance">
           {balanceDisplay}
         </span>
-        <span className="topbar-username">{me.username}</span>
+        <span className="topbar-username">{me?.username ?? ''}</span>
       </div>
     </header>
   )
