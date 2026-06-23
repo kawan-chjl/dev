@@ -297,11 +297,13 @@
 }
 
 .shell-page {
-  flex: 1;
   padding: var(--space-6) var(--space-4);
   max-width: 800px;
   margin: 0 auto;
   width: 100%;
+  /* flex:1 removed (B-FIX bug 4): it was consuming all scroll-container space and pushing the
+     footer to exactly the bottom fold, giving zero scroll distance to reveal it. Without flex:1,
+     the page takes its natural height and the footer sits below it inside the scroller. */
 }
 
 @media (min-width: 769px) {
