@@ -47,6 +47,34 @@ class PushSubscribeIn(BaseModel):
     subscription: dict[str, Any]
 
 
+_VALID_PERSONAS = ("kawan", "adik", "cik_maid")
+
+
+class MePatch(BaseModel):
+    persona: str
+
+    @field_validator("persona")
+    @classmethod
+    def _persona_allowed(cls, v: str) -> str:
+        if v not in _VALID_PERSONAS:
+            raise ValueError("unknown persona")
+        return v
+
+
+class DebriefIn(BaseModel):
+    note: str
+
+    @field_validator("note")
+    @classmethod
+    def _note_valid(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("note must not be empty")
+        if len(v) > 2000:
+            raise ValueError("note must be 2000 characters or fewer")
+        return v
+
+
 class CommitmentOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
