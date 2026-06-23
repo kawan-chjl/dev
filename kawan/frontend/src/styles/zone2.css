@@ -93,6 +93,13 @@
   padding-bottom: var(--space-12);
 }
 
+/* When the placeholder is rendered as a load-failure overlay inside the character area
+   (Live2DStageView renders it on top of the always-present canvas), it must cover the canvas. */
+.stage-character-area .char-stage-placeholder {
+  position: absolute;
+  inset: 0;
+}
+
 .char-stage-silhouette {
   display: flex;
   flex-direction: column;
@@ -136,6 +143,43 @@
 .stage-character-area {
   flex: 1;
   position: relative;
+}
+
+/* Live2D canvas fills the character area responsively (A1, TR-06). */
+.live2d-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+}
+
+/* DEV-only: lip-sync + expression demo affordance (A1 / Task 4) */
+.stage-dev-controls {
+  position: absolute;
+  top: var(--space-3);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  z-index: 20;
+  justify-content: center;
+}
+
+.stage-dev-btn {
+  background: rgba(193, 106, 71, 0.3);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  color: var(--surface);
+  font-family: var(--font-body);
+  font-size: var(--text-caption);
+  padding: 2px var(--space-2);
+  cursor: pointer;
+  min-height: 28px;
+}
+.stage-dev-btn:hover {
+  background: rgba(193, 106, 71, 0.55);
 }
 
 /* Action surface — middle-center */

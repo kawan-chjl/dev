@@ -3,6 +3,9 @@
 
 export type Persona = 'kawan' | 'adik' | 'cik_maid'
 
+/** TR-34 emotion enum — drives Live2D expressions (TR-09). */
+export type Emotion = 'neutral' | 'curious' | 'pleased' | 'skeptical' | 'concerned' | 'proud'
+
 export type EvidenceType = 'github' | 'screenshot'
 
 export type CommitmentStatus = 'draft' | 'active' | 'lapsed' | 'verifying' | 'grace' | 'completed' | 'missed'

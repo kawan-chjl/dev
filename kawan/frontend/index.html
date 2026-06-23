@@ -17,6 +17,9 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Cubism core MUST load via <script> before the ES module bundle.
+         Bundling live2dcubismcore breaks its global init (spike gotcha 1). -->
+    <script src="/live2dcubismcore.min.js"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
