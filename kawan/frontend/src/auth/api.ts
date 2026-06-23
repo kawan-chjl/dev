@@ -39,6 +39,16 @@ export function loginRedirect(): void {
   window.location.assign('/api/auth/siwc/login')
 }
 
+/**
+ * POST /api/auth/guest — create or reuse the guest session (TR-53 cpk_ fallback).
+ * Same-origin (via Vite proxy), so a fetch with credentials:include is correct.
+ * Throws on non-OK so the caller can surface an inline error.
+ */
+export async function guestLogin(): Promise<void> {
+  const res = await fetch('/api/auth/guest', { method: 'POST', credentials: 'include' })
+  if (!res.ok) throw new Error(`POST /api/auth/guest returned ${res.status}`)
+}
+
 // ── Persona persistence (Open Q2) ─────────────────────────────────────────────
 // Only the non-sensitive persona preference key lives in localStorage — never tokens.
 
