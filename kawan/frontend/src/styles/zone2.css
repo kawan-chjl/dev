@@ -668,3 +668,106 @@
   font-size: var(--text-small);
   color: var(--ink);
 }
+
+/* Compose error message (validation, 422 fallback) */
+.compose-error {
+  font-size: var(--text-small);
+  color: var(--accent);
+  padding: var(--space-2) 0;
+}
+
+/* Context step stub notice (AI intake deferred, Lane C absent) */
+.context-stub-notice {
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  border: 1.5px dashed var(--line);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.context-stub-label {
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.context-stub-sub {
+  font-size: var(--text-small);
+  color: var(--muted);
+}
+
+/* Plan step — locked identity fields */
+.plan-locked-fields {
+  background: var(--surface-sunk);
+  border-radius: var(--radius-lg);
+  border: 1.5px solid var(--line);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.plan-locked-note {
+  font-size: var(--text-caption);
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+.plan-locked-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--line);
+}
+.plan-locked-row:last-child {
+  border-bottom: none;
+}
+
+.plan-locked-label {
+  font-size: var(--text-small);
+  font-weight: 500;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.plan-locked-value {
+  font-size: var(--text-small);
+  color: var(--ink);
+  text-align: right;
+  word-break: break-word;
+}
+
+/* Plan step — select and input controls for safe hard-field edits */
+.plan-setting-select,
+.plan-setting-input {
+  font-size: var(--text-small);
+  color: var(--ink);
+  background: var(--surface-sunk);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: var(--space-1) var(--space-3);
+  min-height: 36px;
+  font-family: var(--font-body);
+}
+
+.plan-setting-input {
+  width: 100%;
+  max-width: 220px;
+}
+
+.plan-setting-repo {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.plan-trust-label {
+  font-size: var(--text-caption);
+  color: var(--sage-deep);
+  font-weight: 600;
+  margin-left: var(--space-2);
+}

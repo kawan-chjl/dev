@@ -1,21 +1,25 @@
 // Settings — V6
 // Persona switcher (3 presets), Chutes balance, push toggle, stake contact book, logout.
+// Persona is sourced from me.persona (single source of truth via AuthContext) — no detached
+// local state. setPersona from useAuth() persists the choice (local + best-effort backend).
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthProvider'
 import { listPersonas } from '../../mock/provider'
-import type { Persona } from '../../types/api'
 import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
 
 export function Settings() {
-  const { me, signOut } = useAuth()
+  const { me, signOut, setPersona } = useAuth()
   const navigate = useNavigate()
   const personas = listPersonas()
-  const [selectedPersona, setSelectedPersona] = useState<Persona>(me?.persona ?? 'kawan')
   const [pushEnabled, setPushEnabled] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
+
+  // Source of truth for the selected persona is me.persona (Q8 recommendation).
+  // setPersona does an optimistic update so the card re-renders immediately.
+  const selectedPersona = me?.persona ?? 'kawan'
 
   return (
     <div className="shell-page">
@@ -38,8 +42,8 @@ export function Settings() {
               tabIndex={0}
               aria-pressed={selectedPersona === p.id}
               aria-label={`Select ${p.name} — ${p.archetype}`}
-              onClick={() => setSelectedPersona(p.id)}
-              onKeyDown={(e) => e.key === 'Enter' && setSelectedPersona(p.id)}
+              onClick={() => setPersona(p.id)}
+              onKeyDown={(e) => e.key === 'Enter' && setPersona(p.id)}
             >
               <p className="persona-card-name">{p.name}</p>
               <p className="persona-card-archetype">{p.archetype}</p>

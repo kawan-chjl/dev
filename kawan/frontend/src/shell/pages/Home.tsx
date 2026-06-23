@@ -1,10 +1,13 @@
 // Home — V3 "Commitment HQ".
 // Active state: commitment sentence + countdown + status strip + roadmap card + CTA buttons.
 // Idle state (TR-13): compose CTA replaces the header.
+// Reads real commitment data via useActiveCommitment() with mock fallback + dev toggle.
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getActiveCommitment, getMockActive, setMockActive } from '../../mock/provider'
+import { useActiveCommitment } from '../../commitments/useActiveCommitment'
+import { getMockActive, setMockActive } from '../../mock/provider'
+import type { Commitment } from '../../types/api'
 import { Badge } from '../../ui/Badge'
 import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
@@ -29,15 +32,17 @@ const escalationLabels: Record<0 | 1 | 2, string> = {
 
 export function Home() {
   const navigate = useNavigate()
+  // Dev toggle — drives the mock getter in mock/fallback mode (preserved per plan).
   const [mockActive, setLocalMockActive] = useState(getMockActive())
+  const { state, commitment, refresh } = useActiveCommitment()
 
   function toggleMockState() {
     const next = !mockActive
     setMockActive(next)
     setLocalMockActive(next)
+    // Re-run the hook's load so it picks up the toggled mock state.
+    refresh()
   }
-
-  const commitment = getActiveCommitment()
 
   return (
     <div className="shell-page">
@@ -48,7 +53,11 @@ export function Home() {
         </button>
       </div>
 
-      {commitment == null ? (
+      {state === 'loading' ? (
+        <div className="home-loading">
+          <p className="home-loading-text">Loading…</p>
+        </div>
+      ) : commitment == null ? (
         /* Idle state — TR-13 */
         <IdleState onCompose={() => navigate('/new')} />
       ) : (
@@ -74,7 +83,7 @@ function IdleState({ onCompose }: { onCompose: () => void }) {
   )
 }
 
-function ActiveState({ commitment }: { commitment: NonNullable<ReturnType<typeof getActiveCommitment>> }) {
+function ActiveState({ commitment }: { commitment: Commitment }) {
   return (
     <div className="home-active">
       {/* Commitment sentence */}
@@ -109,7 +118,7 @@ function ActiveState({ commitment }: { commitment: NonNullable<ReturnType<typeof
         </div>
       </div>
 
-      {/* Roadmap card */}
+      {/* Roadmap card — AI roadmap stubbed (Lane C absent) */}
       <Card className="home-roadmap-card">
         <p className="home-roadmap-label">Roadmap</p>
         <p className="home-roadmap-placeholder">Plan will appear here after context gathering.</p>

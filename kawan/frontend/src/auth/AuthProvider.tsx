@@ -7,8 +7,8 @@
 
 import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from 'react'
 import { mockMe } from '../mock/fixtures'
-import type { Me } from '../types/api'
-import { fetchMe, logout, MOCK_AUTH } from './api'
+import type { Me, Persona } from '../types/api'
+import { fetchMe, logout, MOCK_AUTH, readStoredPersona, setPersonaRemote, writeStoredPersona } from './api'
 
 type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated'
 
@@ -17,6 +17,7 @@ interface AuthValue {
   me: Me | null
   signOut: () => Promise<void>
   refresh: () => Promise<void>
+  setPersona: (p: Persona) => Promise<void>
 }
 
 const AuthContext = createContext<AuthValue | null>(null)
@@ -33,7 +34,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (MOCK_AUTH) {
         // Mock mode: skip network, always resolve to the mock fixture.
         if (mountedRef.current) {
-          setMe(mockMe)
+          // Overlay stored persona preference on the mock fixture.
+          const stored = readStoredPersona()
+          setMe(stored ? { ...mockMe, persona: stored } : mockMe)
           setStatus('authenticated')
         }
         return
@@ -42,7 +45,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const result = await fetchMe()
         if (!mountedRef.current) return
         if (result !== null) {
-          setMe(result)
+          // Overlay the stored persona preference (local wins until Lane B ships PATCH /api/me).
+          const stored = readStoredPersona()
+          setMe(stored && stored !== result.persona ? { ...result, persona: stored } : result)
           setStatus('authenticated')
         } else {
           // Clean 401 — genuinely unauthenticated; do NOT fall back to mockMe.
@@ -52,7 +57,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch {
         // Network/5xx — backend unreachable; fall back to mockMe so the app renders headless.
         if (!mountedRef.current) return
-        setMe(mockMe)
+        const stored = readStoredPersona()
+        setMe(stored ? { ...mockMe, persona: stored } : mockMe)
         setStatus('authenticated')
       }
     }
@@ -75,19 +81,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const result = await fetchMe()
       if (result !== null) {
-        setMe(result)
+        const stored = readStoredPersona()
+        setMe(stored && stored !== result.persona ? { ...result, persona: stored } : result)
         setStatus('authenticated')
       } else {
         setMe(null)
         setStatus('unauthenticated')
       }
     } catch {
-      setMe(mockMe)
+      const stored = readStoredPersona()
+      setMe(stored ? { ...mockMe, persona: stored } : mockMe)
       setStatus('authenticated')
     }
   }
 
-  return <AuthContext.Provider value={{ status, me, signOut, refresh }}>{children}</AuthContext.Provider>
+  /**
+   * Optimistically update me.persona, persist locally, best-effort PATCH the backend.
+   * The backend endpoint (PATCH /api/me) does not exist yet (Open Q2 — pending Lane B);
+   * setPersonaRemote swallows the 404/405 gracefully.
+   */
+  async function setPersona(p: Persona) {
+    setMe((prev) => (prev ? { ...prev, persona: p } : prev))
+    writeStoredPersona(p)
+    await setPersonaRemote(p)
+  }
+
+  return <AuthContext.Provider value={{ status, me, signOut, refresh, setPersona }}>{children}</AuthContext.Provider>
 }
 
 export function useAuth(): AuthValue {
