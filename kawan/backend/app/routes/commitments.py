@@ -12,9 +12,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import pipeline, scheduler, state
 from app.db import get_session
 from app.deps import current_user
-from app.models import Checkin, Commitment, Evidence, Plan, Proposal, SoftContext, User
+from app.models import Checkin, Commitment, Evidence, Plan, Proposal, SoftContext, SuccessPattern, User
 from app.pipeline import record_contact
-from app.schemas import CommitmentCreate, CommitmentOut, CommitmentPatch, ContextTurnIn
+from app.schemas import CommitmentCreate, CommitmentOut, CommitmentPatch, ContextTurnIn, DebriefIn
 from app.util import as_utc, now_utc, to_jsonable
 from app.wiring import LLM
 
@@ -209,3 +209,21 @@ async def timeline(c: Commitment = Depends(_owned), db: AsyncSession = Depends(g
                        "reason": p.reason, "at": as_utc(p.created_at).isoformat()})
     events.sort(key=lambda e: e["at"])
     return {"status": c.status, "escalation": c.escalation, "events": events}
+
+
+@router.post("/{commitment_id}/debrief")
+async def debrief(body: DebriefIn, c: Commitment = Depends(_owned), db: AsyncSession = Depends(get_session)):
+    """Merge the user's post-outcome reflection into the terminal success_patterns row.
+    No audit_log row — this is the user's own reflection, not a hard-field mutation (spec §5.6)."""
+    sp = await db.scalar(
+        select(SuccessPattern).where(
+            SuccessPattern.commitment_id == c.id,
+            SuccessPattern.outcome.in_(("completed", "missed"))
+        ).order_by(SuccessPattern.created_at.desc()).limit(1)
+    )
+    if sp is None:
+        raise HTTPException(status.HTTP_409_CONFLICT, "commitment not yet completed")
+    # Reassign the dict so SQLAlchemy tracks the JSON mutation (not an in-place mutation).
+    sp.features = {**(sp.features or {}), "debrief": body.note}
+    await db.commit()
+    return {"ok": True}

@@ -62,3 +62,25 @@ async def test_siwc_login_redirects_to_idp(client):
     loc = r.headers["location"]
     assert "/idp/authorize" in loc
     assert "client_id=" in loc and "code_challenge=" in loc and "state=" in loc
+
+
+# ── X1: PATCH /api/me { persona } persists and echoes the /me shape ────────────
+
+async def test_patch_me_persists_persona(client, db):
+    r = await client.patch("/api/me", json={"persona": "adik"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["persona"] == "adik"
+    # Confirm the response echoes the canonical /me shape
+    assert "username" in body and "guest" in body and "balance" in body
+    # balance is None on a PATCH (no Chutes re-fetch)
+    assert body["balance"] is None
+
+    # Confirm the change was persisted to the DB row
+    r2 = await client.get("/api/me")
+    assert r2.status_code == 200 and r2.json()["persona"] == "adik"
+
+
+async def test_patch_me_rejects_unknown_persona(client):
+    r = await client.patch("/api/me", json={"persona": "bogus"})
+    assert r.status_code == 422

@@ -26,6 +26,21 @@ export async function triggerCheckNow(commitmentId: string): Promise<void> {
   if (!res.ok) throw new Error(`POST /api/commitments/${commitmentId}/check returned ${res.status}`)
 }
 
+/**
+ * POST /api/commitments/:id/debrief { note } — persist the post-outcome reflection (spec §5.6).
+ * Merges the note into the terminal success_patterns.features.debrief on the server.
+ * Resolves on 2xx, throws on non-OK.
+ */
+export async function postDebrief(commitmentId: string, note: string): Promise<void> {
+  const res = await fetch(`/api/commitments/${commitmentId}/debrief`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ note })
+  })
+  if (!res.ok) throw new Error(`POST /api/commitments/${commitmentId}/debrief returned ${res.status}`)
+}
+
 // ── WS message union (server → client pushes) ──────────────────────────────────────
 // Mirrors pipeline.py:90-201 exactly. NOT the timeline GET shape — never merge these.
 // workspace/error are included so they can be ignored without a type error (A3 scope).

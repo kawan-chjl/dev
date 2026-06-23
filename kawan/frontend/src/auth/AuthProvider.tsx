@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const result = await fetchMe()
         if (!mountedRef.current) return
         if (result !== null) {
-          // Overlay the stored persona preference (local wins until Lane B ships PATCH /api/me).
+          // Overlay the stored persona preference (local wins over the server value on fresh load).
           const stored = readStoredPersona()
           setMe(stored && stored !== result.persona ? { ...result, persona: stored } : result)
           setStatus('authenticated')
@@ -96,14 +96,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   /**
-   * Optimistically update me.persona, persist locally, best-effort PATCH the backend.
-   * The backend endpoint (PATCH /api/me) does not exist yet (Open Q2 — pending Lane B);
-   * setPersonaRemote swallows the 404/405 gracefully.
+   * Optimistically update me.persona and persist locally, then call PATCH /api/me.
+   * On failure: revert the optimistic persona to the prior value and console.error.
+   * Never throws — a Settings click must not crash the tree.
+   * Skips the network in MOCK_AUTH mode.
    */
   async function setPersona(p: Persona) {
+    const prior = me?.persona ?? null
     setMe((prev) => (prev ? { ...prev, persona: p } : prev))
     writeStoredPersona(p)
-    await setPersonaRemote(p)
+    if (MOCK_AUTH) return
+    try {
+      await setPersonaRemote(p)
+    } catch (err) {
+      // Revert the optimistic persona — the server write failed.
+      console.error('setPersona: PATCH /api/me failed, reverting', err)
+      if (prior !== null) {
+        setMe((prev) => (prev ? { ...prev, persona: prior as Persona } : prev))
+        writeStoredPersona(prior as Persona)
+      }
+    }
   }
 
   return <AuthContext.Provider value={{ status, me, signOut, refresh, setPersona }}>{children}</AuthContext.Provider>

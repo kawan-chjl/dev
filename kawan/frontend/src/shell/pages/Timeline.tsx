@@ -8,7 +8,7 @@ import { MOCK_AUTH } from '../../auth/api'
 import { createCommitment } from '../../commitments/api'
 import { useActiveCommitment } from '../../commitments/useActiveCommitment'
 import type { WsServerMessage } from '../../timeline/api'
-import { triggerCheckNow } from '../../timeline/api'
+import { postDebrief, triggerCheckNow } from '../../timeline/api'
 import { useTimeline } from '../../timeline/useTimeline'
 import { useWorkspaceSocket } from '../../timeline/useWorkspaceSocket'
 import type { Commitment, CommitmentStatus, TimelineEvent } from '../../types/api'
@@ -167,16 +167,29 @@ interface HabitLoopCloseProps {
 function HabitLoopClose({ commitment, onRepeat, repeating }: HabitLoopCloseProps) {
   const [reflection, setReflection] = useState('')
   const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const beatLine =
     commitment.status === 'completed'
       ? 'Verified. That one counts.' // spec §3 H-finding: bound to the verified outcome
       : "It didn't happen — I won't pretend it did. Next one?" // honest, non-punishing (TR-64)
 
-  function handleSave() {
-    // Local React state only — no backend route exists yet (SECONDARY FINDING / Open Q6).
-    // Lane B should add: POST /api/commitments/{id}/debrief { note } → 200 { ok: true }
-    setSaved(true)
+  async function handleSave() {
+    if (MOCK_AUTH) {
+      setSaved(true)
+      return
+    }
+    setSaving(true)
+    setSaveError(null)
+    try {
+      await postDebrief(commitment.id, reflection.trim())
+      setSaved(true)
+    } catch {
+      setSaveError("couldn't save — try again")
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -193,20 +206,23 @@ function HabitLoopClose({ commitment, onRepeat, repeating }: HabitLoopCloseProps
           onChange={(e) => {
             setReflection(e.target.value)
             setSaved(false)
+            setSaveError(null)
           }}
           rows={3}
           placeholder="One honest line is enough."
         />
         {saved ? (
-          <span className="habit-loop-debrief-hint">saved locally</span>
+          <span className="habit-loop-debrief-hint">saved</span>
+        ) : saveError !== null ? (
+          <span className="habit-loop-debrief-hint">{saveError}</span>
         ) : (
           <button
             type="button"
             className="habit-loop-debrief-save"
             onClick={handleSave}
-            disabled={reflection.trim().length === 0}
+            disabled={reflection.trim().length === 0 || saving}
           >
-            Save reflection
+            {saving ? 'Saving…' : 'Save reflection'}
           </button>
         )}
       </div>

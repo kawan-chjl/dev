@@ -12,7 +12,7 @@ from app import crypto, pipeline, scheduler
 from app.auth import AuthTokenProvider, ensure_guest_user
 from app.config import settings
 from app.contracts import EvidenceBundle, Verdict
-from app.models import AuditLog, Checkin, Commitment, Proposal, User
+from app.models import AuditLog, Checkin, Commitment, Proposal, SuccessPattern, User
 from app.util import new_id, now_utc
 
 
@@ -172,3 +172,62 @@ async def test_abandon_without_stake_just_misses(client):
     r = await client.post(f"/api/commitments/{cid}/abandon")
     assert r.status_code == 200 and r.json()["status"] == "missed"
     assert email_mod.outbox == []  # no stake → no email
+
+
+# ── X1: POST /api/commitments/{id}/debrief merges note into success_patterns ───
+
+class _PassAdapter:
+    type = "github"
+    trust = "high"
+
+    async def fetch(self, c, since):
+        return EvidenceBundle(adapter="github", raw_ref={}, items=["sha1"], summary="shipped")
+
+    async def judge(self, c, b, llm):
+        return Verdict("pass", 0.95, ["commit merged"], "deliverable confirmed", None)
+
+
+
+async def test_debrief_endpoint_happy_path(client, db):
+    """The debrief endpoint via the authenticated guest client: 200 { ok: true }."""
+    # Create and complete a commitment via the guest client.
+    cid = (await client.post("/api/commitments",
+                             json={"action": "ship", "deliverable": "d", "deadline": _future()})).json()["id"]
+    # Seed a SuccessPattern row directly (skip the pipeline; the route only reads it).
+    db.add(SuccessPattern(user_id="guest", commitment_id=cid, outcome="completed",
+                          features={"deadline_hour": 18, "cadence": "daily_evening",
+                                    "duration_days": 1, "used_skip": False}))
+    await db.commit()
+
+    r = await client.post(f"/api/commitments/{cid}/debrief",
+                          json={"note": "shipped before the deadline"})
+    assert r.status_code == 200 and r.json() == {"ok": True}
+
+    sp = await db.scalar(select(SuccessPattern).where(SuccessPattern.commitment_id == cid))
+    assert sp is not None and sp.features["debrief"] == "shipped before the deadline"
+    assert "cadence" in sp.features  # structured keys preserved
+
+
+async def test_debrief_409_when_not_completed(client):
+    """Debrief on a draft/active commitment (no terminal row) → 409 Conflict."""
+    cid = (await client.post("/api/commitments",
+                             json={"action": "ship", "deliverable": "d", "deadline": _future()})).json()["id"]
+    r = await client.post(f"/api/commitments/{cid}/debrief", json={"note": "too early"})
+    assert r.status_code == 409
+
+
+async def test_debrief_no_audit_log_row(client, db):
+    """Debrief must not write an AuditLog row (no AI actor, no hard-field mutation)."""
+    cid = (await client.post("/api/commitments",
+                             json={"action": "ship", "deliverable": "d", "deadline": _future()})).json()["id"]
+    db.add(SuccessPattern(user_id="guest", commitment_id=cid, outcome="missed",
+                          features={"deadline_hour": 9, "cadence": "daily_morning",
+                                    "duration_days": 3, "used_skip": True}))
+    await db.commit()
+
+    await client.post(f"/api/commitments/{cid}/debrief", json={"note": "ran out of time"})
+
+    audit_rows = (await db.scalars(select(AuditLog).where(AuditLog.commitment_id == cid))).all()
+    # No audit row at all for the debrief (the commitment itself has no auditable mutation here).
+    debrief_rows = [row for row in audit_rows if row.field == "debrief"]
+    assert debrief_rows == []

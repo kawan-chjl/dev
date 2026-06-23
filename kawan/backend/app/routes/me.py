@@ -11,8 +11,17 @@ from app.config import settings
 from app.db import get_session
 from app.deps import current_user
 from app.models import User
+from app.schemas import MePatch
 
 router = APIRouter()
+
+
+@router.patch("/me")
+async def patch_me(body: MePatch, user: User = Depends(current_user), db: AsyncSession = Depends(get_session)):
+    user.persona = body.persona
+    await db.commit()
+    return {"username": user.username, "persona": user.persona,
+            "guest": user.id == GUEST_USER_ID, "balance": None}
 
 
 @router.get("/me")
