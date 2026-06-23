@@ -1,8 +1,12 @@
 // StageMode — VN/RPG dialogue box (bottom-center) + action surface (middle-center).
 // Driven by mock conversation turns. Tap-to-advance through dialogue.
 
+import { useRef } from 'react'
 import type { ConversationTurn } from '../mock/fixtures'
-import { CharacterStagePlaceholder } from './CharacterStagePlaceholder'
+import { getMe } from '../mock/provider'
+import type { Emotion } from '../types/api'
+import type { Live2DStageHandle } from './live2d/Live2DStageView'
+import { Live2DStageView } from './live2d/Live2DStageView'
 
 interface StageModeProps {
   turns: ConversationTurn[]
@@ -10,17 +14,53 @@ interface StageModeProps {
   onAdvance: () => void
 }
 
+// TR-34 emotion enum — matches the expressionMap keys in modelRegistry.
+const EMOTIONS: Emotion[] = ['neutral', 'curious', 'pleased', 'skeptical', 'concerned', 'proud']
+
 export function StageMode({ turns, currentIndex, onAdvance }: StageModeProps) {
   const current = turns[currentIndex]
   const isKawan = current?.speaker === 'kawan'
   const hasAction = current?.action != null
+  const persona = getMe().persona
+
+  const stageRef = useRef<Live2DStageHandle>(null)
+
+  // DEV affordance (import.meta.env.DEV): demonstrates lip-sync + expression hooks.
+  // Removed in prod builds — a demonstration harness, not product UI (Task 4 / Q10).
+  async function handleSpeak() {
+    const res = await fetch('/spike/test.wav')
+    const arrayBuffer = await res.arrayBuffer()
+    stageRef.current?.speak(arrayBuffer)
+  }
 
   return (
     <div className="stage-mode">
       {/* Character stage area */}
       <div className="stage-character-area">
-        <CharacterStagePlaceholder />
+        <Live2DStageView ref={stageRef} persona={persona} />
       </div>
+
+      {/* DEV-only: lip-sync demo + emotion buttons (Task 4 / Q10). Not shown in prod. */}
+      {import.meta.env.DEV && (
+        <div className="stage-dev-controls" role="toolbar" aria-label="Dev controls — lip-sync and expression demo">
+          <button type="button" className="stage-dev-btn" onClick={handleSpeak}>
+            ▶ Speak (sample)
+          </button>
+          <button type="button" className="stage-dev-btn" onClick={() => stageRef.current?.stopSpeaking()}>
+            ■ Stop
+          </button>
+          {EMOTIONS.map((emotion) => (
+            <button
+              key={emotion}
+              type="button"
+              className="stage-dev-btn"
+              onClick={() => stageRef.current?.setExpression(emotion)}
+            >
+              {emotion}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Action surface — middle-center, shown when Kawan asks */}
       {isKawan && hasAction && current.action === 'options' && (
