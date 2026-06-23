@@ -1,8 +1,9 @@
 // Commitments list — /commitments
-// Shows mock commitments as xl-radius cards. Clicking routes to /commitments/:id.
+// Shows active commitment as xl-radius card. Clicking routes to /commitments/:id.
+// Reads real data via useActiveCommitment() with mock fallback.
 
 import { useNavigate } from 'react-router-dom'
-import { getActiveCommitment } from '../../mock/provider'
+import { useActiveCommitment } from '../../commitments/useActiveCommitment'
 import { Badge } from '../../ui/Badge'
 import { Card } from '../../ui/Card'
 import { Chip } from '../../ui/Chip'
@@ -13,8 +14,8 @@ function formatDate(iso: string): string {
 
 export function Commitments() {
   const navigate = useNavigate()
-  const active = getActiveCommitment()
-  const all = active != null ? [active] : []
+  const { commitment } = useActiveCommitment()
+  const all = commitment !== null ? [commitment] : []
 
   return (
     <div className="shell-page">

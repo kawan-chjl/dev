@@ -803,3 +803,17 @@
   color: var(--ink-soft);
   white-space: nowrap;
 }
+
+/* Home loading state */
+.home-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: var(--space-12) var(--space-4);
+}
+
+.home-loading-text {
+  font-size: var(--text-small);
+  color: var(--muted);
+}

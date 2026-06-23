@@ -1,9 +1,10 @@
 // Welcome — /welcome (first-run persona picker, no shell chrome)
 // 3 preset cards: kawan / adik / cik_maid. Selected = filled --ink/inverted.
-// "Continue" → /home.
+// "Continue" → persists choice via setPersona (local + best-effort backend) → /home.
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../auth/AuthProvider'
 import { listPersonas } from '../mock/provider'
 import type { Persona } from '../types/api'
 import { Button } from '../ui/Button'
@@ -11,8 +12,15 @@ import { Card } from '../ui/Card'
 
 export function Welcome() {
   const navigate = useNavigate()
+  const { me, setPersona } = useAuth()
   const personas = listPersonas()
-  const [selected, setSelected] = useState<Persona>('kawan')
+  // Seed from the persisted me.persona so returning users see their current choice.
+  const [selected, setSelected] = useState<Persona>(me?.persona ?? 'kawan')
+
+  async function handleContinue() {
+    await setPersona(selected)
+    navigate('/home')
+  }
 
   return (
     <div className="welcome-root">
@@ -49,7 +57,7 @@ export function Welcome() {
         <Button
           variant="primary"
           className="welcome-continue-btn"
-          onClick={() => navigate('/home')}
+          onClick={handleContinue}
           aria-label={`Continue with ${selected} companion`}
         >
           Continue with {personas.find((p) => p.id === selected)?.name}
