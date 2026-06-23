@@ -66,21 +66,15 @@ export function writeStoredPersona(p: Persona): void {
 }
 
 /**
- * Best-effort PATCH /api/me { persona }.
- * Gracefully swallows all errors: the endpoint does not exist yet (Open Q2 — Lane B
- * should add PATCH /api/me { "persona": Persona } → 200 /api/me body so persona
- * persists server-side). Until then, local persistence is the source of truth.
+ * PATCH /api/me { persona } — persist the user's persona server-side.
+ * Throws on non-2xx so the caller can revert an optimistic update.
  */
 export async function setPersonaRemote(persona: Persona): Promise<void> {
-  try {
-    await fetch('/api/me', {
-      method: 'PATCH',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ persona })
-    })
-    // Non-2xx (404/405 while endpoint is absent) is deliberately ignored.
-  } catch {
-    // Network errors are swallowed — local persistence is sufficient until Lane B ships.
-  }
+  const res = await fetch('/api/me', {
+    method: 'PATCH',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ persona })
+  })
+  if (!res.ok) throw new Error(`PATCH /api/me returned ${res.status}`)
 }
