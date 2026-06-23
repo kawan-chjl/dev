@@ -657,6 +657,215 @@
   color: var(--muted);
 }
 
+/* ── Timeline: page header with actions row ── */
+.page-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+  padding-top: 4px;
+}
+
+.timeline-check-now {
+  font-size: var(--text-small);
+  padding: var(--space-2) var(--space-4);
+}
+
+.timeline-check-error {
+  font-size: var(--text-small);
+  color: var(--ink-soft);
+  margin-top: var(--space-2);
+}
+
+.timeline-loading {
+  font-size: var(--text-small);
+  color: var(--muted);
+  padding: var(--space-4) 0;
+}
+
+/* Small "live" dot indicator when WS is connected */
+.timeline-live-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--sage);
+  flex-shrink: 0;
+}
+
+/* ── Momentum dots strip ── */
+.momentum-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
+  margin-bottom: var(--space-4);
+}
+
+.momentum-dots {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* pass = filled terracotta iris (design.md §5) — NEVER red */
+.momentum-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-pill);
+  flex-shrink: 0;
+}
+
+.momentum-dot.is-pass {
+  background: var(--accent); /* terracotta — the verified dot */
+}
+
+/* fail/unclear = neutral hollow dot — NEVER red, not punishing (TR-64) */
+.momentum-dot.is-neutral {
+  background: transparent;
+  border: 2px solid var(--muted);
+}
+
+.momentum-count {
+  font-size: var(--text-caption);
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.momentum-empty {
+  font-size: var(--text-small);
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* ── Timeline beat banner (transient WS push moments) ── */
+.timeline-beat {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-4);
+  border: 1px solid var(--line);
+}
+
+/* celebrate tone: warm sage — the §5.6 celebration moment */
+.timeline-beat-celebrate {
+  background: color-mix(in srgb, var(--sage) 18%, var(--surface));
+}
+
+/* neutral tone: honest, subdued — not punishing, not red */
+.timeline-beat-neutral {
+  background: var(--surface);
+}
+
+.timeline-beat-message {
+  flex: 1;
+  font-family: var(--font-display);
+  font-size: var(--text-small);
+  color: var(--ink);
+  font-style: italic;
+  line-height: var(--lh-body);
+  margin: 0;
+}
+
+.timeline-beat-dismiss {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: var(--text-body);
+  line-height: 1;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+/* ── Habit-loop close panel (shown on completed/missed outcome) ── */
+.habit-loop-close {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  margin-bottom: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.habit-loop-beat {
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  color: var(--ink);
+  font-style: italic;
+  line-height: var(--lh-body);
+  margin: 0;
+}
+
+.habit-loop-debrief {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.habit-loop-debrief-label {
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.habit-loop-debrief-input {
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  resize: vertical;
+  line-height: var(--lh-body);
+}
+
+.habit-loop-debrief-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.habit-loop-debrief-save {
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--accent);
+  background: none;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-pill);
+  padding: var(--space-1) var(--space-4);
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.habit-loop-debrief-save:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.habit-loop-debrief-hint {
+  font-size: var(--text-caption);
+  color: var(--muted);
+}
+
+.habit-loop-repeat {
+  align-self: flex-start;
+}
+
 /* ── Settings ── */
 .settings-section {
   margin-bottom: var(--space-8);
