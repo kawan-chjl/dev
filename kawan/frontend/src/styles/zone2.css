@@ -145,6 +145,19 @@
   position: relative;
 }
 
+/* Live2D container div fills the character area; Pixi appends its own canvas inside (B-FIX bug 1). */
+.live2d-stage-container {
+  position: absolute;
+  inset: 0;
+}
+
+/* Pixi-owned canvas inside the container — display:block + full-box so it fills correctly. */
+.live2d-stage-container canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 /* Live2D canvas fills the character area responsively (A1, TR-06). */
 .live2d-canvas {
   display: block;

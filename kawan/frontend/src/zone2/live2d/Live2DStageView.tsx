@@ -1,5 +1,11 @@
 // Live2DStageView — React host for the vanilla Live2DStage controller (TR-07).
 // Owns mount/unmount lifecycle, ResizeObserver for responsive canvas, and imperative handle.
+//
+// Canvas-ownership strategy: Pixi creates and owns the <canvas> (no `view` option in Live2DStage).
+// React owns only a persistent container <div>. On every effect run, mount() appends a fresh
+// Pixi-owned <canvas> into the container; destroy() removes it. This guarantees a virgin WebGL
+// context on each mount — surviving React StrictMode's double-mount and persona switches — because
+// a new canvas element is created every time, never reusing a context-poisoned one.
 
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import type { Emotion, Persona } from '../../types/api'
@@ -19,7 +25,7 @@ interface Props {
 }
 
 export const Live2DStageView = forwardRef<Live2DStageHandle, Props>(function Live2DStageView({ persona }, ref) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<Live2DStage | null>(null)
   const [loadFailed, setLoadFailed] = useState(false)
 
@@ -47,25 +53,28 @@ export const Live2DStageView = forwardRef<Live2DStageHandle, Props>(function Liv
 
   // Mount/unmount the Live2DStage whenever persona changes (or on first mount).
   useEffect(() => {
-    // Reset load-failed state at the top so a persona change always re-attempts the load
-    // (if left set, a previously failed load would strand the stage on the placeholder forever).
+    // Reset load-failed state so a persona change always re-attempts the load.
     setLoadFailed(false)
 
-    const canvas = canvasRef.current
-    if (canvas == null) return
+    const container = containerRef.current
+    if (container == null) return
+
+    let cancelled = false
 
     const stage = new Live2DStage()
     stageRef.current = stage
     const config = modelRegistry[persona]
 
     stage
-      .mount(canvas, {
+      .mount(container, {
         url: config.url,
         idleMotionGroup: config.idleMotionGroup,
         scale: config.scale
       })
       .catch((err: unknown) => {
-        // Model missing on disk or network error — show the placeholder fallback (Q2).
+        // Stale promise from a torn-down effect (StrictMode discard) — do not update state.
+        if (cancelled) return
+        // Model missing on disk or renderer init failed — show the placeholder fallback (Q2).
         console.warn('[Live2DStageView] model load failed for persona', persona, err)
         setLoadFailed(true)
       })
@@ -77,23 +86,23 @@ export const Live2DStageView = forwardRef<Live2DStageHandle, Props>(function Liv
       const { width, height } = entry.contentRect
       stage.resize(Math.max(width, 1), Math.max(height, 1))
     })
-    if (canvas.parentElement != null) {
-      observer.observe(canvas.parentElement)
-    }
+    observer.observe(container)
 
     return () => {
+      cancelled = true
       observer.disconnect()
       stage.destroy()
       stageRef.current = null
     }
   }, [persona])
 
-  // Always render the canvas so React never unmounts it across persona changes — unmounting
-  // the canvas element destroys the WebGL context and strands the stage permanently on the
-  // placeholder if a load fails. The placeholder is rendered as an overlay on top when needed.
+  // Render a persistent container <div>. Pixi appends/removes its own <canvas> inside it on
+  // each mount/destroy cycle — React never touches the canvas element directly.
+  // The placeholder is an overlay sibling; the container stays mounted so the ResizeObserver
+  // target always exists.
   return (
     <>
-      <canvas ref={canvasRef} className="live2d-canvas" aria-label={`${persona} Live2D character stage`} />
+      <div ref={containerRef} className="live2d-stage-container" aria-hidden="true" />
       {loadFailed && (
         // Graceful fallback overlay: keeps the labeled placeholder visible on load failure (Q8).
         <CharacterStagePlaceholder />
