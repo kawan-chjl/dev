@@ -35,19 +35,25 @@ export class Live2DStage {
   private rafId: number | null = null
   private audioCtx: AudioContext | null = null
   private audioSource: AudioBufferSourceNode | null = null
+  private _destroyed = false
 
   /**
-   * Mount: create a PixiJS v6 Application on the given canvas, load the Live2D model, and start idle.
-   * Throws if the model fails to load — caller should catch and fall back to the placeholder.
+   * Mount: create a PixiJS v6 Application (Pixi-owned canvas — no `view` option) and append
+   * the canvas into the given container element. This guarantees a fresh WebGL context on every
+   * mount, surviving React StrictMode's double-mount and persona switches.
+   * Throws if renderer or model init fails — caller should catch and show the placeholder.
+   * Guard: `this.app` is only set after the Application constructs successfully, so a throw
+   * from `new PIXI.Application(...)` leaves `this.app === null` and no `this.app.*` is touched.
    */
-  async mount(canvas: HTMLCanvasElement, opts: MountOptions): Promise<void> {
-    const { width, height } = canvas.getBoundingClientRect()
+  async mount(container: HTMLElement, opts: MountOptions): Promise<void> {
+    const { width, height } = container.getBoundingClientRect()
     const w = Math.max(width, 1)
     const h = Math.max(height, 1)
 
     // PixiJS v6 Application constructor (not async; v7/v8 pattern would be app.init() — do NOT use).
-    this.app = new PIXI.Application({
-      view: canvas,
+    // No `view` option: Pixi creates and owns a brand-new <canvas> (app.view: HTMLCanvasElement).
+    // Assigning to a local first so this.app stays null if the constructor throws.
+    const app = new PIXI.Application({
       width: w,
       height: h,
       backgroundColor: 0x00000000,
@@ -56,6 +62,11 @@ export class Live2DStage {
       autoDensity: true,
       resolution: window.devicePixelRatio || 1
     })
+    // Constructor succeeded — safe to set this.app and touch app.* below.
+    this.app = app
+
+    // Append the Pixi-owned canvas into the persistent container div.
+    container.appendChild(app.view as HTMLCanvasElement)
 
     const model = await Live2DModel.from(opts.url, {
       idleMotionGroup: opts.idleMotionGroup,
@@ -63,6 +74,13 @@ export class Live2DStage {
       // we drive updates via the Pixi app's own ticker.
       autoUpdate: true
     })
+
+    // Guard: if destroy() ran while we were awaiting (StrictMode discarded mount), dispose the
+    // just-loaded model to release WebGL/texture memory and return — do NOT touch this.app.stage.
+    if (this._destroyed || this.app == null) {
+      model.destroy()
+      return
+    }
 
     this.model = model
     // Add model to stage — cast required: pixi-live2d-display's Container is not identical to
@@ -180,12 +198,17 @@ export class Live2DStage {
     this._fit(w, h, config)
   }
 
-  /** Destroy: cancel lip-sync rAF, close AudioContext, destroy PixiJS app + WebGL context. */
+  /** Destroy: cancel lip-sync rAF, close AudioContext, destroy PixiJS app + WebGL context.
+   * removeView=true removes the Pixi-owned canvas element from the DOM so the container div
+   * is empty, guaranteeing the next mount appends a fresh canvas with a virgin GL context.
+   */
   destroy(): void {
+    this._destroyed = true
     this.stopSpeaking()
     if (this.app != null) {
-      // app.destroy(removeView, stageOptions) — true removes the canvas; children destroyed too.
-      this.app.destroy(false, { children: true })
+      // v6 positional signature: destroy(removeView, stageOptions).
+      // removeView=true discards the canvas element → next mount creates a brand-new one.
+      this.app.destroy(true, { children: true })
       this.app = null
     }
     this.model = null
