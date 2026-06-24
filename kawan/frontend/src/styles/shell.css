@@ -301,9 +301,11 @@
   max-width: 800px;
   margin: 0 auto;
   width: 100%;
-  /* flex:1 removed (B-FIX bug 4): it was consuming all scroll-container space and pushing the
-     footer to exactly the bottom fold, giving zero scroll distance to reveal it. Without flex:1,
-     the page takes its natural height and the footer sits below it inside the scroller. */
+  /* flex: 1 0 auto (not plain `flex:1` = 1 1 0%). grow:1 expands the page to fill the scroller
+     when content is short, pinning the footer to the bottom edge instead of floating it mid-page.
+     shrink:0 + basis:auto keep the page at its natural height when content is tall, so it overflows
+     the scroller and the footer drops below the fold to be revealed at end of scroll. */
+  flex: 1 0 auto;
 }
 
 @media (min-width: 769px) {
