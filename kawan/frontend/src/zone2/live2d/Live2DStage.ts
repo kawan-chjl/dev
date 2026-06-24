@@ -27,6 +27,7 @@ export interface MountOptions {
   url: string
   idleMotionGroup: string
   scale: number
+  anchorY?: number
 }
 
 export class Live2DStage {
@@ -87,8 +88,8 @@ export class Live2DStage {
     // PIXI.DisplayObject at the type level in this TS config (spike pattern).
     this.app.stage.addChild(model as unknown as PIXI.DisplayObject)
 
-    model.anchor.set(0.5, 0)
     this._baseScale = opts.scale
+    this._anchorY = opts.anchorY ?? 0
     this._fit(w, h, opts.scale)
   }
 
@@ -222,6 +223,8 @@ export class Live2DStage {
   // Per-persona base scale from mount options — sourced from modelRegistry so resize()
   // never falls back to a hardcoded Haru-specific literal (QA fix).
   private _baseScale: number | null = null
+  // Per-persona vertical anchor (model.anchor y). 0 = top-center (Haru/Hiyori default).
+  private _anchorY = 0
 
   private _fit(w: number, h: number, baseScale: number): void {
     if (this.model == null) return
@@ -232,7 +235,7 @@ export class Live2DStage {
     this.model.scale.set(scale)
     this.model.x = w / 2
     this.model.y = h * 0.05 // small top padding so the top of the head isn't clipped
-    this.model.anchor.set(0.5, 0)
+    this.model.anchor.set(0.5, this._anchorY)
   }
 
   private _setMouthParam(v: number): void {

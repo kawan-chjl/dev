@@ -10,6 +10,10 @@ export interface ModelConfig {
   url: string
   idleMotionGroup: string
   scale: number
+  // Vertical anchor passed to model.anchor.set(0.5, anchorY). Defaults to 0 (top-center)
+  // when omitted — Haru/Hiyori frame correctly there. VTube-Studio models (LiveroiD) have
+  // different drawable bounds and need a per-model override to frame head + upper body.
+  anchorY?: number
   expressionMap: Record<Emotion, string | null>
 }
 
@@ -54,7 +58,8 @@ export const modelRegistry: Record<Persona, ModelConfig> = {
   cik_maid: {
     url: '/models/liveroid/LiveroiD_A-Y01/LiveroiD_A-Y01.model3.json',
     idleMotionGroup: '',
-    scale: 0.18,
+    scale: 0.11,
+    anchorY: 0.24,
     expressionMap: {
       neutral: null,
       curious: 'browLink',

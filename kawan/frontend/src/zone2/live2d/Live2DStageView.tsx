@@ -69,7 +69,8 @@ export const Live2DStageView = forwardRef<Live2DStageHandle, Props>(function Liv
       .mount(container, {
         url: config.url,
         idleMotionGroup: config.idleMotionGroup,
-        scale: config.scale
+        scale: config.scale,
+        anchorY: config.anchorY
       })
       .catch((err: unknown) => {
         // Stale promise from a torn-down effect (StrictMode discard) — do not update state.
