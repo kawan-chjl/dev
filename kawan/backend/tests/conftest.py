@@ -6,7 +6,10 @@ import pathlib
 import tempfile
 
 _TMP = pathlib.Path(tempfile.gettempdir()) / "kawan_test.db"
-os.environ.setdefault("KAWAN_DATABASE_URL", f"sqlite+aiosqlite:///{_TMP}")
+# Force SQLite for tests, overriding any exported KAWAN_DATABASE_URL. The per-test
+# drop_all/create_all (below) would otherwise WIPE a real Postgres/Supabase database
+# if the dev/prod URL ever leaks into the environment.
+os.environ["KAWAN_DATABASE_URL"] = f"sqlite+aiosqlite:///{_TMP}"
 os.environ.setdefault("KAWAN_SESSION_SECRET", "test-secret-please-change")
 os.environ.setdefault("KAWAN_CHUTES_API_KEY", "")
 
