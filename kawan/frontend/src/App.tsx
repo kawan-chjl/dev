@@ -5,6 +5,8 @@ import { Route, Routes } from 'react-router-dom'
 import { AuthCallback } from './pages/AuthCallback'
 import { Landing } from './pages/Landing'
 import { NotFound } from './pages/NotFound'
+import { SignIn } from './pages/SignIn'
+import { SignUp } from './pages/SignUp'
 import { Welcome } from './pages/Welcome'
 import { CommitmentDetail } from './shell/pages/CommitmentDetail'
 import { Commitments } from './shell/pages/Commitments'
@@ -21,6 +23,8 @@ export default function App() {
     <Routes>
       {/* Zone 0 — public, no shell chrome */}
       <Route path="/" element={<Landing />} />
+      <Route path="/sign-in" element={<SignIn />} />
+      <Route path="/sign-up" element={<SignUp />} />
       <Route path="/welcome" element={<Welcome />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
 

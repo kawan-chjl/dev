@@ -3,6 +3,9 @@ api.chutes.ai/idp/* (spec §9.4, TR-49/76; host confirmed by the platform refere
 and the S1 spike). The backend handles the callback directly; tokens are encrypted
 at rest (Fernet) and never reach the browser. Inference bills to the signed-in user
 (TR-52): app/auth.AuthTokenProvider hands Lane C's Chutes client a fresh token.
+
+Email/password helpers (PO-authorized spec deviation): hash_password / verify_password
+use argon2id via argon2-cffi (OWASP/NIST-preferred KDF); plaintext/sha256 are never used.
 """
 
 from __future__ import annotations
@@ -13,17 +16,65 @@ import secrets
 from datetime import timedelta
 
 import httpx
+from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
 from fastapi import HTTPException, Request, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.crypto import decrypt, encrypt
 from app.db import SessionLocal
 from app.models import User
-from app.util import now_utc
+from app.util import new_id, now_utc
+
+_ph = PasswordHasher()  # argon2id; defaults are OWASP-sane
 
 GUEST_USER_ID = "guest"
 _REFRESH_SKEW = timedelta(seconds=60)
+
+
+# ── Email/password helpers ─────────────────────────────────────────────────────
+
+def hash_password(pw: str) -> str:
+    """Hash a password with argon2id. Never called with a plaintext value that is
+    then stored — only the returned hash is persisted."""
+    return _ph.hash(pw)
+
+
+def verify_password(hash_str: str, pw: str) -> bool:
+    """Verify a password against an argon2id hash. Returns False on mismatch
+    (never raises to the caller)."""
+    try:
+        return _ph.verify(hash_str, pw)
+    except VerifyMismatchError:
+        return False
+
+
+async def create_email_user(db: AsyncSession, email: str, password: str) -> User:
+    """Create a new user registered by email/password (not SIWC). The id is a
+    hex uuid, username = email local-part, token fields are empty with a far-future
+    expiry so the SIWC token paths don't crash on the row."""
+    uid = f"email_{new_id()}"
+    username = email.split("@")[0]
+    user = User(
+        id=uid,
+        username=username,
+        persona="kawan",
+        email=email,
+        password_hash=hash_password(password),
+        access_token="",
+        refresh_token="",
+        token_expiry=now_utc() + timedelta(days=3650),
+    )
+    db.add(user)
+    await db.commit()
+    return user
+
+
+async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
+    result = await db.scalars(select(User).where(User.email == email))
+    return result.first()
 
 
 def _pkce_pair() -> tuple[str, str]:
