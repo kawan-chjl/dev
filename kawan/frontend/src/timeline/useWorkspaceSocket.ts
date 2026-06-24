@@ -25,10 +25,15 @@ export function useWorkspaceSocket(onEvent: (msg: WsServerMessage) => void): Wor
       return
     }
 
-    // Build the URL from window.location so the vite proxy + session cookie apply.
-    // Never hardcode localhost:8000 or ws:// — the proxy and prod both need a relative host.
-    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const url = `${protocol}//${location.host}/ws`
+    // In prod, VITE_WS_URL points directly at the Render host (wss://<render-host>/ws)
+    // because Vercel cannot proxy WebSocket upgrades. In dev the var is unset and the
+    // Vite proxy handles /ws → ws://localhost:8000 transparently.
+    const url = import.meta.env.VITE_WS_URL
+      ? (import.meta.env.VITE_WS_URL as string)
+      : (() => {
+          const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
+          return `${protocol}//${location.host}/ws`
+        })()
 
     const ws = new WebSocket(url)
     wsRef.current = ws

@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     session_secret: str = "dev-only-change-me"
     fernet_key: str = ""  # token-at-rest key; if unset, derived from session_secret (dev only)
 
+    # Cross-origin cookie settings. Defaults keep local dev working (SameSite=lax, not Secure).
+    # In prod (Vercel→Render direct-WS): KAWAN_COOKIE_SAMESITE=none + KAWAN_COOKIE_SECURE=true.
+    cookie_samesite: str = "lax"
+    cookie_secure: bool = False
+
     # Web Push (VAPID) — server-side send is Lane B; the service worker is Lane D
     vapid_public_key: str = ""
     vapid_private_key: str = ""

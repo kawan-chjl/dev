@@ -30,5 +30,5 @@ Thumbs.db
 # Logs
 *.log
 
-# Live2D model files — fetched via scripts/download_models.sh, never committed (license: spec 4.4)
-frontend/public/models/
+# Live2D model files are now tracked via Git LFS (kawan/.gitattributes).
+# The PO stages and commits the model trees after running `git lfs install`.

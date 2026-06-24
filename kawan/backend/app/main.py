@@ -27,7 +27,14 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Kawan API", lifespan=lifespan)
 
 # SessionMiddleware: HttpOnly signed cookie carrying user_id only (tokens stay server-side).
-app.add_middleware(SessionMiddleware, secret_key=settings.session_secret, same_site="lax", https_only=False)
+# same_site/https_only come from settings so local dev stays lax/insecure while prod uses
+# none/secure (required for the cross-origin direct-WS handshake from Vercel to Render).
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.session_secret,
+    same_site=settings.cookie_samesite,
+    https_only=settings.cookie_secure,
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[settings.frontend_origin],

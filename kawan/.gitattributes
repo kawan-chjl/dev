@@ -1,0 +1,13 @@
+# Git LFS — Live2D model binaries (Haru / Hiyori / LiveroiD)
+# The actual model files are committed via LFS by the PO (see docs/plan.md PO checklist).
+# Run `git lfs install` once before staging the model trees.
+
+frontend/public/models/**/*.moc3 filter=lfs diff=lfs merge=lfs -text
+frontend/public/models/**/*.png filter=lfs diff=lfs merge=lfs -text
+frontend/public/models/**/*.physics3.json filter=lfs diff=lfs merge=lfs -text
+frontend/public/models/**/*.model3.json filter=lfs diff=lfs merge=lfs -text
+frontend/public/models/**/*.exp3.json filter=lfs diff=lfs merge=lfs -text
+frontend/public/models/**/*.motion3.json filter=lfs diff=lfs merge=lfs -text
+frontend/public/models/**/*.pose3.json filter=lfs diff=lfs merge=lfs -text
+frontend/public/models/**/*.userdata3.json filter=lfs diff=lfs merge=lfs -text
+frontend/public/models/**/*.cdi3.json filter=lfs diff=lfs merge=lfs -text
