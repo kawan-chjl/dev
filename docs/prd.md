@@ -106,14 +106,14 @@ These hold across every feature, persona, and state. Violating one is a product 
 
 ### 5.2 Companion Persona (spec §11)
 
-| ID    | Requirement                                                                                                                                                                                                                                                                     | Priority                                    |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| FR-06 | First-run persona pick: 3 presets on one screen; switchable anytime in Settings (V6), effective next interaction (§11.2)                                                                                                                                                        | MUST                                        |
-| FR-07 | A persona is a **stateless preset**: tone prompt fragment + Live2D model + Piper voice + Chutes model id (`personas.json` + `users.persona`). Schemas, permissions, state machine, scope boundary are invariant across personas (§11.1)                                         | MUST                                        |
-| FR-08 | Hero persona "Kawan" (skeptical concierge, Haru-Receptionist model, gemma-4-31B-turbo-TEE) gets deep tone QA; the two variants (Adik/Hiyori/Qwen3.6, Cik Maid/LiveroiD/DeepSeek-V3.2) ship functional (§11.3). De-scope lever under crunch = variant QA depth, never the picker | MUST (hero) / SHOULD (#4 variant QA depth)  |
-| FR-09 | Persistent Live2D character stage on every view: idle motions, emotion-tag→expression mapping, lip-sync (AnalyserNode → mouth param), TTS via wyoming-piper, sentence-chunked (§4.3, §7.4)                                                                                      | MUST                                        |
-| FR-10 | Voice input: Web Speech API default; self-hosted Faster-Whisper as URL-flagged mode (§7.2)                                                                                                                                                                                      | MUST (WebSpeech) / SHOULD (#5 Whisper mode) |
-| FR-11 | Live2D model assets are NOT committed to the repo: `kawan/scripts/download_models.sh` + `.gitignore` + license credits in README (§4.4)                                                                                                                                               | MUST                                        |
+| ID    | Requirement                                                                                                                                                                                                                                                                                                                                              | Priority                                    |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| FR-06 | First-run persona pick: 3 presets on one screen; switchable anytime in Settings (V6), effective next interaction (§11.2)                                                                                                                                                                                                                                 | MUST                                        |
+| FR-07 | A persona is a **stateless preset**: tone prompt fragment + Live2D model + Piper voice + Chutes model id (`personas.json` + `users.persona`). Schemas, permissions, state machine, scope boundary are invariant across personas (§11.1)                                                                                                                  | MUST                                        |
+| FR-08 | Hero persona "Kawan" (skeptical concierge, Haru-Receptionist model, gemma-4-31B-turbo-TEE) gets deep tone QA; the two variants (Adik/Hiyori/Qwen3.6, Cik Maid/LiveroiD/DeepSeek-V3.2) ship functional (§11.3). De-scope lever under crunch = variant QA depth, never the picker                                                                          | MUST (hero) / SHOULD (#4 variant QA depth)  |
+| FR-09 | Persistent Live2D character stage on every view: idle motions, emotion-tag→expression mapping, lip-sync (AnalyserNode → mouth param), TTS via wyoming-piper, sentence-chunked (§4.3, §7.4)                                                                                                                                                               | MUST                                        |
+| FR-10 | Voice input: Web Speech API default; self-hosted Faster-Whisper as URL-flagged mode (§7.2)                                                                                                                                                                                                                                                               | MUST (WebSpeech) / SHOULD (#5 Whisper mode) |
+| FR-11 | Live2D model runtime assets are **committed via Git LFS** in the private repo (served same-origin under `/models/...`); `kawan/scripts/download_models.sh` is the local-bootstrap convenience; license credits (Live2D notice, #LiveroiD) stay in README `[REVISED — PO-approved, supersedes the prior "not committed / gitignored" rule; §4.4 / TR-12]` | MUST                                        |
 
 ### 5.3 Compose (spec §5.1 step 1)
 
@@ -202,16 +202,16 @@ Remaining post-freeze SHOULDs after #7, lowest priority (spec §12.3): ⑧ Kokor
 
 ### 5.11 Non-Functional Requirements (product-level)
 
-| ID     | Requirement                                                                                                                                                                                                                                           |
-| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| NFR-01 | **Demo determinism**: every demo beat fires from a manual trigger; `Check now`, demo clock, pre-staged second account (§12.5). No demo path depends on cron timing, closed-tab push, or live OAuth consent (pre-authorized account + recorded backup) |
-| NFR-02 | **Privacy story is real**: TEE-only models (`confidential_compute` flag, not the name suffix); attestation linkable from UI; screenshots deleted post-verdict; tokens encrypted at rest; never use the data-opt-in proxy (§3.1, §9.3)                 |
-| NFR-03 | **Voice latency**: mouth-to-ear <1 s with WebSpeech + streaming; ≤2.5 s on the full self-hosted path (§7.4)                                                                                                                                           |
-| NFR-04 | **Resilience**: inline model failover on every LLM call; scheduler jobs rebuilt from DB at boot; `Check now` independent of cron; single FastAPI process, SQLite, no external brokers (§7.2, §12.4)                                                   |
-| NFR-05 | **Compose→Start in under a minute** (O1 demo proof; with the demo intake cap of 3 questions)                                                                                                                                                          |
-| NFR-06 | **Cost**: demo path bills the SIWC user's balance; dev usage front-loaded before Pro expiry 22 Jun; PAYG dev cost <$1/day after (§3.2)                                                                                                                |
-| NFR-07 | **Repo hygiene**: progressive commits from day 1; adapted OSS visibly attributed in README + commits; Live2D assets gitignored with download script (§3.4, §4.4)                                                                                      |
-| NFR-08 | **Desktop-first responsive PWA** on Chrome; no native app (A1)                                                                                                                                                                                        |
+| ID     | Requirement                                                                                                                                                                                                                                                                                |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| NFR-01 | **Demo determinism**: every demo beat fires from a manual trigger; `Check now`, demo clock, pre-staged second account (§12.5). No demo path depends on cron timing, closed-tab push, or live OAuth consent (pre-authorized account + recorded backup)                                      |
+| NFR-02 | **Privacy story is real**: TEE-only models (`confidential_compute` flag, not the name suffix); attestation linkable from UI; screenshots deleted post-verdict; tokens encrypted at rest; never use the data-opt-in proxy (§3.1, §9.3)                                                      |
+| NFR-03 | **Voice latency**: mouth-to-ear <1 s with WebSpeech + streaming; ≤2.5 s on the full self-hosted path (§7.4)                                                                                                                                                                                |
+| NFR-04 | **Resilience**: inline model failover on every LLM call; scheduler jobs rebuilt from DB at boot; `Check now` independent of cron; single FastAPI process / 1 worker (in-process APScheduler), Supabase Postgres (SQLite for tests/local fallback), no external brokers (§7.2, §7.7, §12.4) |
+| NFR-05 | **Compose→Start in under a minute** (O1 demo proof; with the demo intake cap of 3 questions)                                                                                                                                                                                               |
+| NFR-06 | **Cost**: demo path bills the SIWC user's balance; dev usage front-loaded before Pro expiry 22 Jun; PAYG dev cost <$1/day after (§3.2)                                                                                                                                                     |
+| NFR-07 | **Repo hygiene**: progressive commits from day 1; adapted OSS visibly attributed in README + commits; Live2D runtime assets committed via Git LFS in the private repo (download script kept as local bootstrap), license credits in README (§3.4, §4.4)                                    |
+| NFR-08 | **Desktop-first responsive PWA** on Chrome; no native app (A1)                                                                                                                                                                                                                             |
 
 ---
 
@@ -267,7 +267,7 @@ Escalation (0/1/2) and on_track/slipping are derived, not states. Canonical week
 - GitHub OAuth / private repos
 - Multi-commitment, auto-recurring commitments
 - Crew / co-commitments / any leaderboard (§11.5 — leaderboards structurally fight the product)
-- Native mobile, true echo-cancelled barge-in, retention features, agent frameworks (§4.5, §7.6-D2), production hosting
+- Native mobile, true echo-cancelled barge-in, retention features, agent frameworks (§4.5, §7.6-D2) _(production hosting is now in scope — Vercel + Render + Supabase, §7.7)_
 
 ---
 
@@ -283,7 +283,7 @@ Escalation (0/1/2) and on_track/slipping are derived, not states. Canonical week
 | Q4  | Does `chutes:invoke` scope cover `/users/me` balance, or add `billing:read`?                               | D1 check                          |
 | Q5  | (Optional courtesy) LiveroiD creator permission — risk already accepted; Haru-R/Hiyori are zero-risk swaps | Anytime                           |
 
-Acted-on assumptions A1–A8 (desktop PWA, skip-days=1, grace=6 h, trivia<3, intake≤6 Q, screenshot≤8 MB, SMTP/Resend, SQLite, mascot trio incl. accepted LiveroiD terms risk, Docker voice on one machine): spec §14.
+Acted-on assumptions A1–A8 (desktop PWA, skip-days=1, grace=6 h, trivia<3, intake≤6 Q, screenshot≤8 MB, SMTP/Resend, SQLite, mascot trio incl. accepted LiveroiD terms risk, Docker voice on one machine): spec §14. _Two have since been revised: the SQLite-for-prod assumption → Supabase Postgres for dev+prod (SQLite kept for tests/local fallback, §7.6-D1 revised / §7.7), and the models-out-of-repo rule → Git LFS in the private repo (§4.4)._
 
 ### 8.2 Top product risks (spec §2.2, §12.4)
 

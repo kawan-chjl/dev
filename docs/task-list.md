@@ -19,12 +19,12 @@ Lane responsibilities and task breakdown for the 4-person team, derived from `ka
 
 ## 2. Lane ownership
 
-| Lane  | Title                    | Owner | Scope (one line)                                                       | Est. days |
-| ----- | ------------------------ | ----- | ---------------------------------------------------------------------- | --------- |
-| **A** | Character & frontend     | _TBD_ | Live2D stage, all GUIs, timeline, polish                               | 14        |
-| **B** | Backend core             | _TBD_ | FastAPI/SQLite, SIWC auth+billing, scheduler/WS/push, state machine    | 12        |
-| **C** | AI layer                 | _TBD_ | Chutes client, prompt/schema sets, evidence adapters + judge, tone     | 14        |
-| **D** | Voice, integration, demo | _TBD_ | Piper/Whisper, WebSpeech, Web Push, integration QA, demo/video/Devpost | 14        |
+| Lane  | Title                    | Owner | Scope (one line)                                                                               | Est. days |
+| ----- | ------------------------ | ----- | ---------------------------------------------------------------------------------------------- | --------- |
+| **A** | Character & frontend     | _TBD_ | Live2D stage, all GUIs, timeline, polish                                                       | 14        |
+| **B** | Backend core             | _TBD_ | FastAPI/Postgres (Supabase; SQLite tests), SIWC auth+billing, scheduler/WS/push, state machine | 12        |
+| **C** | AI layer                 | _TBD_ | Chutes client, prompt/schema sets, evidence adapters + judge, tone                             | 14        |
+| **D** | Voice, integration, demo | _TBD_ | Piper/Whisper, WebSpeech, Web Push, integration QA, demo/video/Devpost                         | 14        |
 
 ~6 days/person slack against the 20-day window is intentional (hackathon reality buffer). The two genuinely novel integrations — **SIWC** (lane B) and the **evidence judge** (lane C) — are week-1 items by design.
 
@@ -46,7 +46,7 @@ All four executed before lane assignment; full results in spec §13 (D1–2 bloc
 | --- | ----------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | S1  | SIWC round-trip         | B    | ✅ **PASS** — PKCE + refresh OK; OAuth token: `llm.` 200 / **`lm.` 403** (use `llm.` only); `/users/me` works with `chutes:invoke` — no `billing:read`. App `cid_…` registered; secret in team `.env`. Billing attribution confirmed in dashboard logs. **Follow-up (B, before demo):** re-run harness with a personal account to prove user-vs-team billing _separation_ (consent used the shared team account). |
 | S2  | Vision-judge call       | C    | ✅ **PASS** — strict `json_schema` verdict via failover pair; judge correctly returned `unclear` on a static screenshot → judge prompts need commitment context (calibration input for C2/C3).                                                                                                                                                                                                                    |
-| S3  | Live2D + lip-sync       | A    | ✅ **PASS** — Haru + PixiJS 6.5.10 + pixi-live2d-display 0.4.0, hand-rolled AnalyserNode lip-sync (no patch pkg). **Model + engine locked.** Spike page: `kawan/frontend/spike-live2d.html`; A1 gotchas in spec §13.                                                                                                                                                                                                    |
+| S3  | Live2D + lip-sync       | A    | ✅ **PASS** — Haru + PixiJS 6.5.10 + pixi-live2d-display 0.4.0, hand-rolled AnalyserNode lip-sync (no patch pkg). **Model + engine locked.** Spike page: `kawan/frontend/spike-live2d.html`; A1 gotchas in spec §13.                                                                                                                                                                                              |
 | S4  | Pro-tier model coverage | C    | ✅ **PASS** — all 4 pipeline models 200 under Pro. ⚠️ All but gemma are reasoning models: budget `max_tokens` for thinking tokens in every schema call.                                                                                                                                                                                                                                                           |
 
 ### Open questions carried from spec §14 (each ≤1 day)
@@ -77,7 +77,7 @@ Acceptance = the gate it must satisfy. `Deps` reference task IDs. Day estimates 
 
 | ID  | Task                           | Est. | Phase | Deps | Acceptance                                                                                                                                                                                                                      |
 | --- | ------------------------------ | ---- | ----- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| B1  | FastAPI + SQLite skeleton      | 2d   | 2     | —    | Single-process app, async SQLAlchemy, commitment CRUD persists.                                                                                                                                                                 |
+| B1  | FastAPI + DB skeleton          | 2d   | 2     | —    | Single-process app, async SQLAlchemy 2; persistence = Supabase Postgres (asyncpg, Supavisor session pooler) for dev+prod, SQLite for tests/local fallback (trd §7.7, TR-78); commitment CRUD persists.                          |
 | B2  | SIWC end-to-end auth + billing | 3d   | 2     | S1   | OAuth2 PKCE, HttpOnly session, user token → inference billed to user; balance display via `/users/me`; labeled guest-mode `cpk_` fallback exists but is never demoed (spec §9.1, §12.4). Week-1 item.                           |
 | B3  | Scheduler + WS + push delivery | 4d   | 3     | B1   | APScheduler jobs (cadence/deadline/win-back) rebuilt from DB at boot; delivery ladder WS → Web Push → timeline; `check now` independent of cron.                                                                                |
 | B4  | State machine + audit log      | 3d   | 3     | B1   | Per-commitment lifecycle, miss path + stake email (SMTP/Resend, spec A5), win-back, proposal-apply endpoint (user session only), `success_patterns` write on outcome, audit log with AI-actor-unrepresentable CHECK constraint. |
@@ -93,13 +93,13 @@ Acceptance = the gate it must satisfy. `Deps` reference task IDs. Day estimates 
 
 ### Lane D — Voice, integration, demo (14d)
 
-| ID  | Task                          | Est. | Phase | Deps      | Acceptance                                                                                                                                                                                       |
-| --- | ----------------------------- | ---- | ----- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| D1  | Piper + Whisper Docker stack  | 3d   | 2     | —         | wyoming-piper TTS + wyoming-faster-whisper STT in Docker, wired to backend.                                                                                                                      |
-| D2  | WebSpeech fallback path       | 1d   | 2     | —         | Web Speech API as demo-default voice path (no Docker dependency on stage).                                                                                                                       |
-| D3  | Web Push                      | 2d   | 3     | B3        | Service-worker push for closed-tab check-ins; falls back to timeline.                                                                                                                            |
-| D4  | Integration QA                | 4d   | 4     | all lanes | Full demo thread tested incl. determinism levers (`?demo_deadline=+5m`, pre-staged 2nd account, pre-seeded momentum history on the demo account — spec §6.4).                                    |
-| D5  | Demo script + video + Devpost | 4d   | 5     | D4        | 5-min script (spec §12.5) with **daily dry-runs D17–20**, incl. deliberately triggering the scope-boundary refusal (spec §12.4); recorded backup footage; video by D19; Devpost + README by D20. |
+| ID  | Task                          | Est. | Phase | Deps      | Acceptance                                                                                                                                                                                                                                                                                                                    |
+| --- | ----------------------------- | ---- | ----- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1  | Piper + Whisper Docker stack  | 3d   | 2     | —         | wyoming-piper TTS + wyoming-faster-whisper STT in Docker, wired to backend.                                                                                                                                                                                                                                                   |
+| D2  | WebSpeech fallback path       | 1d   | 2     | —         | Web Speech API as demo-default voice path (no Docker dependency on stage).                                                                                                                                                                                                                                                    |
+| D3  | Web Push                      | 2d   | 3     | B3        | Service-worker push for closed-tab check-ins; falls back to timeline.                                                                                                                                                                                                                                                         |
+| D4  | Integration QA + deploy       | 4d   | 4     | all lanes | Full demo thread tested incl. determinism levers (`?demo_deadline=+5m`, pre-staged 2nd account, pre-seeded momentum history on the demo account — spec §6.4). Owns the **Vercel + Render deploy** (auto-deploy from `main`, trd §7.7/TR-79) and the Python **seed/reset script** for a clean pre-staged demo dataset (TR-78). |
+| D5  | Demo script + video + Devpost | 4d   | 5     | D4        | 5-min script (spec §12.5) with **daily dry-runs D17–20**, incl. deliberately triggering the scope-boundary refusal (spec §12.4); recorded backup footage; video by D19; Devpost + README by D20.                                                                                                                              |
 
 ## 6. Cross-lane dependency map
 
@@ -128,5 +128,5 @@ Integration choke points (watch weekly): **B3↔A4/D3** (delivery ladder), **C3�
 - **No SDK/engine migration after S3 locks** the Live2D stack.
 - **Demo determinism:** every demo beat fires from a deterministic trigger; nothing waits on a cron.
 - **Feature freeze D17** — after that, only SHOULD-list items and polish.
-- **Live2D assets never enter the repo:** raw model files stay `.gitignore`d; `kawan/scripts/download_models.sh` fetches them; Live2D copyright notice + #LiveroiD credit lines in README (spec §4.4).
+- **Live2D assets `[REVISED — PO-approved, spec §4.4 / TR-12]`:** runtime model files are **committed via Git LFS in the private repo** (served same-origin under `/models/...`); `kawan/scripts/download_models.sh` is the local-bootstrap convenience; Live2D copyright notice + #LiveroiD credit lines stay in README.
 - **Shared Chutes account discipline:** quotas are per account with 4-h rolling-window smoothing — batch bulk eval loops off-hours; never architect features around subscription quotas (spec §3.2).

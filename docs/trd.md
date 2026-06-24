@@ -33,7 +33,7 @@ Kawan is a voiced, animated Live2D accountability companion: the user composes *
 │ AI layer: prompt assembly · structured-output calls · 2 tools (hand-rolled) │
 │ Evidence adapters: GitHubAdapter · ScreenshotAdapter (one Protocol)         │
 │ Voice: wyoming-piper TTS + wyoming-faster-whisper STT (Docker)              │
-│ SQLite via SQLAlchemy async                                                 │
+│ SQLAlchemy 2 async → Supabase Postgres (asyncpg) · SQLite (aiosqlite) tests │
 └──────┬──────────────────────────┬───────────────────────────────────────────┘
        ▼                          ▼
  Chutes inference            GitHub REST (public, no auth)
@@ -47,20 +47,20 @@ Kawan is a voiced, animated Live2D accountability companion: the user composes *
 
 ## 2. Tech Stack
 
-| Component   | Choice                                                                    | Version / pin     | Rationale                                                    | Spec          |
-| ----------- | ------------------------------------------------------------------------- | ----------------- | ------------------------------------------------------------ | ------------- |
-| Frontend    | React + Vite + TypeScript                                                 | React **18**      | Form-heavy GUIs; judges grade a browser demo                 | §7.2          |
-| Live2D      | `pixi-live2d-display` + PixiJS **v6** + **Cubism 4** core                 | locked day 1      | Canonical MIT lib; never migrate engines mid-build           | §4.3, §7.2    |
-| Lip-sync    | WebAudio `AnalyserNode` → mouth param                                     | fftSize 512       | ~60 lines, canonical amplitude pattern                       | §4.3          |
-| Backend     | FastAPI, **single process** (uvicorn)                                     | —                 | WS + async + scheduler in one event loop                     | §7.2          |
-| Scheduler   | APScheduler `AsyncIOScheduler`                                            | in-process        | Zero infra; Celery/arq rejected (broker = demo liability)    | §7.2          |
-| DB          | SQLite via **SQLAlchemy async**                                           | —                 | Zero-infra; Postgres-portable schema (D1 record)             | §7.2, §7.6    |
-| Agent layer | Hand-rolled: OpenAI SDK + `response_format` + Pydantic                    | **no frameworks** | 4 schema-bound calls + 2 tools; ADK/LangGraph/Letta rejected | §4.5, §7.6-D2 |
-| TTS         | `wyoming-piper` (Docker), sentence-chunked                                | —                 | <50 ms first audio on CPU; per-persona voices                | §4.3, §7.2    |
-| STT         | **Web Speech API** (default) + `wyoming-faster-whisper` (Docker, flagged) | URL-param switch  | Demo protection vs. self-hosted privacy story                | §4.3, §7.2    |
-| Push        | Service Worker + Web Push (VAPID)                                         | —                 | Delivery ladder fallback tier                                | §7.1, §7.3    |
-| Email       | SMTP / Resend                                                             | `[ASSUMPTION A5]` | Stake + win-back emails                                      | §14           |
-| Hosting     | Single VM / localhost + tunnel                                            | `[ASSUMPTION]`    | Judged via video + pitch                                     | §7.2          |
+| Component   | Choice                                                                                                                     | Version / pin     | Rationale                                                                                                  | Spec             |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------- | ---------------- |
+| Frontend    | React + Vite + TypeScript                                                                                                  | React **18**      | Form-heavy GUIs; judges grade a browser demo                                                               | §7.2             |
+| Live2D      | `pixi-live2d-display` + PixiJS **v6** + **Cubism 4** core                                                                  | locked day 1      | Canonical MIT lib; never migrate engines mid-build                                                         | §4.3, §7.2       |
+| Lip-sync    | WebAudio `AnalyserNode` → mouth param                                                                                      | fftSize 512       | ~60 lines, canonical amplitude pattern                                                                     | §4.3             |
+| Backend     | FastAPI, **single process** (uvicorn)                                                                                      | —                 | WS + async + scheduler in one event loop                                                                   | §7.2             |
+| Scheduler   | APScheduler `AsyncIOScheduler`                                                                                             | in-process        | Zero infra; Celery/arq rejected (broker = demo liability)                                                  | §7.2             |
+| DB          | **Supabase Postgres** via **SQLAlchemy 2 async + `asyncpg`** (dev+prod); **SQLite (aiosqlite)** for tests + local fallback | dev/prod-driven   | Render filesystem is ephemeral → hosted DB; SQLite stays the test DB + config default (D1 revised)         | §7.2, §7.6, §7.7 |
+| Agent layer | Hand-rolled: OpenAI SDK + `response_format` + Pydantic                                                                     | **no frameworks** | 4 schema-bound calls + 2 tools; ADK/LangGraph/Letta rejected                                               | §4.5, §7.6-D2    |
+| TTS         | `wyoming-piper` (Docker), sentence-chunked                                                                                 | —                 | <50 ms first audio on CPU; per-persona voices                                                              | §4.3, §7.2       |
+| STT         | **Web Speech API** (default) + `wyoming-faster-whisper` (Docker, flagged)                                                  | URL-param switch  | Demo protection vs. self-hosted privacy story                                                              | §4.3, §7.2       |
+| Push        | Service Worker + Web Push (VAPID)                                                                                          | —                 | Delivery ladder fallback tier                                                                              | §7.1, §7.3       |
+| Email       | SMTP / Resend                                                                                                              | `[ASSUMPTION A5]` | Stake + win-back emails                                                                                    | §14              |
+| Hosting     | **Frontend → Vercel** (Vite SPA) · **Backend → Render** (1 instance/1 worker)                                              | live deploy       | Render runs the single FastAPI+APScheduler process; Vercel serves the SPA + rewrites `/api/*` (D1 revised) | §7.2, §7.7       |
 
 - **TR-04** Versions above MUST be treated as pins. In particular: PixiJS v6 + Cubism 4; switching to `untitled-pixi-live2d-engine` is allowed **only** if a Cubism 5 model is chosen on day 1 — never later (spec §4.3 lesson: Open-LLM-VTuber broke lip-sync migrating mid-build).
 - **TR-05** No agent framework (LangGraph, Letta/MemGPT, mem0, ElizaOS, OpenAI Agents SDK, Google ADK) may be introduced (spec §4.5, §7.6-D2). Memory = SQLite rows assembled into prompts.
@@ -88,7 +88,7 @@ Single-page app. The **character stage is persistent**; the context panel swaps.
 - **TR-09** The LLM `emotion` enum field MUST drive Live2D expressions (emotion-tag pattern); motions trigger on events (celebration, greeting) (spec §9.2-A, §4.3).
 - **TR-10** Compose (V2 step 1) MUST be pure GUI — sentence constructor `I will [action ▾] [deliverable ✎] by [deadline 📅]` — with zero AI calls; validation rejects past deadlines and confirms <1 h deadlines (spec §5.1, §6.3).
 - **TR-11** Plan + Settings (V2 step 3) MUST be pure GUI: the LLM pre-fills defaults only; only user controls set values. Verification panel MUST include a `Test connection` dry-run of the adapter's `fetch()` (spec §5.1).
-- **TR-12** Live2D model files MUST stay out of the repo: `.gitignore` + `kawan/scripts/download_models.sh` fetching the verified URLs; credit lines (Live2D notice, #LiveroiD) in README (spec §4.4).
+- **TR-12** `[REVISED — PO-approved deviation, spec §4.4]` Live2D model runtime files MUST be **tracked via Git LFS in the private repo** and served same-origin by Vercel under `/models/...`; `kawan/scripts/download_models.sh` is retained as a local-bootstrap convenience. Credit lines (Live2D notice, `#LiveroiD` + 八城惺架) MUST remain in the README per license. _(Supersedes the original "models out of repo / `.gitignore`" rule — that rule re-applies only if the repo is ever made public.)_
 - **TR-13** Idle state (no active commitment) MUST swap the V3 header for a compose CTA; workspace chat disabled except a single re-commit prompt (spec §5.5).
 
 ## 4. Backend Architecture
@@ -118,7 +118,7 @@ Single-page app. The **character stage is persistent**; the context panel swaps.
 ### 4.2 Scheduler & delivery (spec §7.3)
 
 - **TR-14** Per active commitment there MUST be exactly **3 scheduler jobs**: `cadence` (cron), `deadline` (one-shot → final verify), `winback` (re-armed after each silent check-in; fires after the 2nd). No per-step scheduler — the roadmap is data, not state.
-- **TR-15** On boot, jobs MUST be rebuilt from the DB (`status='active'`); restart resilience is a requirement, not best-effort (spec §6.3, §7.3).
+- **TR-15** On boot, jobs MUST be rebuilt from the DB (`status='active'`); restart resilience is a requirement, not best-effort (spec §6.3, §7.3). Because APScheduler runs **in-process**, the Render backend MUST run as a **single instance with exactly 1 worker** — scaling to >1 worker/instance would duplicate every job (TR-80).
 - **TR-16** `POST /commitments/{id}/check` MUST run the _identical_ cadence pipeline (`fetch evidence → status snapshot → LLM check-in line → deliver`) — one code path for cron tick and on-demand check (spec §5.2, §7.3).
 - **TR-17** Delivery ladder MUST be: WS if connected → else Web Push → else in-app timeline on next open. Push payloads MUST carry the headline only (privacy + iOS limits) (spec §7.3).
 - **TR-18** Escalation (0|1|2, `gentle → direct → blunt`) MUST rise only on consecutive no-new-evidence ticks; any evidence resets it (spec §5.2).
@@ -151,7 +151,7 @@ stateDiagram-v2
 
 ## 5. Data Model (spec §8.1)
 
-SQLite DDL, Postgres-portable. Tables:
+Schema is created via `Base.metadata.create_all` (Alembic is the designated future path if real migrations become necessary); the SQLite DDL in spec §8.1 stays normative and runs unchanged on Supabase Postgres (TR-78). Tables:
 
 | Table                | Purpose                                                                                                                                                                           | Write access                                        |
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
@@ -243,10 +243,10 @@ class EvidenceAdapter(Protocol):
 - **TR-49** OAuth2 Authorization Code + **PKCE S256** against Chutes' OIDC endpoints at **`api.chutes.ai/idp/*`** (`/idp/authorize`, `/idp/token`, `/idp/userinfo`) — host confirmed by the platform reference (`docs/reference/chutes-llms.md`) and the S1 spike; **not** `idp.chutes.ai`. Scopes `["openid","profile","chutes:invoke"]` (+`billing:read` only if `/users/me` balance requires it — resolved by Q4: not needed). `state` MUST be verified on callback.
 - **TR-50** App registered once via `POST /idp/apps` (team `cpk_` key) → `cid_`/`csc_` stored in env, never in the repo.
 - **TR-51** Tokens (access ≈1 h, refresh grant) MUST be encrypted at rest (Fernet, key in env) and **never reach the browser**; the client holds only an HttpOnly session cookie (spec §8.1, §9.4).
-- **TR-52** Inference MUST be billed to the signed-in user: the stored SIWC access token is the Bearer on every chat-completions call (TR-29). This is the special-track core — the UI MUST display the user's Chutes balance (`GET /users/me`).
+- **TR-52** Inference MUST be billed to the signed-in user: the stored SIWC access token is the Bearer on every chat-completions call (TR-29). This is the special-track core — the UI MUST display the user's Chutes balance (`GET /users/me`). The app's **`chutes:invoke` scope is required** and covers both `/users/me` balance and user-billed inference (`billing:read` is privileged and not needed, Q4). Billing model unchanged: guest mode bills the team `cpk_` (TR-53).
 - **TR-53** Guest mode: an env-var team `cpk_` key MAY power a **visibly-labeled** guest fallback if SIWC hiccups; SIWC remains the demoed default (spec §9.1 `[DECISION]`).
 - **TR-54** Token expiry mid-session: backend refresh-grant retry MUST be transparent; a second 401 surfaces a re-auth prompt (spec §6.3).
-- **TR-76** Flow details (spec §9.4): app registration includes `redirect_uris` (localhost + prod) and `allowed_scopes: ["openid","profile","chutes:invoke"]`; login generates a `code_verifier` (43–128 chars) + S256 challenge + `state`; callback sequence = verify `state` → `POST /idp/token` (form-encoded: code + verifier + client creds) → encrypt + store tokens → `GET /idp/userinfo` → upsert user → set HttpOnly session cookie.
+- **TR-76** Flow details (spec §9.4): app registration includes `redirect_uris` (localhost + the **prod Render callback, now registered at Chutes**) and `allowed_scopes: ["openid","profile","chutes:invoke"]`; login generates a `code_verifier` (43–128 chars) + S256 challenge + `state`; callback sequence = verify `state` → `POST /idp/token` (form-encoded: code + verifier + client creds) → encrypt + store tokens → `GET /idp/userinfo` → upsert user → set HttpOnly session cookie.
 
 ## 9. Voice Pipeline (spec §7.4)
 
@@ -266,7 +266,7 @@ Mic → STT (WebSpeech default | wyoming-faster-whisper Docker, 300–600 ms CPU
 | ID        | Area               | Requirement                                                                                                                                                                                                                                                                                                                                     |
 | --------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **TR-58** | Security           | Structural permissions (TR-24–TR-27) are the safety model; prompt obedience MUST NOT be load-bearing anywhere.                                                                                                                                                                                                                                  |
-| **TR-59** | Security           | Secrets (`cpk_`, `cid_`/`csc_`, Fernet key, VAPID keys, SMTP creds) live in env only; never committed.                                                                                                                                                                                                                                          |
+| **TR-59** | Security           | Secrets (`cpk_`, `cid_`/`csc_`, `KAWAN_FERNET_KEY`, `KAWAN_SESSION_SECRET`, `KAWAN_DATABASE_URL`, VAPID keys, SMTP creds) live in env only; never committed. In prod they live **only in Render's env UI**. `KAWAN_FERNET_KEY` MUST be **explicitly set** (not generated per boot) so encrypted SIWC tokens survive restarts (spec §9.4-6).     |
 | **TR-60** | Privacy/TEE        | All models TEE (`confidential_compute: true`); the UI 🔒 badge MUST link to the live attestation endpoint `GET api.chutes.ai/chutes/{chute_id}/evidence`; screenshots deleted post-verdict (spec §3.1, §9.3, §10.3).                                                                                                                            |
 | **TR-61** | Determinism (demo) | Every accountability event MUST be triggerable deterministically: `Check now` (one code path), demo-clock flag `?demo_deadline=+5m`, intake demo cap of 3 questions, pre-staged second account for the miss path, pre-seeded momentum history on the demo account, low temperature + pre-tested images for the judge (spec §6.4, §12.3, §12.5). |
 | **TR-62** | Resilience         | Server restart mid-commitment MUST be safe: jobs rebuilt from DB at boot (TR-15); `check now` works independently of cron (spec §12.4).                                                                                                                                                                                                         |
@@ -279,17 +279,20 @@ Mic → STT (WebSpeech default | wyoming-faster-whisper Docker, 300–600 ms CPU
 
 ### 11.1 Environment variables
 
-| Var                                         | Purpose                                                  |
-| ------------------------------------------- | -------------------------------------------------------- |
-| `CHUTES_CLIENT_ID` / `CHUTES_CLIENT_SECRET` | SIWC app creds (`cid_`/`csc_`)                           |
-| `CHUTES_API_KEY`                            | Team `cpk_` key — guest mode + app registration only     |
-| `CHUTES_BASE_URL`                           | `https://llm.chutes.ai/v1` (fallback `lm.` per Q1 spike) |
-| `FERNET_KEY`                                | Token encryption at rest                                 |
-| `SESSION_SECRET`                            | HttpOnly session signing                                 |
-| `DATABASE_URL`                              | `sqlite+aiosqlite:///...`                                |
-| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`    | Web Push                                                 |
-| `SMTP_*` / `RESEND_API_KEY`                 | Stake + win-back email (A5)                              |
-| `PIPER_HOST:PORT` / `WHISPER_HOST:PORT`     | Wyoming voice services                                   |
+| Var                                             | Purpose                                                                                                                                                                                          |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `CHUTES_CLIENT_ID` / `CHUTES_CLIENT_SECRET`     | SIWC app creds (`cid_`/`csc_`)                                                                                                                                                                   |
+| `CHUTES_API_KEY`                                | Team `cpk_` key — guest mode + app registration only                                                                                                                                             |
+| `CHUTES_BASE_URL`                               | `https://llm.chutes.ai/v1` (fallback `lm.` per Q1 spike)                                                                                                                                         |
+| `KAWAN_FERNET_KEY`                              | Token encryption at rest — **explicitly set** (survives restarts)                                                                                                                                |
+| `KAWAN_SESSION_SECRET`                          | HttpOnly session signing                                                                                                                                                                         |
+| `KAWAN_DATABASE_URL`                            | Overrides the config default; prod/dev = `postgresql+asyncpg://...` (Supabase session pooler, port 5432). Default stays `sqlite+aiosqlite:///...`; tests hard-force SQLite (`tests/conftest.py`) |
+| `KAWAN_FRONTEND_ORIGIN`                         | CORS allow-list — the Vercel origin                                                                                                                                                              |
+| `KAWAN_COOKIE_SAMESITE` / `KAWAN_COOKIE_SECURE` | Session-cookie policy: `none`/`true` in prod, `lax`/insecure in local dev                                                                                                                        |
+| `VITE_WS_URL` (frontend)                        | Direct Render WS endpoint for `/ws` (rewrites don't proxy WS)                                                                                                                                    |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`        | Web Push                                                                                                                                                                                         |
+| `SMTP_*` / `RESEND_API_KEY`                     | Stake + win-back email (A5)                                                                                                                                                                      |
+| `PIPER_HOST:PORT` / `WHISPER_HOST:PORT`         | Wyoming voice services                                                                                                                                                                           |
 
 ### 11.2 Docker pieces
 
@@ -298,7 +301,7 @@ Mic → STT (WebSpeech default | wyoming-faster-whisper Docker, 300–600 ms CPU
 | `wyoming-piper`          | TTS, Wyoming TCP, CPU               |
 | `wyoming-faster-whisper` | STT (flagged self-hosted mode), CPU |
 
-App + SQLite run on a single VM/localhost + tunnel; voice containers on one team machine (A8).
+The FastAPI backend runs as a single Render Web Service (1 worker) against Supabase Postgres; the Vite SPA runs on Vercel; voice containers run on one team machine (A8). Local dev still runs the same backend against the SQLite default. See §7.7 for the full topology + cross-origin (Approach A).
 
 ### 11.3 Demo/dev flags
 
@@ -312,6 +315,12 @@ App + SQLite run on a single VM/localhost + tunnel; voice containers on one team
 - **TR-67** Demo flags MUST be implemented as parameters of the _real_ code paths (e.g. demo deadline still goes through the genuine `deadline` job + final verify), never as separate stub flows.
 - **TR-68** Day-1/2 de-risk gate (spec §12.2): SIWC round-trip with inference verifiably billed to the user · one live vision-judge call · Live2D render with lip-sync from a Piper WAV · Pro-tier coverage check for the judge models (test call per judge model + `GET /users/me/subscription_usage`). All four by D2 or the cut order (spec §12.3, bottom-up) begins. LLM-heavy tuning MUST finish before 22 Jun (Pro expiry); quota is per-account, smoothed by a 4-hour rolling window — batch bulk eval loops off-hours (spec §3.2).
 - **TR-77** Scope guard (spec §12.2–12.3): feature freeze D17, demo video recorded by D19. The MUST set is the §12.3 demo-thread list, cuttable bottom-up only; NICE-to-haves land **post-freeze only**, in the spec's priority order (① share card · ② trust meter · ③ public-URL adapter · ④ variant tone QA · ⑤ server-Whisper · ⑥ closed-tab Web Push · ⑦ guard classifier · ⑧ Kokoro). Nothing tagged `[ROADMAP]` is built.
+
+### 11.4 Deployment & persistence (spec §7.6-D1 revised, §7.7)
+
+- **TR-78** Persistence MUST be **Supabase Postgres** for dev+prod via **SQLAlchemy 2 async + `asyncpg`**, connected through the **Supavisor session pooler (port 5432)** — required because Render's outbound is IPv4 while Supabase's direct connection is IPv6-only on the free tier. One Supabase project serves dev+prod for now (a second project for prod isolation is a future option). The ORM MUST stay **SQLAlchemy 2 async — not Prisma** (Node/TS, incompatible with the Python backend); schema is created via `Base.metadata.create_all`, with **Alembic** as the designated future path if real migrations become necessary. **SQLite (aiosqlite)** is retained ONLY as the config default and a zero-config local fallback, and as the test DB — **not a backup or mirror of Supabase** (they never sync); `tests/conftest.py` MUST hard-force SQLite so `pytest` can never touch a remote DB. A Python **seed/reset script (Lane D4)** pre-stages a clean demo dataset.
+- **TR-79** Deployment topology (spec §7.7): **Frontend → Vercel** (monorepo root `kawan/frontend`, build `bun run build` → `dist/`, SPA rewrite); **Backend → Render** (Web Service, root `kawan/backend`, started via `uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT`). Both MUST auto-deploy from `main` via **native Git integration** — no custom GitHub Actions deploy pipeline. **Cross-origin = Approach A:** Vercel rewrites `/api/:path*` → Render (browser sees `/api` same-origin, session cookie untouched); the WebSocket `/ws` connects **directly** to Render via `VITE_WS_URL`; the prod session cookie is **`SameSite=None; Secure`** (env-gated via `KAWAN_COOKIE_SAMESITE`/`KAWAN_COOKIE_SECURE`; local dev stays `lax`/insecure); CORS allows the Vercel origin via `KAWAN_FRONTEND_ORIGIN`.
+- **TR-80** Because APScheduler is in-process (TR-15), the Render backend MUST run as a **single instance with exactly 1 worker**; scaling out would duplicate every scheduler job. This preserves TR-01's single-FastAPI-process invariant on hosted infra.
 
 ## 12. Technical Risks & Mitigations (spec §12.4, technical subset)
 
