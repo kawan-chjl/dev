@@ -2,7 +2,7 @@
 // Kawan = serif on terracotta-tinted bubble. User = sans on --surface-sunk.
 // Proposal cards have inert [Apply]/[Dismiss] buttons (non-functional per Q7).
 
-import { Eye, Send } from 'lucide-react'
+import { MessageCircle, Send } from 'lucide-react'
 import type { ConversationTurn } from '../mock/fixtures'
 
 interface MessagesModeProps {
@@ -22,7 +22,7 @@ export function MessagesMode({ turns, currentIndex }: MessagesModeProps) {
           <div key={i} className={`message-row ${turn.speaker === 'kawan' ? 'message-row-kawan' : 'message-row-user'}`}>
             {turn.speaker === 'kawan' && (
               <div className="message-avatar" aria-hidden="true">
-                <Eye size={18} />
+                <MessageCircle size={18} />
               </div>
             )}
             <div className={`message-bubble ${turn.speaker === 'kawan' ? 'bubble-kawan' : 'bubble-user'}`}>

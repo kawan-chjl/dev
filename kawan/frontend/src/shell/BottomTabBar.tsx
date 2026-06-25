@@ -1,7 +1,7 @@
 // BottomTabBar — mobile-only bottom navigation (≤768px). design-system.md §4.
 
 import type { LucideIcon } from 'lucide-react'
-import { Clock, Home, ListChecks, Settings } from 'lucide-react'
+import { HelpCircle, History, Home, ListChecks, TrendingUp } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 
 interface TabItem {
@@ -13,8 +13,9 @@ interface TabItem {
 const TAB_ITEMS: TabItem[] = [
   { to: '/home', label: 'Home', icon: Home },
   { to: '/commitments', label: 'Commitments', icon: ListChecks },
-  { to: '/timeline', label: 'Timeline', icon: Clock },
-  { to: '/settings', label: 'Settings', icon: Settings }
+  { to: '/timeline', label: 'Timeline', icon: TrendingUp },
+  { to: '/faq', label: 'FAQ', icon: HelpCircle },
+  { to: '/history', label: 'History', icon: History }
 ]
 
 export function BottomTabBar() {

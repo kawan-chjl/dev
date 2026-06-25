@@ -1,5 +1,6 @@
 // Topbar — glass fixed bar (Layer 2). design-system.md §4.
-// Left: hamburger (mobile) + page title. Right: ThemeToggle + balance pill + account menu.
+// Left: hamburger (mobile) + page title. Right: ThemeToggle + account menu.
+// Balance moved into account popover (task #3).
 
 import { LogOut, Menu, Settings } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
@@ -17,7 +18,8 @@ const ROUTE_TITLES: Record<string, string> = {
   '/commitments': 'Commitments',
   '/timeline': 'Timeline',
   '/settings': 'Settings',
-  '/settings/audit': 'History'
+  '/history': 'History',
+  '/faq': 'FAQ'
 }
 
 function usePageTitle(): string {
@@ -33,8 +35,10 @@ export function Topbar({ onMenuOpen }: TopbarProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
-  const balanceDisplay = me?.balance != null ? `$${me.balance.toFixed(2)}` : null
-  const avatarLetter = me?.username ? me.username.charAt(0).toUpperCase() : 'K'
+  // Guest users: show "Guest" regardless of backend username format.
+  const displayName = me?.guest ? 'Guest' : (me?.username ?? 'Guest')
+  const balanceDisplay = me?.balance != null ? `$${me.balance.toFixed(2)}` : 'Not set'
+  const avatarLetter = displayName.charAt(0).toUpperCase()
 
   useEffect(() => {
     if (!menuOpen) return
@@ -66,12 +70,6 @@ export function Topbar({ onMenuOpen }: TopbarProps) {
       <div className="topbar-right">
         <ThemeToggle theme={theme} onToggle={toggle} />
 
-        {balanceDisplay != null && (
-          <span className="topbar-balance" title="Chutes balance">
-            {balanceDisplay}
-          </span>
-        )}
-
         <div className="topbar-popover-wrap" ref={menuRef}>
           <button
             type="button"
@@ -86,8 +84,9 @@ export function Topbar({ onMenuOpen }: TopbarProps) {
           {menuOpen && (
             <div className="topbar-popover" role="menu">
               <div className="topbar-popover-header">
-                <p className="topbar-popover-username">{me?.username ?? 'Guest'}</p>
+                <p className="topbar-popover-username">{displayName}</p>
                 {me?.persona && <p className="topbar-popover-role">{me.persona}</p>}
+                <p className="topbar-popover-balance">Chutes balance: {balanceDisplay}</p>
               </div>
               <div className="topbar-popover-body">
                 <Link to="/settings" className="topbar-popover-item" role="menuitem" onClick={() => setMenuOpen(false)}>

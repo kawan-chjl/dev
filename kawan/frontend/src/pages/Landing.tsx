@@ -2,7 +2,7 @@
 // Real front door: warm hero + how-it-works band + two CTAs routing to /sign-up and /sign-in.
 // Auth logic (SIWC, email/password, guest) lives on those dedicated pages.
 
-import { CheckCircle, Eye, ShieldCheck } from 'lucide-react'
+import { CheckCircle, ShieldCheck, Sparkles } from 'lucide-react'
 import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 
@@ -22,9 +22,8 @@ export function Landing() {
       </header>
 
       <main className="landing-main">
-        {/* Eye motif - svg not emoji */}
         <div className="landing-eye" aria-hidden="true">
-          <Eye size={48} color="var(--accent)" strokeWidth={1.5} aria-hidden="true" />
+          <Sparkles size={48} color="var(--accent)" strokeWidth={1.5} aria-hidden="true" />
         </div>
 
         <h1 className="landing-headline">
@@ -53,7 +52,7 @@ export function Landing() {
         <div className="landing-how-inner">
           <div className="landing-how-item">
             <div className="landing-how-icon" aria-hidden="true">
-              <Eye size={22} color="var(--accent)" aria-hidden="true" />
+              <Sparkles size={22} color="var(--accent)" aria-hidden="true" />
             </div>
             <p className="landing-how-title">You commit</p>
             <p className="landing-how-desc">One goal, one deadline, one evidence source. Kawan holds you to it.</p>

@@ -9,6 +9,7 @@ import { Badge } from '../../ui/Badge'
 import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
 import { Chip } from '../../ui/Chip'
+import { PageHeader } from '../PageHeader'
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -21,10 +22,7 @@ export function Commitments() {
 
   return (
     <div className="shell-page">
-      <div className="page-header">
-        <h2>Commitments</h2>
-        <p className="page-subtitle">One active commitment at a time.</p>
-      </div>
+      <PageHeader title="Commitments" subtitle="One active commitment at a time." />
 
       {all.length === 0 ? (
         <Card className="empty-state-card">

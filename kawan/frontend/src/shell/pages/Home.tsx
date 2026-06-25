@@ -3,7 +3,7 @@
 // Idle state (TR-13): warm inviting hero + how-it-works strip.
 // Reads real commitment data via useActiveCommitment() with mock fallback + dev toggle.
 
-import { Clock, Lock, ShieldCheck } from 'lucide-react'
+import { Clock, Lock, ShieldCheck, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useActiveCommitment } from '../../commitments/useActiveCommitment'
@@ -13,6 +13,7 @@ import { Badge } from '../../ui/Badge'
 import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
 import { Chip } from '../../ui/Chip'
+import { PageHeader } from '../PageHeader'
 
 function formatDeadline(iso: string): string {
   const d = new Date(iso)
@@ -47,6 +48,8 @@ export function Home() {
 
   return (
     <div className="shell-page">
+      <PageHeader title="Good to have you back." subtitle="Kawan is watching, with your permission." />
+
       {/* Dev toggle - local dev only, never in production */}
       {import.meta.env.DEV && (
         <div className="dev-toggle">
@@ -76,11 +79,7 @@ function IdleState({ onCompose }: { onCompose: () => void }) {
     <div className="home-idle-v2">
       <div className="home-idle-hero">
         <div className="home-idle-eye-wrap" aria-hidden="true">
-          <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true">
-            <ellipse cx="24" cy="24" rx="22" ry="14" stroke="var(--accent)" strokeWidth="2.5" fill="none" />
-            <circle cx="24" cy="24" r="6" fill="var(--accent)" />
-            <circle cx="26" cy="22" r="2" fill="var(--surface-2)" />
-          </svg>
+          <Sparkles size={48} color="var(--accent)" strokeWidth={1.5} aria-hidden="true" />
         </div>
         <h1 className="home-idle-heading-v2">
           Make a <em className="home-idle-em">commitment.</em>

@@ -9,6 +9,7 @@ import { useAuth } from '../../auth/AuthProvider'
 import { listPersonas } from '../../mock/provider'
 import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
+import { PageHeader } from '../PageHeader'
 
 export function Settings() {
   const { me, signOut, setPersona } = useAuth()
@@ -23,9 +24,7 @@ export function Settings() {
 
   return (
     <div className="shell-page">
-      <div className="page-header">
-        <h2>Settings</h2>
-      </div>
+      <PageHeader title="Settings" />
 
       {/* Persona switcher - design.md §7 selected card pattern */}
       <section className="settings-section" aria-labelledby="persona-heading">

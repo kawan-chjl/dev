@@ -1,4 +1,6 @@
 // ShellLayout — Zone 1 SaaS shell. 4-layer: sidebar + topbar + content + footer.
+// Footer uses the proofrank foldover mechanic: .page-scroll sits z-index:1 on top of
+// the fixed footer (z-index:0), then scrolls up to reveal it at the bottom margin.
 // design-system.md §4.
 
 import { useState } from 'react'
@@ -25,11 +27,14 @@ export function ShellLayout() {
       {/* Layer 2: topbar */}
       <Topbar onMenuOpen={() => setDrawerOpen(true)} />
 
-      {/* Layer 3: content */}
+      {/* Layer 4: footer — fixed behind, revealed by scrolling */}
+      <ScrollRevealFooter />
+
+      {/* Layer 3: content — sits on top of footer, scrolls up past margin-bottom to reveal it */}
       <main className="shell-content" id="main-content">
-        <Outlet />
-        {/* Layer 4: footer at end of scroll */}
-        <ScrollRevealFooter />
+        <div className="page-scroll">
+          <Outlet />
+        </div>
       </main>
 
       {/* Mobile bottom tab bar */}

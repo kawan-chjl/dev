@@ -1,18 +1,18 @@
 /* Kawan design tokens v2 — design-system.md §1-§3 */
 :root {
   /* ── Color: light (default) ── */
-  --bg: #ece5dc;
-  --surface: #f6f1ea;
-  --surface-2: #fbf8f3;
-  --surface-sunk: #e2d8cb;
+  --bg: #f3e9d9;
+  --surface: #fbf4e8;
+  --surface-2: #fffbf4;
+  --surface-sunk: #eadcca;
   --ink: #3a2a1e;
   --ink-soft: #6e5849;
   --ink-faint: #9c8a7a;
-  --line: #d8ccbd;
-  --line-strong: #c8b7a4;
-  --accent: #d9643a;
-  --accent-press: #b8502c;
-  --accent-tint: #f7e2d5;
+  --line: #e0d0bb;
+  --line-strong: #cebfa9;
+  --accent: #dd6236;
+  --accent-press: #b84d27;
+  --accent-tint: #f8e1d2;
   --sage: #a9b388;
   --sage-deep: #7c8a5a;
   --sage-tint: #e7ecda;
@@ -61,7 +61,7 @@
   --shadow-pill: 0 6px 20px rgba(58, 42, 30, 0.16);
 
   /* ── Glass / blur ── */
-  --glass-bg: linear-gradient(135deg, rgba(246, 241, 234, 0.72), rgba(246, 241, 234, 0.55));
+  --glass-bg: linear-gradient(135deg, rgba(251, 244, 232, 0.72), rgba(251, 244, 232, 0.55));
   --glass-border: rgba(58, 42, 30, 0.1);
   --blur-nav: blur(20px) saturate(180%);
   --blur-backdrop: blur(12px);

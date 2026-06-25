@@ -15,6 +15,7 @@ import { useWorkspaceSocket } from '../../timeline/useWorkspaceSocket'
 import type { Commitment, CommitmentStatus, TimelineEvent } from '../../types/api'
 import { Card } from '../../ui/Card'
 import { Chip } from '../../ui/Chip'
+import { PageHeader } from '../PageHeader'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -346,32 +347,32 @@ export function Timeline() {
 
   const showCheckNow = !MOCK_AUTH && commitment !== null && CHECK_NOW_STATUSES.includes(commitment.status)
 
+  const timelineActions = (
+    <>
+      {connected && (
+        <span className="timeline-live-dot" role="img" aria-label="Live, connected" title="Connected live" />
+      )}
+      {showCheckNow && (
+        <button
+          type="button"
+          className="btn btn-secondary timeline-check-now"
+          onClick={handleCheckNow}
+          disabled={checking}
+        >
+          {checking ? 'Checking...' : 'Check now'}
+        </button>
+      )}
+    </>
+  )
+
   return (
     <div className="shell-page">
-      <div className="page-header">
-        <div className="page-header-row">
-          <div>
-            <h2>Timeline</h2>
-            <p className="page-subtitle">Your momentum journey. Every check-in, every verdict.</p>
-          </div>
-          <div className="page-header-actions">
-            {connected && (
-              <span className="timeline-live-dot" role="img" aria-label="Live, connected" title="Connected live" />
-            )}
-            {showCheckNow && (
-              <button
-                type="button"
-                className="btn btn-secondary timeline-check-now"
-                onClick={handleCheckNow}
-                disabled={checking}
-              >
-                {checking ? 'Checking…' : 'Check now'}
-              </button>
-            )}
-          </div>
-        </div>
-        {checkError !== null && <p className="timeline-check-error">{checkError}</p>}
-      </div>
+      <PageHeader
+        title="Timeline"
+        subtitle="Your momentum journey. Every check-in, every verdict."
+        actions={timelineActions}
+      />
+      {checkError !== null && <p className="timeline-check-error">{checkError}</p>}
 
       {beat !== null && <TimelineBeat beat={beat} onDismiss={() => setBeat(null)} />}
 

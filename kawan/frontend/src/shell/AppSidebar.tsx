@@ -2,9 +2,9 @@
 // design-system.md §4 Layer 1. Behavior mirrors SolarSim AppSidebar but uses plain CSS.
 
 import type { LucideIcon } from 'lucide-react'
-import { Clock, Home, ListChecks, Settings, X } from 'lucide-react'
+import { HelpCircle, History, Home, ListChecks, TrendingUp, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
-import { NavLink, useLocation } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 
 interface NavItem {
   to: string
@@ -16,8 +16,9 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { to: '/home', label: 'Home', icon: Home, exact: true },
   { to: '/commitments', label: 'Commitments', icon: ListChecks },
-  { to: '/timeline', label: 'Timeline', icon: Clock },
-  { to: '/settings', label: 'Settings', icon: Settings }
+  { to: '/timeline', label: 'Timeline', icon: TrendingUp },
+  { to: '/faq', label: 'FAQ', icon: HelpCircle },
+  { to: '/history', label: 'History', icon: History }
 ]
 
 interface AppSidebarProps {
@@ -71,10 +72,10 @@ export function AppSidebar({ mobileOpen, onMobileClose }: AppSidebarProps) {
       >
         {/* Logo strip */}
         <div className="sidebar-logo-strip">
-          <NavLink to="/home" className="sidebar-logo-link" aria-label="Kawan home">
+          <Link to="/" className="sidebar-logo-link" aria-label="Kawan home">
             <img src="/kawan-logo.png" alt="" className="sidebar-logo-img" width={28} height={28} />
             <span className="sidebar-logo-name">Kawan</span>
-          </NavLink>
+          </Link>
         </div>
 
         {/* Nav */}
@@ -111,10 +112,10 @@ export function AppSidebar({ mobileOpen, onMobileClose }: AppSidebarProps) {
         <div className="mobile-drawer-backdrop" onClick={onMobileClose} aria-hidden="true" />
         <aside className="mobile-drawer">
           <div className="mobile-drawer-header">
-            <NavLink to="/home" className="mobile-drawer-logo" onClick={onMobileClose}>
+            <Link to="/" className="mobile-drawer-logo" onClick={onMobileClose}>
               <img src="/kawan-logo.png" alt="" width={28} height={28} />
               <span>Kawan</span>
-            </NavLink>
+            </Link>
             <button type="button" className="mobile-drawer-close" aria-label="Close navigation" onClick={onMobileClose}>
               <X size={18} />
             </button>
