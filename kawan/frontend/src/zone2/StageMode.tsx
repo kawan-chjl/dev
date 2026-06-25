@@ -1,6 +1,7 @@
 // StageMode — VN/RPG dialogue box (bottom-center) + action surface (middle-center).
 // Driven by mock conversation turns. Tap-to-advance through dialogue.
 
+import { ChevronRight, Mic, Play, Square } from 'lucide-react'
 import { useRef } from 'react'
 import { useAuth } from '../auth/AuthProvider'
 import type { ConversationTurn } from '../mock/fixtures'
@@ -43,12 +44,20 @@ export function StageMode({ turns, currentIndex, onAdvance }: StageModeProps) {
 
       {/* DEV-only: lip-sync demo + emotion buttons (Task 4 / Q10). Not shown in prod. */}
       {import.meta.env.DEV && (
-        <div className="stage-dev-controls" role="toolbar" aria-label="Dev controls — lip-sync and expression demo">
-          <button type="button" className="stage-dev-btn" onClick={handleSpeak}>
-            ▶ Speak (sample)
+        <div className="stage-dev-controls" role="toolbar" aria-label="Dev controls, lip-sync and expression demo">
+          <button type="button" className="stage-dev-btn" onClick={handleSpeak} aria-label="Play sample audio">
+            <Play size={12} aria-hidden="true" /> Speak
           </button>
-          <button type="button" className="stage-dev-btn" onClick={() => stageRef.current?.stopSpeaking()}>
-            ■ Stop
+          <button
+            type="button"
+            className="stage-dev-btn"
+            onClick={() => stageRef.current?.stopSpeaking()}
+            aria-label="Stop speaking"
+          >
+            <Square size={12} aria-hidden="true" /> Stop
+          </button>
+          <button type="button" className="stage-dev-btn" aria-label="Microphone (placeholder)">
+            <Mic size={12} aria-hidden="true" /> Mic
           </button>
           {EMOTIONS.map((emotion) => (
             <button
@@ -79,7 +88,7 @@ export function StageMode({ turns, currentIndex, onAdvance }: StageModeProps) {
           <input
             className="stage-text-input"
             type="text"
-            placeholder="Type your response…"
+            placeholder="Type your response..."
             aria-label="Open text response"
           />
         </div>
@@ -98,7 +107,7 @@ export function StageMode({ turns, currentIndex, onAdvance }: StageModeProps) {
           onClick={onAdvance}
           disabled={currentIndex >= turns.length - 1 && !hasAction}
         >
-          {currentIndex < turns.length - 1 ? '▶' : '◼'}
+          <ChevronRight size={16} aria-hidden="true" />
         </button>
       </section>
     </div>

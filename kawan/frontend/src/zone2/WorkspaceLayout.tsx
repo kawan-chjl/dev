@@ -2,6 +2,7 @@
 // No shell chrome. Local viewMode: 'stage' | 'messages'. Shared conversation state.
 // design.md §6 Zone 2.
 
+import { ArrowLeft } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getMockConversation } from '../mock/provider'
@@ -31,9 +32,10 @@ export function WorkspaceLayout() {
           aria-label="Back to home"
           onClick={() => navigate('/home')}
         >
-          ← Back
+          <ArrowLeft size={16} aria-hidden="true" />
+          <span>Back</span>
         </button>
-        <div className="workspace-mode-toggle" aria-label="View mode" role="toolbar">
+        <div className="workspace-mode-toggle" role="toolbar" aria-label="View mode">
           <button
             type="button"
             className={`workspace-mode-btn ${viewMode === 'stage' ? 'workspace-mode-btn-active' : ''}`}

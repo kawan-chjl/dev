@@ -1,12 +1,14 @@
-/* Zone 2 — full-screen evening workspace (WorkspaceLayout, NewCommitment, stage/messages) */
+/* Zone 2 — full-screen dark-stage workspace (WorkspaceLayout, NewCommitment, stage/messages) */
+/* The stage always uses the warm near-black band (#161009) in both themes — design-system.md §1 */
 
 /* ── Workspace root ── */
 .workspace-root {
-  background: var(--evening);
+  /* Dark stage band — independent of theme, character always pops */
+  background: #161009;
   min-height: 100svh;
   display: flex;
   flex-direction: column;
-  color: var(--surface);
+  color: #f4ece1; /* warm off-white — always on dark stage */
 }
 
 /* ── Workspace topbar ── */
@@ -14,10 +16,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-3) var(--space-4);
+  padding: 0 var(--space-4);
   height: 52px;
   flex-shrink: 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(22, 16, 9, 0.82);
+  backdrop-filter: var(--blur-backdrop);
+  border-bottom: 1px solid rgba(244, 236, 225, 0.07);
 }
 
 .workspace-back-btn {
@@ -26,23 +30,34 @@
   gap: var(--space-2);
   background: none;
   border: none;
-  color: var(--muted);
+  color: rgba(244, 236, 225, 0.55);
+  font-family: var(--font-body);
   font-size: var(--text-small);
   font-weight: 500;
   cursor: pointer;
   min-height: 44px;
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-sm);
+  min-width: 44px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  transition:
+    background var(--duration-ui) var(--ease-smooth),
+    color var(--duration-ui) var(--ease-smooth);
 }
 .workspace-back-btn:hover {
-  color: var(--surface);
-  background: rgba(255, 255, 255, 0.06);
+  color: #f4ece1;
+  background: rgba(244, 236, 225, 0.08);
+}
+.workspace-back-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
+/* Segmented pill toggle — clean, premium */
 .workspace-mode-toggle {
   display: flex;
   gap: 2px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(244, 236, 225, 0.07);
+  border: 1px solid rgba(244, 236, 225, 0.1);
   border-radius: var(--radius-pill);
   padding: 3px;
 }
@@ -50,27 +65,34 @@
 .workspace-mode-btn {
   background: none;
   border: none;
-  color: var(--muted);
+  color: rgba(244, 236, 225, 0.5);
+  font-family: var(--font-body);
   font-size: var(--text-small);
   font-weight: 500;
   padding: var(--space-1) var(--space-4);
   border-radius: var(--radius-pill);
   cursor: pointer;
   min-height: 32px;
+  min-width: 44px;
   transition:
-    background var(--duration-ui) var(--ease-out),
-    color var(--duration-ui) var(--ease-out);
+    background var(--duration-ui) var(--ease-smooth),
+    color var(--duration-ui) var(--ease-smooth);
 }
 .workspace-mode-btn-active {
-  background: rgba(255, 255, 255, 0.12);
-  color: var(--surface);
+  background: rgba(244, 236, 225, 0.13);
+  color: #f4ece1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
 }
 .workspace-mode-btn:hover:not(.workspace-mode-btn-active) {
-  color: var(--surface);
+  color: rgba(244, 236, 225, 0.8);
+}
+.workspace-mode-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .workspace-spacer {
-  /* balances the layout — same width as back button area */
+  /* balances the layout — same min-width as back button area */
   min-width: 80px;
 }
 
@@ -88,9 +110,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   height: 100%;
   padding-bottom: var(--space-12);
+  animation: stage-fade-in var(--duration-panel) var(--ease-smooth) both;
 }
 
 /* When the placeholder is rendered as a load-failure overlay inside the character area
@@ -104,31 +127,24 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
 }
 
 .char-stage-eye {
-  font-size: 4rem;
   color: var(--accent);
-  opacity: 0.7;
+  opacity: 0.65;
+  transition: opacity var(--duration-panel) var(--ease-smooth);
+}
+.char-stage-eye:hover {
+  opacity: 0.85;
 }
 
 .char-stage-label {
   font-family: var(--font-display);
+  font-style: italic;
   font-size: var(--text-small);
-  color: var(--muted);
-  letter-spacing: 0.1em;
-}
-
-.char-stage-badge {
-  position: absolute;
-  bottom: var(--space-4);
-  right: var(--space-4);
-  font-size: var(--text-caption);
-  color: var(--muted);
-  background: rgba(255, 255, 255, 0.06);
-  padding: 2px var(--space-2);
-  border-radius: var(--radius-pill);
+  color: rgba(244, 236, 225, 0.45);
+  letter-spacing: 0.08em;
 }
 
 /* ── Stage mode ── */
@@ -143,6 +159,8 @@
 .stage-character-area {
   flex: 1;
   position: relative;
+  /* Warm radial vignette — character pops in both themes (design-system.md §1) */
+  background: radial-gradient(ellipse 70% 80% at 50% 35%, #241810 0%, #161009 60%, #0e0b06 100%);
 }
 
 /* Live2D container div fills the character area; Pixi appends its own canvas inside (B-FIX bug 1). */
@@ -181,18 +199,27 @@
 }
 
 .stage-dev-btn {
-  background: rgba(193, 106, 71, 0.3);
-  border: 1px solid var(--accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(217, 100, 58, 0.25);
+  border: 1px solid rgba(217, 100, 58, 0.45);
   border-radius: var(--radius-sm);
-  color: var(--surface);
+  color: rgba(244, 236, 225, 0.85);
   font-family: var(--font-body);
   font-size: var(--text-caption);
   padding: 2px var(--space-2);
   cursor: pointer;
   min-height: 28px;
+  min-width: 44px;
+  transition: background var(--duration-ui) var(--ease-smooth);
 }
 .stage-dev-btn:hover {
-  background: rgba(193, 106, 71, 0.55);
+  background: rgba(217, 100, 58, 0.45);
+}
+.stage-dev-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* Action surface — middle-center */
@@ -206,51 +233,66 @@
   gap: var(--space-3);
   width: min(340px, 90vw);
   z-index: 10;
+  animation: stage-fade-in var(--duration-panel) var(--ease-smooth) both;
 }
 
 .stage-option-card {
-  background: rgba(251, 249, 244, 0.1);
-  border: 1.5px solid rgba(255, 255, 255, 0.12);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4) var(--space-4);
-  color: var(--surface);
+  background: rgba(22, 16, 9, 0.7);
+  border: 1.5px solid rgba(244, 236, 225, 0.13);
+  border-radius: var(--radius-card);
+  padding: var(--space-4);
+  color: rgba(244, 236, 225, 0.9);
   font-family: var(--font-body);
   font-size: var(--text-small);
   text-align: left;
   cursor: pointer;
   min-height: 44px;
-  transition: background var(--duration-ui) var(--ease-out);
+  backdrop-filter: var(--blur-backdrop);
+  transition:
+    background var(--duration-ui) var(--ease-smooth),
+    border-color var(--duration-ui) var(--ease-smooth);
 }
 .stage-option-card:hover {
-  background: rgba(193, 106, 71, 0.2);
-  border-color: var(--accent);
+  background: rgba(217, 100, 58, 0.18);
+  border-color: rgba(217, 100, 58, 0.5);
+}
+.stage-option-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .stage-text-input {
   width: 100%;
-  background: rgba(251, 249, 244, 0.08);
-  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  background: rgba(22, 16, 9, 0.65);
+  border: 1.5px solid rgba(244, 236, 225, 0.13);
   border-radius: var(--radius-md);
   padding: var(--space-3) var(--space-4);
-  color: var(--surface);
+  color: rgba(244, 236, 225, 0.9);
   font-family: var(--font-body);
   font-size: var(--text-body);
   min-height: 44px;
+  backdrop-filter: var(--blur-backdrop);
 }
 .stage-text-input::placeholder {
-  color: var(--muted);
+  color: rgba(244, 236, 225, 0.35);
+}
+.stage-text-input:focus {
+  outline: none;
+  border-color: var(--accent);
 }
 
-/* VN dialogue box — bottom-center */
+/* VN dialogue box — polished card, bottom-center (design-system.md §1 dark-stage context) */
 .stage-dialogue-box {
   position: relative;
   margin: 0 auto var(--space-6);
   width: min(580px, calc(100vw - var(--space-8)));
-  background: rgba(42, 33, 28, 0.85);
-  border: 1.5px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--radius-xl);
-  backdrop-filter: blur(8px);
-  padding: var(--space-4) var(--space-12) var(--space-4) var(--space-4);
+  background: rgba(26, 18, 10, 0.88);
+  border: 1.5px solid rgba(244, 236, 225, 0.1);
+  border-radius: var(--radius-card);
+  backdrop-filter: blur(16px) saturate(160%);
+  padding: var(--space-4) 56px var(--space-4) var(--space-5);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  animation: stage-fade-in var(--duration-panel) var(--ease-smooth) both;
 }
 
 .stage-dialogue-inner {
@@ -261,8 +303,10 @@
 
 .stage-speaker-name {
   font-family: var(--font-display);
-  font-size: var(--text-small);
-  font-weight: 600;
+  font-size: var(--text-caption);
+  font-weight: 700;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
   color: var(--accent);
 }
 
@@ -270,7 +314,7 @@
   font-family: var(--font-display);
   font-size: var(--text-body);
   line-height: var(--lh-body);
-  color: var(--surface);
+  color: rgba(244, 236, 225, 0.92);
 }
 
 .stage-advance-btn {
@@ -281,20 +325,49 @@
   height: 36px;
   border-radius: var(--radius-pill);
   background: var(--accent);
-  color: var(--surface);
+  color: #fff;
   border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.75rem;
-  transition: background var(--duration-ui) var(--ease-out);
+  transition:
+    background var(--duration-ui) var(--ease-smooth),
+    transform var(--duration-ui) var(--ease-smooth);
 }
 .stage-advance-btn:hover:not(:disabled) {
   background: var(--accent-press);
+  transform: scale(1.08);
+}
+.stage-advance-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 .stage-advance-btn:disabled {
-  opacity: 0.4;
+  opacity: 0.35;
+}
+
+/* Entrance animation — fade + rise 8px (design-system.md §3) */
+@keyframes stage-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-dialogue-box,
+  .stage-action-surface,
+  .char-stage-placeholder {
+    animation: none;
+  }
+  .stage-advance-btn:hover:not(:disabled) {
+    transform: none;
+  }
 }
 
 /* ── Messages mode ── */
@@ -303,12 +376,14 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  /* Same dark stage band behind the thread */
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, #1e1409 0%, #161009 55%);
 }
 
 .messages-thread {
   flex: 1;
   overflow-y: auto;
-  padding: var(--space-4) var(--space-4);
+  padding: var(--space-6) var(--space-4);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -324,42 +399,46 @@
   flex-direction: row-reverse;
 }
 
+/* Kawan avatar — lucide Eye icon in accent color */
 .message-avatar {
-  font-size: 1.25rem;
   color: var(--accent);
   flex-shrink: 0;
   width: 28px;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.8;
 }
 
 .message-bubble {
   max-width: 75%;
   padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
 }
 
-/* Kawan: serif on terracotta-tinted — design.md §7 */
+/* Kawan: serif on warm accent tint — dark stage context */
 .bubble-kawan {
-  background: rgba(193, 106, 71, 0.18);
-  border: 1px solid rgba(193, 106, 71, 0.2);
+  background: rgba(217, 100, 58, 0.16);
+  border: 1px solid rgba(217, 100, 58, 0.22);
   border-bottom-left-radius: var(--radius-sm);
 }
 
-/* User: sans on --surface-sunk (dark version for evening) */
+/* User: sans on neutral dark surface */
 .bubble-user {
-  background: rgba(231, 224, 212, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(244, 236, 225, 0.08);
+  border: 1px solid rgba(244, 236, 225, 0.1);
   border-bottom-right-radius: var(--radius-sm);
 }
 
 .message-text {
   font-family: var(--font-display);
   font-size: var(--text-body);
-  color: var(--surface);
+  color: rgba(244, 236, 225, 0.9);
   line-height: var(--lh-body);
 }
 .bubble-user .message-text {
   font-family: var(--font-body);
+  color: rgba(244, 236, 225, 0.8);
 }
 
 .message-options {
@@ -370,44 +449,49 @@
 }
 
 .message-option-btn {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(244, 236, 225, 0.06);
+  border: 1px solid rgba(244, 236, 225, 0.1);
   border-radius: var(--radius-md);
-  color: var(--surface);
+  color: rgba(244, 236, 225, 0.7);
   font-family: var(--font-body);
   font-size: var(--text-small);
   padding: var(--space-2) var(--space-3);
-  cursor: pointer;
+  cursor: default;
   text-align: left;
   min-height: 44px;
-  opacity: 0.7;
 }
 
+/* Composer bar — polished, safe-area aware */
 .messages-input-bar {
   display: flex;
   gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(42, 33, 28, 0.5);
   padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0));
+  border-top: 1px solid rgba(244, 236, 225, 0.07);
+  background: rgba(22, 16, 9, 0.75);
+  backdrop-filter: var(--blur-backdrop);
 }
 
 .messages-input {
   flex: 1;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  background: rgba(244, 236, 225, 0.07);
+  border: 1.5px solid rgba(244, 236, 225, 0.12);
   border-radius: var(--radius-pill);
   padding: var(--space-2) var(--space-4);
-  color: var(--surface);
+  color: rgba(244, 236, 225, 0.9);
   font-family: var(--font-body);
   font-size: var(--text-body);
   min-height: 44px;
 }
 .messages-input::placeholder {
-  color: var(--muted);
+  color: rgba(244, 236, 225, 0.3);
 }
 .messages-input:disabled {
   opacity: 0.5;
+}
+.messages-input:focus {
+  outline: none;
+  border-color: var(--accent);
 }
 
 .messages-send-btn {
@@ -415,14 +499,27 @@
   height: 44px;
   border-radius: var(--radius-pill);
   background: var(--accent);
-  color: var(--surface);
+  color: #fff;
   border: none;
   cursor: pointer;
-  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  transition:
+    background var(--duration-ui) var(--ease-smooth),
+    transform var(--duration-ui) var(--ease-smooth);
+}
+.messages-send-btn:hover:not(:disabled) {
+  background: var(--accent-press);
+  transform: scale(1.06);
+}
+.messages-send-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 .messages-send-btn:disabled {
-  opacity: 0.4;
+  opacity: 0.35;
 }
 
 /* ── NewCommitment ── */
