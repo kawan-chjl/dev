@@ -30,7 +30,10 @@ export default function App() {
       <Route path="/auth/callback" element={<AuthCallback />} />
 
       {/* Zone 2 — full-screen AI workspace, no shell chrome */}
-      <Route path="/new" element={<NewCommitment />} />
+      {/* /commitments/new is Zone 2 (compose/persona full-screen flow, no shell chrome) */}
+      <Route path="/commitments/new" element={<NewCommitment />} />
+      {/* /new kept as a redirect so in-flight links don't break */}
+      <Route path="/new" element={<Navigate to="/commitments/new" replace />} />
       <Route path="/workspace/:id" element={<WorkspaceLayout />} />
 
       {/* Zone 1 — SaaS shell (topbar + drawer + footer) */}

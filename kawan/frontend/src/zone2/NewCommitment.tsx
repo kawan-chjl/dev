@@ -1,6 +1,7 @@
-// NewCommitment — /new (Zone 2, no shell chrome)
-// 3-step stepper: Compose → Context → Plan
+// NewCommitment — /commitments/new (Zone 2, no shell chrome)
+// 4-step stepper: Companion → Compose → Context → Plan
 //
+// Companion: PersonaPicker — choose companion with portrait previews; calls setPersona on continue.
 // Compose: live sentence-builder (action dropdown, deliverable input, deadline picker).
 //          Creates a real commitment via POST /api/commitments. Zero AI calls (TR-10).
 // Context: clearly-labelled stub — AI intake chat is deferred (Lane C absent, Open Q1).
@@ -13,14 +14,16 @@
 import { Clock, Lock, X } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../auth/AuthProvider'
 import { MOCK_AUTH } from '../auth/api'
 import { createCommitment, patchCommitment, startCommitment } from '../commitments/api'
 import { mockActiveCommitment } from '../mock/fixtures'
-import type { Commitment, EvidenceType } from '../types/api'
+import type { Commitment, EvidenceType, Persona } from '../types/api'
 import { Button } from '../ui/Button'
+import { PersonaPicker } from './PersonaPicker'
 
-type Step = 0 | 1 | 2
-const STEP_LABELS = ['Compose', 'Context', 'Plan']
+type Step = 0 | 1 | 2 | 3
+const STEP_LABELS = ['Companion', 'Compose', 'Context', 'Plan']
 
 // Hard-coded action enum (Q4 recommended set, matches mockActiveCommitment.action default).
 const ACTION_OPTIONS = ['complete', 'finish', 'ship', 'write', 'build', 'submit'] as const
@@ -153,7 +156,6 @@ function PlanStep({ commitment, onCommitmentChange, starting, startError }: Plan
 
   async function handleCadenceChange(value: string) {
     if (MOCK_AUTH) {
-      // Mock mode: no network call — update local state only.
       onCommitmentChange({ ...commitment, cadence: value })
       return
     }
@@ -161,19 +163,17 @@ function PlanStep({ commitment, onCommitmentChange, starting, startError }: Plan
       const updated = await patchCommitment(commitment.id, { cadence: value })
       onCommitmentChange(updated)
     } catch {
-      // Patch failed — keep current value; silent for now (no error state added per plan scope)
+      // Patch failed — keep current value; silent for now
     }
   }
 
   async function handleEvidenceTypeChange(value: EvidenceType) {
     if (MOCK_AUTH) {
-      // Mock mode: no network call — update local state only.
       const evidence_config = value === 'github' ? (commitment.evidence_config ?? {}) : null
       onCommitmentChange({ ...commitment, evidence_type: value, evidence_config })
       return
     }
     try {
-      // Clear repo when switching away from github
       const evidence_config = value === 'github' ? (commitment.evidence_config ?? {}) : null
       const updated = await patchCommitment(commitment.id, {
         evidence_type: value,
@@ -187,7 +187,6 @@ function PlanStep({ commitment, onCommitmentChange, starting, startError }: Plan
 
   async function handleRepoChange(value: string) {
     if (MOCK_AUTH) {
-      // Mock mode: no network call — update local state only.
       onCommitmentChange({ ...commitment, evidence_config: { repo: value } })
       return
     }
@@ -203,7 +202,6 @@ function PlanStep({ commitment, onCommitmentChange, starting, startError }: Plan
 
   async function handleSkipDaysChange(value: number) {
     if (MOCK_AUTH) {
-      // Mock mode: no network call — update local state only.
       onCommitmentChange({ ...commitment, skip_days_total: value })
       return
     }
@@ -340,7 +338,11 @@ function PlanStep({ commitment, onCommitmentChange, starting, startError }: Plan
 
 export function NewCommitment() {
   const navigate = useNavigate()
+  const { me, setPersona } = useAuth()
   const [step, setStep] = useState<Step>(0)
+
+  // Companion step state — seeded from current persona
+  const [selectedPersona, setSelectedPersona] = useState<Persona>(me?.persona ?? 'kawan')
 
   // Compose state — lifted so it survives step navigation and feeds create.
   const [action, setAction] = useState<Action>('complete')
@@ -354,10 +356,17 @@ export function NewCommitment() {
   const [starting, setStarting] = useState(false)
   const [startError, setStartError] = useState<string | null>(null)
 
+  // ── Companion → Continue ──────────────────────────────────────────────────
+
+  async function handleCompanionContinue() {
+    // Persist persona selection (optimistic local + PATCH /api/me when not mock)
+    await setPersona(selectedPersona)
+    setStep(1)
+  }
+
   // ── Compose → Continue ────────────────────────────────────────────────────
 
   async function handleComposeContinue() {
-    // Client-side validation
     if (!deliverable.trim()) {
       setComposeError('Please describe what you will deliver.')
       return
@@ -375,7 +384,6 @@ export function NewCommitment() {
       return
     }
 
-    // Warn for <1 h deadlines (Q5 — window.confirm, no new modal)
     const diffMs = deadlineDate.getTime() - now.getTime()
     if (diffMs < 60 * 60 * 1000) {
       if (!window.confirm("That's under an hour. Are you sure?")) return
@@ -384,10 +392,9 @@ export function NewCommitment() {
     const deadlineISO = deadlineDate.toISOString()
 
     if (MOCK_AUTH) {
-      // Mock mode: skip the network, advance with a synthetic local draft.
       setCommitment({ ...mockActiveCommitment, action, deliverable, deadline: deadlineISO, status: 'draft' })
       setComposeError(null)
-      setStep(1)
+      setStep(2)
       return
     }
 
@@ -396,7 +403,7 @@ export function NewCommitment() {
     try {
       const created = await createCommitment({ action, deliverable, deadline: deadlineISO })
       setCommitment(created)
-      setStep(1)
+      setStep(2)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to create commitment.'
       setComposeError(msg)
@@ -421,7 +428,6 @@ export function NewCommitment() {
       await startCommitment(commitment.id)
       navigate('/home')
     } catch (err) {
-      // Start failed — stay on the Plan step and surface the error so it isn't silently hidden.
       const msg = err instanceof Error ? err.message : 'Failed to start commitment. Please try again.'
       setStartError(msg)
     } finally {
@@ -433,16 +439,21 @@ export function NewCommitment() {
 
   function handleContinue() {
     if (step === 0) {
+      handleCompanionContinue()
+    } else if (step === 1) {
       handleComposeContinue()
     } else {
       setStep((s) => (s + 1) as Step)
     }
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // ── Render step ────────────────────────────────────────────────────────────
 
   function renderStep() {
     if (step === 0) {
+      return <PersonaPicker selected={selectedPersona} onSelect={setSelectedPersona} />
+    }
+    if (step === 1) {
       return (
         <ComposeStep
           action={action}
@@ -456,10 +467,10 @@ export function NewCommitment() {
         />
       )
     }
-    if (step === 1) {
+    if (step === 2) {
       return <ContextStep />
     }
-    // step === 2
+    // step === 3
     return commitment !== null ? (
       <PlanStep
         commitment={commitment}
@@ -468,15 +479,14 @@ export function NewCommitment() {
         startError={startError}
       />
     ) : (
-      // Fallback: commitment missing (shouldn't happen; user can't skip Compose).
       <div className="plan-step">
         <p>No commitment found. Please go back and compose one.</p>
       </div>
     )
   }
 
-  // Disable "Continue" on Compose while fields are incomplete or request is in-flight.
-  const continueDisabled = (step === 0 && (!deliverable.trim() || !deadlineLocal)) || creating || starting
+  // Disable "Continue" on Compose (step 1) while fields are incomplete or request is in-flight.
+  const continueDisabled = (step === 1 && (!deliverable.trim() || !deadlineLocal)) || creating || starting
 
   return (
     <div className="workspace-root new-commitment-root">
@@ -516,13 +526,13 @@ export function NewCommitment() {
             Back
           </Button>
         )}
-        {step < 2 ? (
+        {step < 3 ? (
           <Button variant="primary" onClick={handleContinue} disabled={continueDisabled}>
-            {creating ? 'Creating…' : 'Continue'}
+            {creating ? 'Creating...' : 'Continue'}
           </Button>
         ) : (
           <Button variant="accent" onClick={handleStart} disabled={starting}>
-            {starting ? 'Starting…' : 'Start commitment'}
+            {starting ? 'Starting...' : 'Start commitment'}
           </Button>
         )}
       </div>

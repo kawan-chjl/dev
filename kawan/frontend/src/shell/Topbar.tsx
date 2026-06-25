@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { useTheme } from '../hooks/useTheme'
+import { NotificationBell } from '../notifications/NotificationBell'
 import { ThemeToggle } from '../ui/ThemeToggle'
 
 interface TopbarProps {
@@ -69,6 +70,7 @@ export function Topbar({ onMenuOpen }: TopbarProps) {
       {/* Right */}
       <div className="topbar-right">
         <ThemeToggle theme={theme} onToggle={toggle} />
+        <NotificationBell />
 
         <div className="topbar-popover-wrap" ref={menuRef}>
           <button
