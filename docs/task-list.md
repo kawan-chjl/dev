@@ -23,12 +23,12 @@ Lane responsibilities and task breakdown for the 4-person team, derived from `ka
 
 ## 2. Lane ownership
 
-| Lane  | Title                    | Owner | Scope (one line)                                                                               | Est. days |
-| ----- | ------------------------ | ----- | ---------------------------------------------------------------------------------------------- | --------- |
-| **A** | Character & frontend     | _PO_  | Live2D stage, all GUIs, timeline, polish                                                       | 14        |
-| **B** | Backend core             | _TBD_ | FastAPI/Postgres (Supabase; SQLite tests), SIWC auth+billing, scheduler/WS/push, state machine | 12        |
-| **C** | AI layer                 | _TBD_ | Chutes client, prompt/schema sets, evidence adapters + judge, tone                             | 14        |
-| **D** | Voice, integration, demo | _PO_  | Piper/Whisper, WebSpeech, Web Push, integration QA, demo/video/Devpost                         | 14        |
+| Lane  | Title                    | Owner      | Scope (one line)                                                                               | Est. days |
+| ----- | ------------------------ | ---------- | ---------------------------------------------------------------------------------------------- | --------- |
+| **A** | Character & frontend     | _PO_       | Live2D stage, all GUIs, timeline, polish                                                       | 14        |
+| **B** | Backend core             | Agent crew | FastAPI/Postgres (Supabase; SQLite tests), SIWC auth+billing, scheduler/WS/push, state machine | 12        |
+| **C** | AI layer                 | Agent crew | Chutes client, prompt/schema sets, evidence adapters + judge, tone                             | 14        |
+| **D** | Voice, integration, demo | _PO_       | Piper/Whisper, WebSpeech, Web Push, integration QA, demo/video/Devpost                         | 14        |
 
 ~6 days/person slack against the 20-day window is intentional (hackathon reality buffer). The two genuinely novel integrations — **SIWC** (lane B) and the **evidence judge** (lane C) — are week-1 items by design.
 
@@ -243,7 +243,7 @@ Flagged, **not** silently resolved (spec is source of truth · where v0.3 scope 
 - **D3 · Prompt premise correction (for the record).** The original ask described the intake send-to-AI as "currently-unbuilt." In fact the **intake (`context/turn`) and plan (`plan`) endpoints already exist and call the stub `LLM`**; the **only** missing send-to-AI seam is the **workspace turn** (now B5). v0.3 scopes to that reality. _No action · just so the PO knows the gap is narrower than stated._
 - **D4 · Per-persona "layered system prompts" must not vary the invariants** (TR-73). The layered prompt = base contract **+ tone fragment + model id** only. Schemas, scope boundary, permissions, state machine, verdict rules, escalation stay identical across all three personas. _Flagged so Lane C does not drift persona behaviour into the product invariants; no open decision, a guardrail._
 - **D5 · The emotion enum is fixed at 6 and is the only Lane-C↔view coupling** (TR-34): `neutral|curious|pleased|skeptical|concerned|proud`. The frontend `Emotion` type + `modelRegistry.expressionMap` map exactly these. **Lane C must constrain every reply's `emotion` to this set** · a 7th value silently no-ops the face. _Guardrail; no open decision._
-- **D6 · Lane B/C ownership is still `_TBD_` in §2.** §5.4 assigns the AI-workflow build to Lanes C and B, but those lanes have **no named human owner** (only Lane A/D = PO). With Lane C unbuilt and the team reduced, **does the agent crew (PL→PG→PM→QA) execute Lane C + B5 too** (as it has executed Lane A/B work to date, per the PO standing directive), or is a human picking up Lane C? _This is the load-bearing ownership question behind the whole v0.3 expansion · needs the PO's call._
+- **D6 · Lane B/C ownership — RESOLVED (PO, 26 Jun): the agent crew (PL→PG→PM→QA) executes Lanes C and B** (including B5), as it has executed Lane A/B work to date per the PO standing directive. No human is picking up Lane C. §2's owner column is updated accordingly. _The load-bearing ownership question behind the v0.3 expansion is now settled._
 
 ## 10. Working agreements appendix — what changed in v0.3
 
