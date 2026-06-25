@@ -3,7 +3,7 @@
 // Multi-delete calls DELETE /api/commitments/{id} (real permanent delete, per Gate-1 resolution).
 // Pagination: 10 per page; prev/next controls shown only when total > 10.
 
-import { CheckCircle, ChevronLeft, ChevronRight, Eye, Plus, Trash2 } from 'lucide-react'
+import { CheckCircle, ChevronLeft, ChevronRight, Eye, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MOCK_AUTH } from '../../auth/api'
@@ -136,16 +136,9 @@ export function Commitments() {
     }
   }
 
-  const headerActions = (
-    <Button variant="accent" onClick={() => navigate('/commitments/new')}>
-      <Plus size={16} aria-hidden="true" />
-      Make a commitment
-    </Button>
-  )
-
   return (
     <div className="shell-page">
-      <PageHeader title="Commitments" subtitle="All your commitments, active and finished." actions={headerActions} />
+      <PageHeader title="Commitments" subtitle="All your commitments, active and finished." />
 
       {/* Stats row */}
       <div className="commitments-stats-row">
