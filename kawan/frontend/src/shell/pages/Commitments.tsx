@@ -1,12 +1,14 @@
 // Commitments dashboard — /commitments
 // Management dashboard: stat row, filter chips, management table with multiselect + multi-delete, pipeline rail.
 // Multi-delete calls DELETE /api/commitments/{id} (real permanent delete, per Gate-1 resolution).
+// Pagination: 10 per page; prev/next controls shown only when total > 10.
 
-import { CheckCircle, Eye, Plus, Trash2 } from 'lucide-react'
+import { CheckCircle, ChevronLeft, ChevronRight, Eye, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MOCK_AUTH } from '../../auth/api'
 import { deleteCommitment } from '../../commitments/api'
+import { useActiveCommitment } from '../../commitments/useActiveCommitment'
 import { useCommitments } from '../../commitments/useCommitments'
 import { useNotifications } from '../../notifications/NotificationProvider'
 import { useTimeline } from '../../timeline/useTimeline'
@@ -81,17 +83,22 @@ function PipelineRail() {
 export function Commitments() {
   const navigate = useNavigate()
   const { notify } = useNotifications()
-  const { commitments, refresh } = useCommitments()
+  const { commitments, refresh, total, page, pageSize, setPage, hasPrev, hasNext } = useCommitments()
   const [filter, setFilter] = useState<Filter>('All')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [deleting, setDeleting] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
 
-  const commitment = commitments[0] ?? null
-  const stats = useActiveStats(commitment)
+  // Stat row uses the most-recent active commitment ("light current" per the selection model),
+  // not commitments[0] from the current page, so figures do not shift as the user pages.
+  const { commitment: activeCommitment } = useActiveCommitment()
+  const stats = useActiveStats(activeCommitment)
+
+  const totalPages = Math.ceil(total / pageSize)
 
   const filtered = commitments.filter((c) => matchesFilter(c, filter))
   const allSelected = filtered.length > 0 && filtered.every((c) => selected.has(c.id))
+  const showPagination = total > pageSize
 
   function toggleRow(id: string) {
     setSelected((prev) => {
@@ -138,7 +145,7 @@ export function Commitments() {
 
   return (
     <div className="shell-page">
-      <PageHeader title="Commitments" subtitle="One active commitment at a time." actions={headerActions} />
+      <PageHeader title="Commitments" subtitle="All your commitments, active and finished." actions={headerActions} />
 
       {/* Stats row */}
       <div className="commitments-stats-row">
@@ -233,9 +240,9 @@ export function Commitments() {
                 </p>
                 <p className="empty-state-body">
                   {filter === 'All'
-                    ? 'When you make a commitment, it shows up here. One at a time, for real.'
+                    ? 'When you make a commitment, it shows up here.'
                     : filter === 'Completed'
-                      ? 'Complete your first commitment and it will appear here.'
+                      ? 'Complete a commitment and it will appear here.'
                       : 'Make a commitment to get started.'}
                 </p>
                 <Button variant="accent" onClick={() => navigate('/commitments/new')}>
@@ -291,6 +298,39 @@ export function Commitments() {
                   </tbody>
                 </table>
               </div>
+            )}
+
+            {/* Pagination — only when total > 10 */}
+            {showPagination && (
+              <nav className="commitments-pagination" aria-label="Page navigation">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setPage(page - 1)
+                    setSelected(new Set())
+                  }}
+                  disabled={!hasPrev}
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft size={14} aria-hidden="true" />
+                  Previous
+                </Button>
+                <p className="commitments-pagination-indicator" aria-live="polite">
+                  Page {page + 1} of {totalPages}
+                </p>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setPage(page + 1)
+                    setSelected(new Set())
+                  }}
+                  disabled={!hasNext}
+                  aria-label="Next page"
+                >
+                  Next
+                  <ChevronRight size={14} aria-hidden="true" />
+                </Button>
+              </nav>
             )}
           </div>
         </Card>

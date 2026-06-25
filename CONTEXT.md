@@ -106,6 +106,19 @@ voice + Chutes model id. Switching it changes the messenger, **never** the
 Commitment state.
 _Avoid_: character, mode, avatar, profile
 
+## Spec deviations
+
+### [2026-06-26] Multiple concurrent active commitments + no create guard (PO directive, Gate 1)
+
+`POST /commitments` inserts unconditionally and multiple active commitments may exist at the same time. This knowingly overrides:
+
+- `docs/kawan-spec.md` §2.2 H5 ("One-commitment-at-a-time keeps it as a feature")
+- `docs/kawan-spec.md` §12.3 (multi-commitment listed as ROADMAP/OUT OF SCOPE)
+- `docs/kawan-spec.md` §5.5 (idle state and scope boundary)
+- `docs/design-system.md` principle 4 ("Kawan holds you to a single commitment")
+
+Decision: PO directive at Gate 1, 2026-06-26. `docs/kawan-spec.md` is unchanged (historical source of truth). The selection model for single-pick surfaces (greeting, stat row, default workspace target) uses `GET /commitments/active` = most-recent open commitment (backward-compatible "light current").
+
 ## Flagged ambiguities
 
 - **Lapse vs Miss** — the most important distinction. Lapse is recoverable and

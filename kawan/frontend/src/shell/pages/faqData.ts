@@ -58,7 +58,7 @@ export const faqData: FaqItem[] = [
     category: 'Using Kawan',
     question: 'Can I have more than one commitment at a time?',
     answer:
-      'No. Kawan holds you to one thing at a time. The constraint is intentional: one real commitment beats a list of vague intentions.'
+      'Yes. You can run several commitments in parallel. All of them appear on your Commitments page, active ones at the top. Kawan checks each one independently against its own evidence and deadline.'
   },
 
   // How it works
@@ -107,9 +107,9 @@ export const faqData: FaqItem[] = [
   {
     id: 'faq-14',
     category: 'How it works',
-    question: 'Why can I only have one commitment?',
+    question: 'How do multiple commitments work?',
     answer:
-      'One commitment at a time keeps Kawan focused on what matters most to you right now. Adding more commitments would dilute accountability. When your current commitment closes, you can start a new one.'
+      'Each commitment runs independently with its own evidence source, deadline, and check-in schedule. Finished commitments stay in your history on the Commitments page. You can open any active one in the workspace to talk to Kawan about it.'
   },
 
   // Privacy

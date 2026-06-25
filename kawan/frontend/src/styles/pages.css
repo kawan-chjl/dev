@@ -3660,3 +3660,75 @@
   justify-content: space-between;
   gap: var(--space-2);
 }
+
+/* ── Commitments: pagination controls ── */
+.commitments-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-4) 0 var(--space-2);
+  border-top: 1px solid var(--line);
+  margin-top: var(--space-2);
+}
+
+.commitments-pagination-indicator {
+  font-size: var(--text-small);
+  color: var(--ink-soft);
+  white-space: nowrap;
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .commitments-pagination * {
+    transition: none;
+  }
+}
+
+/* ── Home: active commitment cards grid ── */
+.home-active-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.home-active-card {
+  cursor: pointer;
+  transition:
+    box-shadow var(--duration-ui) var(--ease-out),
+    transform var(--duration-ui) var(--ease-out);
+}
+
+.home-active-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-active-card {
+    transition: none;
+  }
+  .home-active-card:hover {
+    transform: none;
+  }
+}
+
+.home-active-cards-more {
+  margin: 0;
+}
+
+.home-active-cards-viewall {
+  font-size: var(--text-small);
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.home-active-cards-viewall:hover {
+  text-decoration: underline;
+}
+
+[data-theme="dark"] .home-active-cards-viewall {
+  color: var(--accent);
+}

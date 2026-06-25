@@ -3,6 +3,25 @@
 
 import type { AuditRow, Commitment } from '../types/api'
 
+/** Paginated envelope from GET /api/commitments */
+export interface CommitmentListPage {
+  items: Commitment[]
+  total: number
+  limit: number
+  offset: number
+}
+
+/**
+ * GET /api/commitments?limit=&offset=
+ * 200 → CommitmentListPage. 401 → empty envelope. Other non-OK → throws.
+ */
+export async function fetchCommitments(limit: number, offset: number): Promise<CommitmentListPage> {
+  const res = await fetch(`/api/commitments?limit=${limit}&offset=${offset}`, { credentials: 'include' })
+  if (res.ok) return (await res.json()) as CommitmentListPage
+  if (res.status === 401) return { items: [], total: 0, limit, offset }
+  throw new Error(`GET /api/commitments returned ${res.status}`)
+}
+
 /**
  * GET /api/commitments/active
  * 200 → Commitment, 404 → null (idle — not an error), 401 → null, other non-OK → throws.

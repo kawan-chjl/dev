@@ -1,22 +1,29 @@
 // Home — v4 bento dashboard.
-// Active: exactly four quick-access widgets (Commitment, Timeline, Workspace, Recent Activity) + tall right rail.
+// Active: active commitment cards (cap 3, "View all" link) + Workspace + Recent Activity + right rail.
 // Idle: warm inviting hero + how-it-works strip.
+// Supports N active commitments per the PO override (Gate 1, 2026-06-26).
 // No balance card (moved to topbar popover). No stats row (moved to /commitments).
 
 import { BarChart2, Clock, ListChecks, Sparkles, TrendingUp } from 'lucide-react'
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { getRecentCommitmentIds } from '../../commitments/recent'
 import { useCommitments } from '../../commitments/useCommitments'
 import { getMockActive, setMockActive } from '../../mock/provider'
 import { verifiedCount } from '../../timeline/metrics'
 import { useTimeline } from '../../timeline/useTimeline'
-import type { Commitment } from '../../types/api'
+import type { Commitment, CommitmentStatus } from '../../types/api'
 import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
 import { Chip } from '../../ui/Chip'
 import { PageHeader } from '../PageHeader'
 import { WorkspacePickerModal } from '../WorkspacePickerModal'
+
+// Duplicated from Commitments.tsx — tiny constant, not worth a shared module yet.
+const ONGOING_STATUSES: CommitmentStatus[] = ['active', 'lapsed', 'verifying', 'grace']
+
+// Cap for active cards on Home. Keeps the layout calm with many active commitments.
+const HOME_ACTIVE_CAP = 3
 
 function formatDeadline(iso: string): string {
   const d = new Date(iso)
@@ -39,7 +46,7 @@ function IdleState({ onCompose }: { onCompose: () => void }) {
           Make a <em className="home-idle-em">commitment.</em>
         </h1>
         <p className="home-idle-sub-v2">
-          Kawan holds you to one thing at a time. Real, verifiable, yours. It won't believe you until you prove it.
+          Make a commitment Kawan will actually check. Real, verifiable, yours. It won't believe you until you prove it.
         </p>
         <Button variant="accent" className="home-idle-cta" onClick={onCompose}>
           Make a commitment
@@ -81,56 +88,79 @@ function IdleState({ onCompose }: { onCompose: () => void }) {
   )
 }
 
-interface ActiveStateProps {
-  commitment: Commitment
-  commitments: Commitment[]
-}
-
-function ActiveState({ commitment, commitments }: ActiveStateProps) {
+// Single active commitment card — used in the Home active cards grid.
+function ActiveCommitmentCard({ commitment }: { commitment: Commitment }) {
   const navigate = useNavigate()
   const { timeline } = useTimeline(commitment.id)
-  const [workspaceOpen, setWorkspaceOpen] = useState(false)
-
   const events = timeline?.events ?? []
   const verified = verifiedCount(events)
 
-  // Recent Activity: recently opened commitments + the active commitment
+  return (
+    <Card
+      className="home-card-commitment home-active-card"
+      role="button"
+      tabIndex={0}
+      onClick={() => navigate(`/commitments/${commitment.id}`)}
+      onKeyDown={(e) => e.key === 'Enter' && navigate(`/commitments/${commitment.id}`)}
+      aria-label={`View commitment: I will ${commitment.action} ${commitment.deliverable}`}
+    >
+      <div className="home-widget-icon" aria-hidden="true">
+        <ListChecks size={20} color="var(--accent)" />
+      </div>
+      <p className="home-widget-sentence">
+        I will <strong>{commitment.action}</strong>{' '}
+        <span className="home-widget-deliverable">{commitment.deliverable}</span>
+      </p>
+      <div className="home-widget-meta">
+        <Chip variant="default">
+          <Clock size={11} aria-hidden="true" />
+          {formatDeadline(commitment.deadline)}
+        </Chip>
+      </div>
+      <div className="home-widget-stat">
+        <span className="home-widget-stat-number">{verified}</span>
+        <span className="home-widget-stat-label">verified</span>
+      </div>
+    </Card>
+  )
+}
+
+interface ActiveStateProps {
+  commitments: Commitment[]
+}
+
+function ActiveState({ commitments }: ActiveStateProps) {
+  const navigate = useNavigate()
+  const [workspaceOpen, setWorkspaceOpen] = useState(false)
+
+  // Active commitments, newest first (list is already newest-first from the API).
+  const activeCommitments = commitments.filter((c) => ONGOING_STATUSES.includes(c.status))
+  // Cap for calm; "View all" appears when there are more.
+  const visibleActive = activeCommitments.slice(0, HOME_ACTIVE_CAP)
+  const hasMore = activeCommitments.length > HOME_ACTIVE_CAP
+
+  // Recent Activity: recently opened commitments, falling back to visible active ones.
   const recentIds = getRecentCommitmentIds()
   const recentCommitments = recentIds.map((id) => commitments.find((c) => c.id === id)).filter(Boolean) as Commitment[]
-  const recentItems = recentCommitments.length > 0 ? recentCommitments : [commitment]
+  const recentItems = recentCommitments.length > 0 ? recentCommitments : visibleActive
 
   return (
     <div className="home-bento-v5">
-      {/* Left column: large Commitment card + two smaller cards */}
+      {/* Left column: active commitment cards + two smaller quick-access cards */}
       <div className="home-left-col">
-        {/* Large Commitment card */}
-        <Card
-          className="home-card-commitment"
-          role="button"
-          tabIndex={0}
-          onClick={() => navigate(`/commitments/${commitment.id}`)}
-          onKeyDown={(e) => e.key === 'Enter' && navigate(`/commitments/${commitment.id}`)}
-          aria-label="View your commitment details"
-        >
-          <div className="home-widget-icon" aria-hidden="true">
-            <ListChecks size={20} color="var(--accent)" />
-          </div>
-          <p className="home-widget-label">Commitment</p>
-          <p className="home-widget-sentence">
-            I will <strong>{commitment.action}</strong>{' '}
-            <span className="home-widget-deliverable">{commitment.deliverable}</span>
-          </p>
-          <div className="home-widget-meta">
-            <Chip variant="default">
-              <Clock size={11} aria-hidden="true" />
-              {formatDeadline(commitment.deadline)}
-            </Chip>
-          </div>
-          <div className="home-widget-stat">
-            <span className="home-widget-stat-number">{verified}</span>
-            <span className="home-widget-stat-label">verified</span>
-          </div>
-        </Card>
+        {/* Active commitment cards grid */}
+        <div className="home-active-cards">
+          {visibleActive.map((c) => (
+            <ActiveCommitmentCard key={c.id} commitment={c} />
+          ))}
+          {hasMore && (
+            <p className="home-active-cards-more">
+              <Link to="/commitments" className="home-active-cards-viewall">
+                View all commitments
+              </Link>
+            </p>
+          )}
+        </div>
 
         {/* Two smaller cards */}
         <div className="home-small-cards-row">
@@ -195,7 +225,9 @@ export function Home() {
   const navigate = useNavigate()
   const [mockActive, setLocalMockActive] = useState(getMockActive())
   const { state, commitments, refresh } = useCommitments()
-  const commitment = commitments[0] ?? null
+
+  // Determine active state: any ongoing commitment makes Home active.
+  const hasActive = commitments.some((c) => ONGOING_STATUSES.includes(c.status))
 
   function toggleMockState() {
     const next = !mockActive
@@ -220,10 +252,10 @@ export function Home() {
         <div className="home-loading">
           <p className="home-loading-text">Loading...</p>
         </div>
-      ) : commitment == null ? (
+      ) : !hasActive ? (
         <IdleState onCompose={() => navigate('/commitments/new')} />
       ) : (
-        <ActiveState commitment={commitment} commitments={commitments} />
+        <ActiveState commitments={commitments} />
       )}
     </div>
   )
