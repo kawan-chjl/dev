@@ -85,6 +85,10 @@
   /* ── Breakpoints ── */
   --bp-mobile: 768px;
 
+  /* ── Z-index scale ── */
+  /* --z-modal sits above sidebar (60) and topbar (50) so backdrop covers all shell layers */
+  --z-modal: 400;
+
   /* ── Shell dims ── */
   --sidebar-w: 64px;
   --sidebar-w-exp: 200px;

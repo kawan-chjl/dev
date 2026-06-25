@@ -1,7 +1,8 @@
 // PersonaPicker — portrait-card step for the persona selection in NewCommitment.
-// Shows head-to-torso portrait previews for the three companions.
-// Falls back to a glyph initial if the image fails to load (so a missing portrait never breaks the card).
+// Shows portrait previews with a check badge on the selected card.
+// Falls back to a glyph initial if the image fails to load.
 
+import { Check } from 'lucide-react'
 import { useState } from 'react'
 import { listPersonas } from '../mock/provider'
 import type { Persona } from '../types/api'
@@ -59,10 +60,17 @@ export function PersonaPicker({ selected, onSelect }: PersonaPickerProps) {
               <div className="persona-picker-portrait">
                 <PersonaPortrait persona={p.id as Persona} name={p.name} />
               </div>
-              <div className="persona-picker-info">
-                <p className="persona-picker-name">{p.name}</p>
-                <p className="persona-picker-archetype">{p.archetype}</p>
-                <p className="persona-picker-tone">{p.tone}</p>
+              <div className="persona-picker-card-header">
+                <div className="persona-picker-info">
+                  <p className="persona-picker-name">{p.name}</p>
+                  <p className="persona-picker-archetype">{p.archetype}</p>
+                  <p className="persona-picker-tone">{p.tone}</p>
+                </div>
+                {isSelected && (
+                  <div className="persona-picker-check" aria-hidden="true">
+                    <Check size={13} />
+                  </div>
+                )}
               </div>
             </button>
           )

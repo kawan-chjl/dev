@@ -11,15 +11,18 @@
 //          AI roadmap stays a labelled placeholder (no POST .../plan call — Open Q1).
 //          "Start commitment" → POST /api/commitments/{id}/start → /home.
 
-import { Clock, Lock, X } from 'lucide-react'
+import { Check, Clock, Lock, X } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { MOCK_AUTH } from '../auth/api'
 import { createCommitment, patchCommitment, startCommitment } from '../commitments/api'
-import { mockActiveCommitment } from '../mock/fixtures'
-import type { Commitment, EvidenceType, Persona } from '../types/api'
+import type { EvidenceType, Persona } from '../types/api'
 import { Button } from '../ui/Button'
+import { DatePicker } from '../ui/DatePicker'
+import type { SelectOption } from '../ui/Select'
+import { Select } from '../ui/Select'
+import { Tooltip } from '../ui/Tooltip'
 import { PersonaPicker } from './PersonaPicker'
 
 type Step = 0 | 1 | 2 | 3
@@ -28,9 +31,10 @@ const STEP_LABELS = ['Companion', 'Compose', 'Context', 'Plan']
 // Hard-coded action enum (Q4 recommended set, matches mockActiveCommitment.action default).
 const ACTION_OPTIONS = ['complete', 'finish', 'ship', 'write', 'build', 'submit'] as const
 type Action = (typeof ACTION_OPTIONS)[number]
+const ACTION_SELECT_OPTIONS: SelectOption[] = ACTION_OPTIONS.map((a) => ({ value: a, label: a }))
 
 // Cadence options (Q6).
-const CADENCE_OPTIONS: { value: string; label: string }[] = [
+const CADENCE_OPTIONS: SelectOption[] = [
   { value: 'daily_evening', label: 'Daily (evening)' },
   { value: 'daily', label: 'Daily' },
   { value: 'every_2_days', label: 'Every 2 days' },
@@ -38,13 +42,17 @@ const CADENCE_OPTIONS: { value: string; label: string }[] = [
 ]
 
 // Evidence options (Q7 — include github with repo field).
-const EVIDENCE_OPTIONS: { value: EvidenceType; label: string; trust: string }[] = [
+const EVIDENCE_OPTIONS_FULL: { value: EvidenceType; label: string; trust: string }[] = [
   { value: 'github', label: 'GitHub commits', trust: 'high trust' },
   { value: 'screenshot', label: 'Screenshot', trust: 'medium trust' }
 ]
+const EVIDENCE_SELECT_OPTIONS: SelectOption[] = EVIDENCE_OPTIONS_FULL.map((o) => ({
+  value: o.value,
+  label: `${o.label} (${o.trust})`
+}))
 
-// Skip-days options (0–2).
-const SKIP_DAYS_OPTIONS = [0, 1, 2]
+// Skip-days options (0-2).
+const SKIP_DAYS_OPTIONS: SelectOption[] = [0, 1, 2].map((n) => ({ value: String(n), label: String(n) }))
 
 // ── ComposeStep ───────────────────────────────────────────────────────────────
 
@@ -53,7 +61,7 @@ interface ComposeProps {
   setAction: (a: Action) => void
   deliverable: string
   setDeliverable: (d: string) => void
-  deadlineLocal: string // datetime-local string value
+  deadlineLocal: string // "YYYY-MM-DDTHH:MM" local string
   setDeadlineLocal: (d: string) => void
   error: string | null
   creating: boolean
@@ -72,45 +80,49 @@ function ComposeStep({
   return (
     <div className="compose-step">
       <h2 className="compose-heading">Make your commitment</h2>
-      <div className="compose-sentence">
-        <span className="compose-prefix">I will</span>
-        {/* Action dropdown — replaces the disabled chip */}
-        <select
-          className="compose-chip compose-chip-action"
-          aria-label="Choose action"
-          value={action}
-          onChange={(e) => setAction(e.target.value as Action)}
-          disabled={creating}
-        >
-          {ACTION_OPTIONS.map((a) => (
-            <option key={a} value={a}>
-              {a} ▾
-            </option>
-          ))}
-        </select>
-        {/* Deliverable text input */}
-        <input
-          className="compose-chip compose-chip-deliverable"
-          type="text"
-          placeholder="the deliverable"
-          aria-label="Describe what you will deliver"
-          value={deliverable}
-          onChange={(e) => setDeliverable(e.target.value)}
-          disabled={creating}
-        />
-        <span className="compose-infix">by</span>
-        {/* Deadline — native datetime-local input */}
-        <input
-          className="compose-chip compose-chip-deadline"
-          type="datetime-local"
-          aria-label="Choose deadline"
-          value={deadlineLocal}
-          onChange={(e) => setDeadlineLocal(e.target.value)}
-          disabled={creating}
-        />
+      <div className="compose-commitment-card">
+        {/* "I will [action] [deliverable] by [date]" sentence */}
+        <div className="compose-sentence">
+          <span className="compose-prefix">I will</span>
+          {/* Action — themed Select */}
+          <Select
+            className="compose-chip compose-chip-action"
+            aria-label="Choose action"
+            value={action}
+            onChange={(v) => setAction(v as Action)}
+            options={ACTION_SELECT_OPTIONS}
+            disabled={creating}
+          />
+          {/* Deliverable */}
+          <label className="compose-chip-deliverable-wrap">
+            <span className="compose-field-label">what</span>
+            <input
+              className="compose-chip compose-chip-deliverable"
+              type="text"
+              placeholder="the deliverable"
+              aria-label="Describe what you will deliver"
+              value={deliverable}
+              onChange={(e) => setDeliverable(e.target.value)}
+              disabled={creating}
+            />
+          </label>
+          <span className="compose-infix">by</span>
+          {/* Deadline — themed DatePicker (label via aria-label on trigger; no native input to bind to) */}
+          <div className="compose-chip-deadline-wrap">
+            <span className="compose-field-label" aria-hidden="true">
+              when
+            </span>
+            <DatePicker
+              value={deadlineLocal}
+              onChange={setDeadlineLocal}
+              disabled={creating}
+              aria-label="Choose deadline"
+            />
+          </div>
+        </div>
+        <p className="compose-hint">Evidence will be verified. Self-report is not accepted.</p>
       </div>
       {error && <p className="compose-error">{error}</p>}
-      <p className="compose-hint">Evidence will be verified. Self-report is not accepted.</p>
     </div>
   )
 }
@@ -139,81 +151,61 @@ function ContextStep() {
 }
 
 // ── PlanStep ──────────────────────────────────────────────────────────────────
+// Purely local-state — NO API calls here. All changes are held in draft until
+// handleStart fires. Cancel at any point writes nothing to the server.
 
 interface PlanProps {
-  commitment: Commitment
-  onCommitmentChange: (c: Commitment) => void
+  draft: DraftPlan
+  onDraftChange: (d: DraftPlan) => void
+  action: string
+  deliverable: string
+  deadlineLocal: string
   starting: boolean
   startError: string | null
 }
 
-function PlanStep({ commitment, onCommitmentChange, starting, startError }: PlanProps) {
-  const evidenceType = commitment.evidence_type as EvidenceType
+// Local draft shape for plan-step fields (kept separately from Commitment to avoid server writes)
+interface DraftPlan {
+  cadence: string
+  evidence_type: EvidenceType
+  evidence_config: Record<string, unknown> | null
+  skip_days_total: number
+}
+
+const DEFAULT_DRAFT_PLAN: DraftPlan = {
+  cadence: 'daily_evening',
+  evidence_type: 'screenshot',
+  evidence_config: null,
+  skip_days_total: 0
+}
+
+function PlanStep({ draft, onDraftChange, action, deliverable, deadlineLocal, starting, startError }: PlanProps) {
+  const evidenceType = draft.evidence_type
   const repo =
-    commitment.evidence_config !== null && typeof commitment.evidence_config.repo === 'string'
-      ? commitment.evidence_config.repo
+    draft.evidence_config !== null && typeof draft.evidence_config?.repo === 'string'
+      ? (draft.evidence_config.repo as string)
       : ''
 
-  async function handleCadenceChange(value: string) {
-    if (MOCK_AUTH) {
-      onCommitmentChange({ ...commitment, cadence: value })
-      return
-    }
-    try {
-      const updated = await patchCommitment(commitment.id, { cadence: value })
-      onCommitmentChange(updated)
-    } catch {
-      // Patch failed — keep current value; silent for now
-    }
+  function handleCadenceChange(value: string) {
+    onDraftChange({ ...draft, cadence: value })
   }
 
-  async function handleEvidenceTypeChange(value: EvidenceType) {
-    if (MOCK_AUTH) {
-      const evidence_config = value === 'github' ? (commitment.evidence_config ?? {}) : null
-      onCommitmentChange({ ...commitment, evidence_type: value, evidence_config })
-      return
-    }
-    try {
-      const evidence_config = value === 'github' ? (commitment.evidence_config ?? {}) : null
-      const updated = await patchCommitment(commitment.id, {
-        evidence_type: value,
-        evidence_config: evidence_config as Record<string, unknown> | undefined
-      })
-      onCommitmentChange(updated)
-    } catch {
-      // Patch failed — keep current value
-    }
+  function handleEvidenceTypeChange(value: EvidenceType) {
+    const evidence_config = value === 'github' ? (draft.evidence_config ?? {}) : null
+    onDraftChange({ ...draft, evidence_type: value, evidence_config })
   }
 
-  async function handleRepoChange(value: string) {
-    if (MOCK_AUTH) {
-      onCommitmentChange({ ...commitment, evidence_config: { repo: value } })
-      return
-    }
-    try {
-      const updated = await patchCommitment(commitment.id, {
-        evidence_config: { repo: value }
-      })
-      onCommitmentChange(updated)
-    } catch {
-      // Patch failed — keep current value
-    }
+  function handleRepoChange(value: string) {
+    onDraftChange({ ...draft, evidence_config: { repo: value } })
   }
 
-  async function handleSkipDaysChange(value: number) {
-    if (MOCK_AUTH) {
-      onCommitmentChange({ ...commitment, skip_days_total: value })
-      return
-    }
-    try {
-      const updated = await patchCommitment(commitment.id, { skip_days_total: value })
-      onCommitmentChange(updated)
-    } catch {
-      // Patch failed — keep current value
-    }
+  function handleSkipDaysChange(value: number) {
+    onDraftChange({ ...draft, skip_days_total: value })
   }
 
-  const trustLabel = EVIDENCE_OPTIONS.find((o) => o.value === evidenceType)?.trust ?? ''
+  const trustLabel = EVIDENCE_OPTIONS_FULL.find((o) => o.value === evidenceType)?.trust ?? ''
+  // Format deadline for display
+  const deadlineDisplay = deadlineLocal ? new Date(deadlineLocal).toLocaleString('en-MY') : ''
 
   return (
     <div className="plan-step">
@@ -231,15 +223,15 @@ function PlanStep({ commitment, onCommitmentChange, starting, startError }: Plan
         </p>
         <div className="plan-locked-row">
           <span className="plan-locked-label">Action</span>
-          <span className="plan-locked-value">{commitment.action}</span>
+          <span className="plan-locked-value">{action}</span>
         </div>
         <div className="plan-locked-row">
           <span className="plan-locked-label">Deliverable</span>
-          <span className="plan-locked-value">{commitment.deliverable}</span>
+          <span className="plan-locked-value">{deliverable}</span>
         </div>
         <div className="plan-locked-row">
           <span className="plan-locked-label">Deadline</span>
-          <span className="plan-locked-value">{new Date(commitment.deadline).toLocaleString('en-MY')}</span>
+          <span className="plan-locked-value">{deadlineDisplay}</span>
         </div>
       </div>
 
@@ -258,38 +250,34 @@ function PlanStep({ commitment, onCommitmentChange, starting, startError }: Plan
       <div className="plan-settings">
         {/* Cadence */}
         <div className="plan-setting-row">
-          <span className="plan-setting-label">Cadence</span>
-          <select
+          <span className="plan-setting-label">
+            Cadence
+            <Tooltip text="How often Kawan checks in on your progress." />
+          </span>
+          <Select
             className="plan-setting-select"
             aria-label="Check-in cadence"
-            value={commitment.cadence}
-            onChange={(e) => handleCadenceChange(e.target.value)}
+            value={draft.cadence}
+            onChange={handleCadenceChange}
+            options={CADENCE_OPTIONS}
             disabled={starting}
-          >
-            {CADENCE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
+          />
         </div>
 
         {/* Evidence type */}
         <div className="plan-setting-row">
-          <span className="plan-setting-label">Evidence</span>
-          <select
+          <span className="plan-setting-label">
+            Evidence
+            <Tooltip text="How you will prove progress. Screenshot requires you to upload proof. GitHub checks your commits automatically." />
+          </span>
+          <Select
             className="plan-setting-select"
             aria-label="Evidence type"
             value={evidenceType}
-            onChange={(e) => handleEvidenceTypeChange(e.target.value as EvidenceType)}
+            onChange={(v) => handleEvidenceTypeChange(v as EvidenceType)}
+            options={EVIDENCE_SELECT_OPTIONS}
             disabled={starting}
-          >
-            {EVIDENCE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label} ({o.trust})
-              </option>
-            ))}
-          </select>
+          />
         </div>
 
         {/* GitHub repo field — shown when evidence_type = github (Q7) */}
@@ -314,20 +302,18 @@ function PlanStep({ commitment, onCommitmentChange, starting, startError }: Plan
 
         {/* Skip days */}
         <div className="plan-setting-row">
-          <span className="plan-setting-label">Skip days</span>
-          <select
+          <span className="plan-setting-label">
+            Skip days
+            <Tooltip text="The number of check-ins you can skip without penalty. 0 means every check-in counts." />
+          </span>
+          <Select
             className="plan-setting-select"
             aria-label="Allowed skip days"
-            value={commitment.skip_days_total}
-            onChange={(e) => handleSkipDaysChange(Number(e.target.value))}
+            value={String(draft.skip_days_total)}
+            onChange={(v) => handleSkipDaysChange(Number(v))}
+            options={SKIP_DAYS_OPTIONS}
             disabled={starting}
-          >
-            {SKIP_DAYS_OPTIONS.map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
+          />
         </div>
       </div>
     </div>
@@ -344,29 +330,30 @@ export function NewCommitment() {
   // Companion step state — seeded from current persona
   const [selectedPersona, setSelectedPersona] = useState<Persona>(me?.persona ?? 'kawan')
 
-  // Compose state — lifted so it survives step navigation and feeds create.
+  // Compose state — lifted so it survives step navigation and feeds handleStart.
+  // NO API calls until the final "Start commitment" — Cancel at any prior step is inert.
   const [action, setAction] = useState<Action>('complete')
   const [deliverable, setDeliverable] = useState('')
   const [deadlineLocal, setDeadlineLocal] = useState('')
   const [composeError, setComposeError] = useState<string | null>(null)
-  const [creating, setCreating] = useState(false)
 
-  // Created commitment (holds id + server defaults for Plan step).
-  const [commitment, setCommitment] = useState<Commitment | null>(null)
+  // Plan step draft — held locally; NO API writes until handleStart.
+  const [draftPlan, setDraftPlan] = useState<DraftPlan>({ ...DEFAULT_DRAFT_PLAN })
   const [starting, setStarting] = useState(false)
   const [startError, setStartError] = useState<string | null>(null)
 
   // ── Companion → Continue ──────────────────────────────────────────────────
-
-  async function handleCompanionContinue() {
-    // Persist persona selection (optimistic local + PATCH /api/me when not mock)
-    await setPersona(selectedPersona)
+  // NO setPersona call here. The persona choice is committed ONLY in handleStart,
+  // so Cancel at any step leaves the existing persona untouched.
+  function handleCompanionContinue() {
     setStep(1)
   }
 
   // ── Compose → Continue ────────────────────────────────────────────────────
+  // Validates the compose fields locally; NO API call yet.
+  // createCommitment is deferred to handleStart so Cancel writes nothing.
 
-  async function handleComposeContinue() {
+  function handleComposeContinue() {
     if (!deliverable.trim()) {
       setComposeError('Please describe what you will deliver.')
       return
@@ -389,43 +376,46 @@ export function NewCommitment() {
       if (!window.confirm("That's under an hour. Are you sure?")) return
     }
 
-    const deadlineISO = deadlineDate.toISOString()
-
-    if (MOCK_AUTH) {
-      setCommitment({ ...mockActiveCommitment, action, deliverable, deadline: deadlineISO, status: 'draft' })
-      setComposeError(null)
-      setStep(2)
-      return
-    }
-
-    setCreating(true)
     setComposeError(null)
-    try {
-      const created = await createCommitment({ action, deliverable, deadline: deadlineISO })
-      setCommitment(created)
-      setStep(2)
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to create commitment.'
-      setComposeError(msg)
-    } finally {
-      setCreating(false)
-    }
+    setStep(2)
   }
 
   // ── Plan → Start ──────────────────────────────────────────────────────────
+  // First API write in the entire flow: create → patch plan fields → start → set persona.
+  // Cancel before this point leaves the server byte-for-byte unchanged.
 
   async function handleStart() {
     if (starting) return
 
-    if (MOCK_AUTH || commitment === null) {
+    if (MOCK_AUTH) {
+      await setPersona(selectedPersona)
       navigate('/home')
       return
     }
 
     setStarting(true)
     setStartError(null)
+    const deadlineISO = new Date(deadlineLocal).toISOString()
     try {
-      await startCommitment(commitment.id)
+      // 1. Create the commitment (first write)
+      const created = await createCommitment({ action, deliverable, deadline: deadlineISO })
+      // 2. Apply plan-step settings (cadence / evidence / skip) if they differ from server defaults
+      const needsPatch =
+        draftPlan.cadence !== created.cadence ||
+        draftPlan.evidence_type !== created.evidence_type ||
+        draftPlan.skip_days_total !== created.skip_days_total
+      if (needsPatch) {
+        await patchCommitment(created.id, {
+          cadence: draftPlan.cadence,
+          evidence_type: draftPlan.evidence_type,
+          evidence_config: draftPlan.evidence_config as Record<string, unknown> | undefined,
+          skip_days_total: draftPlan.skip_days_total
+        })
+      }
+      // 3. Start the commitment (draft → active)
+      await startCommitment(created.id)
+      // 4. Persist persona selection ONLY on full success
+      await setPersona(selectedPersona)
       navigate('/home')
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to start commitment. Please try again.'
@@ -435,11 +425,19 @@ export function NewCommitment() {
     }
   }
 
+  // ── Cancel — fully inert: NO API calls, NO persona writes ────────────────
+  // Because createCommitment is deferred to handleStart, Cancel at any step
+  // leaves the server and localStorage byte-for-byte unchanged.
+
+  function handleCancel() {
+    navigate('/home')
+  }
+
   // ── Continue handler for each step ────────────────────────────────────────
 
   function handleContinue() {
     if (step === 0) {
-      handleCompanionContinue()
+      handleCompanionContinue() // sync now — persona not persisted until handleStart
     } else if (step === 1) {
       handleComposeContinue()
     } else {
@@ -463,7 +461,7 @@ export function NewCommitment() {
           deadlineLocal={deadlineLocal}
           setDeadlineLocal={setDeadlineLocal}
           error={composeError}
-          creating={creating}
+          creating={false}
         />
       )
     }
@@ -471,53 +469,60 @@ export function NewCommitment() {
       return <ContextStep />
     }
     // step === 3
-    return commitment !== null ? (
+    return (
       <PlanStep
-        commitment={commitment}
-        onCommitmentChange={setCommitment}
+        draft={draftPlan}
+        onDraftChange={setDraftPlan}
+        action={action}
+        deliverable={deliverable}
+        deadlineLocal={deadlineLocal}
         starting={starting}
         startError={startError}
       />
-    ) : (
-      <div className="plan-step">
-        <p>No commitment found. Please go back and compose one.</p>
-      </div>
     )
   }
 
-  // Disable "Continue" on Compose (step 1) while fields are incomplete or request is in-flight.
-  const continueDisabled = (step === 1 && (!deliverable.trim() || !deadlineLocal)) || creating || starting
+  // Disable "Continue" on Compose (step 1) while required fields are empty.
+  const continueDisabled = (step === 1 && (!deliverable.trim() || !deadlineLocal)) || starting
 
   return (
     <div className="workspace-root new-commitment-root">
       {/* Header */}
       <div className="workspace-topbar">
-        <button
-          type="button"
-          className="workspace-back-btn"
-          aria-label="Cancel and go back"
-          onClick={() => navigate('/home')}
-        >
+        <button type="button" className="workspace-back-btn" aria-label="Cancel and go back" onClick={handleCancel}>
           <X size={14} aria-hidden="true" /> Cancel
         </button>
-        {/* Progress indicator */}
-        <nav className="stepper" aria-label="Commitment setup steps">
-          {STEP_LABELS.map((label, i) => (
-            <div
-              key={label}
-              className={`stepper-step ${i === step ? 'stepper-step-active' : ''} ${i < step ? 'stepper-step-done' : ''}`}
-              aria-current={i === step ? 'step' : undefined}
-            >
-              <div className="stepper-dot" />
-              <span className="stepper-label">{label}</span>
-            </div>
-          ))}
+        {/* Progress indicator — connected track stepper */}
+        <nav className="new-commitment-stepper-wrap" aria-label="Commitment setup steps">
+          <div className="stepper-v2">
+            {STEP_LABELS.map((label, i) => {
+              const isDone = i < step
+              const isCurrent = i === step
+              const nodeClass = `stepper-v2-node${isDone ? ' stepper-v2-done' : isCurrent ? ' stepper-v2-current' : ' stepper-v2-upcoming'}`
+              return (
+                <div key={label} className="stepper-v2-step">
+                  {i > 0 && <div className={`stepper-v2-track${isDone ? ' stepper-v2-track-done' : ''}`} />}
+                  <div className={nodeClass} aria-current={isCurrent ? 'step' : undefined}>
+                    <div className="stepper-v2-circle" aria-hidden="true">
+                      {isDone ? <Check size={12} /> : i + 1}
+                    </div>
+                    <span className="stepper-v2-label">{label}</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          <span className="stepper-v2-counter" aria-live="polite" aria-atomic="true">
+            {step + 1} / {STEP_LABELS.length}
+          </span>
         </nav>
         <div className="workspace-spacer" aria-hidden="true" />
       </div>
 
-      {/* Step content */}
-      <div className="new-commitment-content">{renderStep()}</div>
+      {/* Step content — centered vertically; long steps scroll naturally */}
+      <div className="new-commitment-content">
+        <div className="new-commitment-step-center">{renderStep()}</div>
+      </div>
 
       {/* Step navigation */}
       <div className="new-commitment-footer">
@@ -528,7 +533,7 @@ export function NewCommitment() {
         )}
         {step < 3 ? (
           <Button variant="primary" onClick={handleContinue} disabled={continueDisabled}>
-            {creating ? 'Creating...' : 'Continue'}
+            Continue
           </Button>
         ) : (
           <Button variant="accent" onClick={handleStart} disabled={starting}>

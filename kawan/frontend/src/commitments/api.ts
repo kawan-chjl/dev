@@ -1,7 +1,7 @@
 // Commitments API client — typed fetch wrappers, no deps.
 // All calls use credentials:'include' so the HttpOnly session cookie rides along.
 
-import type { Commitment } from '../types/api'
+import type { AuditRow, Commitment } from '../types/api'
 
 /**
  * GET /api/commitments/active
@@ -111,6 +111,17 @@ export async function deleteCommitment(id: string): Promise<void> {
 }
 
 /**
+ * GET /api/me/history — lists the current user's audit-log rows, newest-first.
+ * 200 → AuditRow[]. 401 → []. Other non-OK → throws.
+ */
+export async function fetchHistory(): Promise<AuditRow[]> {
+  const res = await fetch('/api/me/history', { credentials: 'include' })
+  if (res.ok) return (await res.json()) as AuditRow[]
+  if (res.status === 401) return []
+  throw new Error(`GET /api/me/history returned ${res.status}`)
+}
+
+/**
  * DELETE /api/me/history — permanently deletes the current user's audit log rows.
  * 204 on success. Throws on non-204.
  */
@@ -121,4 +132,17 @@ export async function clearHistory(): Promise<void> {
   })
   if (res.status === 204) return
   throw new Error(`DELETE /api/me/history returned ${res.status}`)
+}
+
+/**
+ * DELETE /api/me/data — permanently deletes all the user's commitments and related data.
+ * Keeps the user account/session. 204 on success. Throws on non-204.
+ */
+export async function deleteMyData(): Promise<void> {
+  const res = await fetch('/api/me/data', {
+    method: 'DELETE',
+    credentials: 'include'
+  })
+  if (res.status === 204) return
+  throw new Error(`DELETE /api/me/data returned ${res.status}`)
 }

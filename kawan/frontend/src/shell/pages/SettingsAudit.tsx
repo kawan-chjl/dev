@@ -1,17 +1,18 @@
 // SettingsAudit - /history
 // "Who changed what" table. Actor in user | system only (AI is unrepresentable - TR-24).
 // "Clear history" button calls DELETE /api/me/history (real backend clear, Gate-1 resolution).
-// Under MOCK_AUTH: clears local view only (no backend available).
+// Under MOCK_AUTH: uses mock rows from fixture; clear is local-only (no backend available).
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { MOCK_AUTH } from '../../auth/api'
-import { clearHistory } from '../../commitments/api'
+import { clearHistory, fetchHistory } from '../../commitments/api'
 import { getActiveCommitment, getAuditLog } from '../../mock/provider'
 import { useNotifications } from '../../notifications/NotificationProvider'
 import type { AuditRow } from '../../types/api'
 import { Badge } from '../../ui/Badge'
 import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
+import { Modal } from '../../ui/Modal'
 import { PageHeader } from '../PageHeader'
 
 function formatAt(iso: string): string {
@@ -33,11 +34,28 @@ function formatValue(value: string): string {
 
 export function SettingsAudit() {
   const { notify } = useNotifications()
-  const active = getActiveCommitment()
-  const initial = active != null ? getAuditLog(active.id) : []
-  const [rows, setRows] = useState<AuditRow[]>(initial)
+  const [rows, setRows] = useState<AuditRow[]>([])
+  const [loading, setLoading] = useState(!MOCK_AUTH)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [clearing, setClearing] = useState(false)
+
+  // Load rows: use mock fixture under MOCK_AUTH, real endpoint otherwise.
+  useEffect(() => {
+    if (MOCK_AUTH) {
+      const active = getActiveCommitment()
+      setRows(active != null ? getAuditLog(active.id) : [])
+      return
+    }
+    setLoading(true)
+    fetchHistory()
+      .then(setRows)
+      .catch(() => {
+        // Fall back to mock rows so the page still renders on network failure
+        const active = getActiveCommitment()
+        setRows(active != null ? getAuditLog(active.id) : [])
+      })
+      .finally(() => setLoading(false))
+  }, [])
 
   async function handleClear() {
     setConfirmOpen(false)
@@ -56,7 +74,11 @@ export function SettingsAudit() {
   }
 
   const headerActions = (
-    <Button variant="secondary" onClick={() => setConfirmOpen(true)} disabled={clearing || rows.length === 0}>
+    <Button
+      variant="secondary"
+      onClick={() => setConfirmOpen(true)}
+      disabled={clearing || loading || rows.length === 0}
+    >
       {clearing ? 'Clearing...' : 'Clear history'}
     </Button>
   )
@@ -65,36 +87,36 @@ export function SettingsAudit() {
     <div className="shell-page">
       <PageHeader title="History" subtitle="Every change you made, and when." actions={headerActions} />
 
-      {confirmOpen && (
-        <div
-          className="commitments-confirm-overlay"
-          role="alertdialog"
-          aria-modal="true"
-          aria-label="Confirm clear history"
-        >
-          <div className="commitments-confirm-panel">
-            <p className="commitments-confirm-heading">Clear history?</p>
-            <p className="commitments-confirm-body">
-              This permanently removes all change records from your history. This cannot be undone.
-            </p>
-            <div className="commitments-confirm-actions">
-              <Button variant="secondary" onClick={() => setConfirmOpen(false)}>
-                Cancel
-              </Button>
-              <Button variant="accent" onClick={handleClear}>
-                Clear history
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {loading && <p className="home-loading-text">Loading...</p>}
 
-      {rows.length === 0 ? (
+      {/* Confirm dialog — portaled above all shell layers via Modal */}
+      <Modal
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        label="Confirm clear history"
+        panelClassName="modal-panel-confirm"
+      >
+        <p className="commitments-confirm-heading">Clear history?</p>
+        <p className="commitments-confirm-body">
+          This permanently removes all change records from your history. This cannot be undone.
+        </p>
+        <div className="commitments-confirm-actions">
+          <Button variant="secondary" onClick={() => setConfirmOpen(false)}>
+            Cancel
+          </Button>
+          <Button variant="accent" onClick={handleClear}>
+            Clear history
+          </Button>
+        </div>
+      </Modal>
+
+      {!loading && rows.length === 0 && (
         <Card className="empty-state-card">
           <p className="empty-state-heading">No changes yet</p>
           <p className="empty-state-body">Any time you change a commitment field, it shows up here.</p>
         </Card>
-      ) : (
+      )}
+      {!loading && rows.length > 0 && (
         <Card>
           <section className="audit-table-wrapper" aria-label="Change history">
             <table className="audit-table">
@@ -114,7 +136,7 @@ export function SettingsAudit() {
                     <td className="audit-value-old">
                       {row.old_value != null ? formatValue(row.old_value) : 'None yet'}
                     </td>
-                    <td>{formatValue(row.new_value)}</td>
+                    <td>{row.new_value != null ? formatValue(row.new_value) : 'None yet'}</td>
                     <td>
                       <Badge variant={row.actor === 'user' ? 'accent' : 'default'}>{row.actor}</Badge>
                     </td>
