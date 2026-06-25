@@ -140,7 +140,7 @@
 }
 
 .char-stage-label {
-  font-family: var(--font-display);
+  font-family: var(--font-voice);
   font-style: italic;
   font-size: var(--text-small);
   color: rgba(244, 236, 225, 0.45);
@@ -1220,8 +1220,9 @@
   margin-top: var(--space-1);
 }
 
-/* Live sentence preview */
+/* Live sentence preview — Fraunces italic voice (the "I will … by …" moment) */
 .nc-sentence-preview {
+  font-family: var(--font-voice);
   font-size: var(--text-small);
   color: var(--ink-soft);
   font-style: italic;

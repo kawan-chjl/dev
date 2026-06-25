@@ -38,7 +38,7 @@ h6 {
   font-family: var(--font-display);
   line-height: var(--lh-heading);
   color: var(--ink);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 h1 {
@@ -117,7 +117,7 @@ img {
 
 /* Fraunces italic "voice" — emotional emphasis, used word-level only */
 .italic-voice {
-  font-family: var(--font-display);
+  font-family: var(--font-voice);
   font-style: italic;
 }
 

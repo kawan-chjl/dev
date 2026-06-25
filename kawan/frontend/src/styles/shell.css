@@ -116,14 +116,14 @@
   text-decoration: none;
 }
 .sidebar-logo-img {
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-sm);
   flex-shrink: 0;
 }
 .sidebar-logo-name {
   font-family: var(--font-wordmark);
-  font-size: var(--text-small);
+  font-size: 1.14rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -331,13 +331,13 @@
   text-decoration: none;
 }
 .mobile-drawer-logo img {
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-sm);
 }
 .mobile-drawer-logo span {
   font-family: var(--font-wordmark);
-  font-size: var(--text-small);
+  font-size: 1.14rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -751,7 +751,7 @@
 
 .shell-footer-logo-name {
   font-family: var(--font-wordmark);
-  font-size: var(--text-small);
+  font-size: 1.14rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;

@@ -19,14 +19,14 @@
 }
 
 .landing-logo {
-  width: 36px;
-  height: 36px;
+  width: 47px;
+  height: 47px;
   border-radius: var(--radius-md);
 }
 
 .landing-logo-text {
   font-family: var(--font-wordmark);
-  font-size: var(--text-h3);
+  font-size: 1.625rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -580,6 +580,7 @@
 }
 
 .page-subtitle {
+  font-family: var(--font-display);
   font-size: var(--text-small);
   color: var(--ink-soft);
 }
@@ -643,204 +644,6 @@
 }
 
 /* ── Home page v2 (warm bento) ── */
-
-/* Idle state */
-.home-idle-v2 {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
-}
-
-.home-idle-hero {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: var(--space-4);
-  padding: var(--space-8) 0 var(--space-6);
-}
-
-.home-idle-eye-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: var(--accent-tint);
-  margin-bottom: var(--space-2);
-}
-
-.home-idle-heading-v2 {
-  font-family: var(--font-display);
-  font-size: clamp(var(--text-h1), 5vw, var(--text-display));
-  color: var(--ink);
-  line-height: var(--lh-heading);
-  max-width: 520px;
-}
-
-.home-idle-em {
-  font-style: italic;
-  color: var(--accent);
-}
-
-.home-idle-sub-v2 {
-  max-width: 400px;
-  color: var(--ink-soft);
-  font-size: var(--text-body);
-  line-height: var(--lh-body);
-}
-
-.home-idle-cta {
-  min-width: 200px;
-  height: 52px;
-  font-size: var(--text-body);
-}
-
-/* How-it-works strip */
-.home-how-strip {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-4);
-}
-
-@media (min-width: 560px) {
-  .home-how-strip {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-.home-how-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.home-how-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-md);
-  background: var(--surface-sunk);
-  margin-bottom: var(--space-1);
-}
-
-.home-how-title {
-  font-family: var(--font-display);
-  font-size: var(--text-body);
-  font-weight: 600;
-  color: var(--ink);
-}
-
-.home-how-desc {
-  font-size: var(--text-small);
-  color: var(--ink-soft);
-  line-height: var(--lh-body);
-}
-
-/* Active state bento */
-.home-active-v2 {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
-.home-commitment-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.home-commitment-label {
-  font-size: var(--text-caption);
-  font-weight: 600;
-  color: var(--ink-soft);
-  letter-spacing: 0.04em;
-}
-
-.home-commitment-sentence {
-  font-family: var(--font-display);
-  font-size: var(--text-h3);
-  color: var(--ink);
-  line-height: var(--lh-body);
-}
-
-.home-commitment-deliverable {
-  color: var(--accent);
-}
-
-.home-commitment-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  align-items: center;
-}
-
-/* TEE verified pill */
-.home-tee-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: 2px var(--space-2);
-  border-radius: var(--radius-pill);
-  background: var(--sage-tint);
-  color: var(--sage-deep);
-  font-size: var(--text-caption);
-  font-weight: 600;
-}
-
-/* Status bento: 3-up cards at md+, stacked on mobile */
-.home-status-bento {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-3);
-}
-
-@media (min-width: 560px) {
-  .home-status-bento {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-.home-status-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.home-status-label {
-  font-size: var(--text-caption);
-  font-weight: 500;
-  color: var(--ink-soft);
-  letter-spacing: 0.04em;
-}
-
-.home-roadmap-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.home-roadmap-label {
-  font-size: var(--text-caption);
-  font-weight: 600;
-  color: var(--ink-soft);
-  letter-spacing: 0.04em;
-}
-
-.home-roadmap-placeholder {
-  font-size: var(--text-small);
-  color: var(--ink-faint);
-  font-style: italic;
-}
-
-.home-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-}
 
 /* Legacy idle classes (kept so nothing breaks if referenced) */
 .home-idle {
@@ -1219,7 +1022,7 @@
 }
 
 .timeline-event-message {
-  font-family: var(--font-display);
+  font-family: var(--font-voice);
   font-size: var(--text-small);
   color: var(--ink-soft);
   line-height: var(--lh-body);
@@ -1363,7 +1166,7 @@
 
 .timeline-beat-message {
   flex: 1;
-  font-family: var(--font-display);
+  font-family: var(--font-voice);
   font-size: var(--text-small);
   color: var(--ink);
   font-style: italic;
@@ -1395,7 +1198,7 @@
 }
 
 .habit-loop-beat {
-  font-family: var(--font-display);
+  font-family: var(--font-voice);
   font-size: var(--text-body);
   color: var(--ink);
   font-style: italic;
@@ -1671,6 +1474,7 @@
 }
 
 .page-header-card-sub {
+  font-family: var(--font-display);
   font-size: var(--text-small);
   color: var(--ink-soft);
   line-height: var(--lh-body);
@@ -1837,7 +1641,7 @@
   max-width: 640px;
 }
 
-/* ── Home v5 bento (2.png: large Commitment + 2 small cards + tall right rail) ── */
+/* ── Home v5 bento (quick-actions + right rail) ── */
 
 /* Mobile: single column, natural height */
 .home-bento-v5 {
@@ -1851,50 +1655,26 @@
   .home-bento-v5 {
     grid-template-columns: 1fr 280px;
     grid-template-rows: 1fr;
-    /* min-height fills the content area so no deadspace appears below on tall monitors.
-       Uses min-height (not height) so the page stays scrollable and the footer foldover
-       still reveals at the bottom. Subtract topbar, page padding (top+bottom = 2*space-8),
-       and the page-header-card (min-height:120px + margin-bottom:space-6 + its own padding). */
+    /* min-height fills the content area so no deadspace appears below on tall monitors. */
     min-height: calc(100svh - var(--topbar-h) - 2 * var(--space-8) - 200px);
     align-items: stretch;
   }
 }
 
-/* Left column: large Commitment card + two small cards below */
+/* Left column: two quick-action cards side-by-side */
 .home-left-col {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: var(--space-4);
+  align-content: start;
 }
 
-@media (min-width: 900px) {
-  .home-left-col {
-    display: grid;
-    grid-template-rows: minmax(0, 1.4fr) minmax(0, 1fr);
-    gap: var(--space-4);
-    height: 100%;
-  }
+/* Simple variant: cards take natural height, no stretch */
+.home-left-col-simple {
+  align-items: start;
 }
 
-/* Large commitment card — fills its grid row */
-.home-card-commitment {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  cursor: pointer;
-  min-height: 160px;
-  height: 100%;
-  transition: box-shadow var(--duration-ui) var(--ease-out);
-}
-.home-card-commitment:hover {
-  box-shadow: var(--shadow-md);
-}
-.home-card-commitment:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-/* Two smaller cards — side by side */
+/* Quick-action cards — side by side */
 .home-small-cards-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1950,6 +1730,12 @@
   gap: 2px;
   flex: 1;
   overflow-y: auto;
+}
+
+.home-recent-empty {
+  font-size: var(--text-small);
+  color: var(--ink-faint);
+  line-height: var(--lh-body);
 }
 
 .home-widget-icon {
