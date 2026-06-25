@@ -4,7 +4,7 @@
 
 import { LogOut, Menu, Settings } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { useTheme } from '../hooks/useTheme'
 import { NotificationBell } from '../notifications/NotificationBell'
@@ -31,6 +31,7 @@ function usePageTitle(): string {
 
 export function Topbar({ onMenuOpen }: TopbarProps) {
   const title = usePageTitle()
+  const navigate = useNavigate()
   const { me, signOut } = useAuth()
   const { theme, toggle } = useTheme()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -55,6 +56,7 @@ export function Topbar({ onMenuOpen }: TopbarProps) {
   async function handleSignOut() {
     setMenuOpen(false)
     await signOut()
+    navigate('/')
   }
 
   return (
