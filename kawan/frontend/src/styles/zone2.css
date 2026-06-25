@@ -995,29 +995,23 @@
   text-align: center;
 }
 
-/* Body: grid layout — step content col left, index island col right.
-   Fills the viewport below the topbar (minus bottom-island clearance). */
+/* Body: single-column flex; index island overlays via fixed positioning so it
+   does not consume centering space — step content stays full-width and centered. */
 .nc-body {
-  display: grid;
-  grid-template-columns: 1fr;
   flex: 1;
   overflow: hidden;
 }
 
-@media (min-width: 900px) {
-  .nc-body {
-    grid-template-columns: 1fr 180px;
-  }
-}
-
-/* Step content column (grid col 1) — fills available height, scrolls if step overflows */
+/* Step content column — fills available height, scrolls if step overflows */
 .nc-steps {
   overflow-y: auto;
+  height: 100%;
   /* clearance for the bottom-center nav island */
   padding-bottom: 88px;
 }
 
-/* Right-rail column (grid col 2) — hidden on narrow */
+/* Right-rail column — hidden on narrow; fixed overlay on wide so it does not
+   shift the centering of nc-section-inner */
 .nc-island-col {
   display: none;
 }
@@ -1025,14 +1019,14 @@
 @media (min-width: 900px) {
   .nc-island-col {
     display: block;
-    padding: var(--space-6) var(--space-4) 0 0;
+    position: fixed;
+    top: calc(52px + var(--space-6));
+    right: var(--space-6);
   }
 }
 
-/* Top-right index island: fixed position on wide screens */
+/* Top-right index island: positioned via fixed parent (.nc-island-col) on wide screens */
 .nc-island {
-  position: sticky;
-  top: calc(52px + var(--space-6));
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -1163,7 +1157,7 @@
 /* Floating pill pinned at the bottom center of the viewport */
 .nc-bottom-island {
   position: fixed;
-  bottom: calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
+  bottom: var(--space-6);
   left: 50%;
   transform: translateX(-50%);
   display: flex;
