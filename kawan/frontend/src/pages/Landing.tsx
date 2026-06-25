@@ -1,7 +1,8 @@
-// Landing — Zone 0, / (public, no shell chrome)
-// Real front door: hero copy + two CTAs routing to /sign-up and /sign-in.
+// Landing - Zone 0, / (public, no shell chrome)
+// Real front door: warm hero + how-it-works band + two CTAs routing to /sign-up and /sign-in.
 // Auth logic (SIWC, email/password, guest) lives on those dedicated pages.
 
+import { CheckCircle, Eye, ShieldCheck } from 'lucide-react'
 import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 
@@ -21,19 +22,19 @@ export function Landing() {
       </header>
 
       <main className="landing-main">
-        {/* Eye motif */}
+        {/* Eye motif - svg not emoji */}
         <div className="landing-eye" aria-hidden="true">
-          ◉
+          <Eye size={48} color="var(--accent)" strokeWidth={1.5} aria-hidden="true" />
         </div>
 
         <h1 className="landing-headline">
           It doesn't believe you.
           <br />
-          <span className="landing-headline-sub">Yet.</span>
+          <em className="landing-headline-sub">Yet.</em>
         </h1>
 
         <p className="landing-body">
-          Kawan is a skeptical accountability companion — not a cheerleader. One commitment, verified evidence, no
+          Kawan is a skeptical accountability companion. Not a cheerleader. One commitment, verified evidence, no
           self-report. Earn the trust.
         </p>
 
@@ -45,18 +46,41 @@ export function Landing() {
             Sign in
           </Link>
         </div>
-
-        {/* Decorative doodle placeholder */}
-        <div className="landing-doodle" aria-hidden="true">
-          <div className="landing-doodle-line" />
-          <div className="landing-doodle-dot" />
-          <div className="landing-doodle-dot" />
-          <div className="landing-doodle-dot" style={{ background: 'var(--accent)' }} />
-        </div>
       </main>
 
+      {/* How it works band */}
+      <section className="landing-how" aria-label="How it works">
+        <div className="landing-how-inner">
+          <div className="landing-how-item">
+            <div className="landing-how-icon" aria-hidden="true">
+              <Eye size={22} color="var(--accent)" aria-hidden="true" />
+            </div>
+            <p className="landing-how-title">You commit</p>
+            <p className="landing-how-desc">One goal, one deadline, one evidence source. Kawan holds you to it.</p>
+          </div>
+          <div className="landing-how-item">
+            <div className="landing-how-icon" aria-hidden="true">
+              <ShieldCheck size={22} color="var(--sage-deep)" aria-hidden="true" />
+            </div>
+            <p className="landing-how-title">Evidence is verified</p>
+            <p className="landing-how-desc">
+              Self-report is not accepted. Evidence is checked in a trusted environment.
+            </p>
+          </div>
+          <div className="landing-how-item">
+            <div className="landing-how-icon" aria-hidden="true">
+              <CheckCircle size={22} color="var(--sage-deep)" aria-hidden="true" />
+            </div>
+            <p className="landing-how-title">Trust is earned</p>
+            <p className="landing-how-desc">
+              Each verified check-in builds momentum. Kawan believes you when you've shown it.
+            </p>
+          </div>
+        </div>
+      </section>
+
       <footer className="landing-footer">
-        <p>© 2026 Kawan · Built for Chutes Hack</p>
+        <p>2026 Kawan. Built for Chutes Hack.</p>
       </footer>
     </div>
   )

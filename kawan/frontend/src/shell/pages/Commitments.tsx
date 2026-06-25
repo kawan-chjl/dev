@@ -1,10 +1,12 @@
-// Commitments list — /commitments
+// Commitments list - /commitments
 // Shows active commitment as xl-radius card. Clicking routes to /commitments/:id.
 // Reads real data via useActiveCommitment() with mock fallback.
 
+import { CheckCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useActiveCommitment } from '../../commitments/useActiveCommitment'
 import { Badge } from '../../ui/Badge'
+import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
 import { Chip } from '../../ui/Chip'
 
@@ -25,12 +27,16 @@ export function Commitments() {
       </div>
 
       {all.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-state-icon" aria-hidden="true">
-            ◎
+        <Card className="empty-state-card">
+          <div className="empty-state-icon-wrap" aria-hidden="true">
+            <CheckCircle size={40} color="var(--ink-faint)" aria-hidden="true" />
           </div>
-          <p>No commitments yet.</p>
-        </div>
+          <p className="empty-state-heading">Nothing here yet</p>
+          <p className="empty-state-body">When you make a commitment, it shows up here. One at a time, for real.</p>
+          <Button variant="accent" onClick={() => navigate('/new')}>
+            Make a commitment
+          </Button>
+        </Card>
       ) : (
         <ul className="commitment-list">
           {all.map((c) => (

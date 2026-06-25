@@ -99,7 +99,7 @@ export const mockPersonas: PersonaPreset[] = [
     id: 'kawan',
     name: 'Kawan',
     archetype: 'Skeptical Concierge',
-    tone: 'Candid, warm, slightly dry. Believes in you because you have proven it — not because you said so.'
+    tone: 'Candid, warm, slightly dry. Believes in you because you have proven it. Not because you said so.'
   },
   {
     id: 'adik',
@@ -127,7 +127,7 @@ export interface ConversationTurn {
 export const mockConversation: ConversationTurn[] = [
   {
     speaker: 'kawan',
-    text: "So you want to build something. Tell me — what exactly are you committing to, and why should I believe you'll actually do it?"
+    text: "So you want to build something. Tell me: what exactly are you committing to, and why should I believe you'll actually do it?"
   },
   {
     speaker: 'user',
@@ -135,7 +135,7 @@ export const mockConversation: ConversationTurn[] = [
   },
   {
     speaker: 'kawan',
-    text: "End of June. That's a week away. What would 'done' actually look like to me — not to you, to me?",
+    text: "End of June. That's a week away. What would 'done' actually look like to me (not to you, to me)?",
     action: 'options',
     options: [
       'All 11 routes are navigable and build passes',

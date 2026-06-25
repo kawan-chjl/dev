@@ -2,6 +2,7 @@
 // Doodle journey-line with terracotta iris-dots for check-ins.
 // Verdicts: pass/fail/unclear rendered per TR-64 (unclear = neutral, misses = neutral gaps not red).
 
+import { TrendingUp } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MOCK_AUTH } from '../../auth/api'
@@ -12,6 +13,7 @@ import { postDebrief, triggerCheckNow } from '../../timeline/api'
 import { useTimeline } from '../../timeline/useTimeline'
 import { useWorkspaceSocket } from '../../timeline/useWorkspaceSocket'
 import type { Commitment, CommitmentStatus, TimelineEvent } from '../../types/api'
+import { Card } from '../../ui/Card'
 import { Chip } from '../../ui/Chip'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -173,7 +175,7 @@ function HabitLoopClose({ commitment, onRepeat, repeating }: HabitLoopCloseProps
   const beatLine =
     commitment.status === 'completed'
       ? 'Verified. That one counts.' // spec §3 H-finding: bound to the verified outcome
-      : "It didn't happen — I won't pretend it did. Next one?" // honest, non-punishing (TR-64)
+      : "It didn't happen. I won't pretend it did. Next one?" // honest, non-punishing (TR-64)
 
   async function handleSave() {
     if (MOCK_AUTH) {
@@ -186,7 +188,7 @@ function HabitLoopClose({ commitment, onRepeat, repeating }: HabitLoopCloseProps
       await postDebrief(commitment.id, reflection.trim())
       setSaved(true)
     } catch {
-      setSaveError("couldn't save — try again")
+      setSaveError("couldn't save, try again")
     } finally {
       setSaving(false)
     }
@@ -277,7 +279,7 @@ export function Timeline() {
           msg.verdict === 'pass'
             ? (msg.reasoning ?? 'Verified.')
             : msg.verdict === 'unclear'
-              ? (msg.reasoning ?? 'Not sure yet — give it a moment.')
+              ? (msg.reasoning ?? 'Not sure yet. Give it a moment.')
               : (msg.reasoning ?? 'No pass this time.')
         setBeat({ message: verdictCopy, tone: 'neutral' })
       } else if (msg.type === 'celebration') {
@@ -350,11 +352,11 @@ export function Timeline() {
         <div className="page-header-row">
           <div>
             <h2>Timeline</h2>
-            <p className="page-subtitle">Your momentum journey — every check-in, every verdict.</p>
+            <p className="page-subtitle">Your momentum journey. Every check-in, every verdict.</p>
           </div>
           <div className="page-header-actions">
             {connected && (
-              <span className="timeline-live-dot" role="img" aria-label="Live — connected" title="Connected live" />
+              <span className="timeline-live-dot" role="img" aria-label="Live, connected" title="Connected live" />
             )}
             {showCheckNow && (
               <button
@@ -380,12 +382,15 @@ export function Timeline() {
       {state === 'loading' && <p className="timeline-loading">Loading…</p>}
 
       {state === 'empty' && (
-        <div className="empty-state">
-          <div className="empty-state-icon" aria-hidden="true">
-            ~
+        <Card className="empty-state-card">
+          <div className="empty-state-icon-wrap" aria-hidden="true">
+            <TrendingUp size={40} color="var(--ink-faint)" aria-hidden="true" />
           </div>
-          <p>No timeline yet. Start a commitment to begin.</p>
-        </div>
+          <p className="empty-state-heading">No check-ins yet</p>
+          <p className="empty-state-body">
+            Your timeline fills in as you and Kawan go back and forth. Start a commitment to begin.
+          </p>
+        </Card>
       )}
 
       {state === 'ready' && timeline !== null && (

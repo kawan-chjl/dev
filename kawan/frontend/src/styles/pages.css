@@ -132,6 +132,60 @@
   color: var(--muted);
 }
 
+/* ── Landing: how-it-works band ── */
+.landing-how {
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: var(--space-8) var(--space-6);
+}
+
+.landing-how-inner {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+@media (min-width: 560px) {
+  .landing-how-inner {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.landing-how-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  text-align: center;
+}
+
+.landing-how-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunk);
+  margin-bottom: var(--space-1);
+}
+
+.landing-how-title {
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.landing-how-desc {
+  font-size: var(--text-small);
+  color: var(--ink-soft);
+  line-height: var(--lh-body);
+}
+
 /* ── Auth: split-partition (/sign-in) — design-system.md §5 ── */
 .sign-in-root {
   min-height: 100svh;
@@ -548,32 +602,141 @@
   color: var(--muted);
 }
 
-/* ── Home page ── */
-.home-idle {
+/* Rich empty state card (bento style) */
+.empty-state-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-12) 0;
+  gap: var(--space-3);
+  padding: var(--space-12) var(--space-8);
   text-align: center;
 }
 
-.home-idle-eye {
-  font-size: 3rem;
+.empty-state-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--surface-sunk);
+  margin-bottom: var(--space-2);
+}
+
+.empty-state-heading {
+  font-family: var(--font-display);
+  font-size: var(--text-h3);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.empty-state-body {
+  font-size: var(--text-small);
+  color: var(--ink-soft);
+  line-height: var(--lh-body);
+  max-width: 380px;
+}
+
+/* ── Home page v2 (warm bento) ── */
+
+/* Idle state */
+.home-idle-v2 {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.home-idle-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-4);
+  padding: var(--space-8) 0 var(--space-6);
+}
+
+.home-idle-eye-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--accent-tint);
+  margin-bottom: var(--space-2);
+}
+
+.home-idle-heading-v2 {
+  font-family: var(--font-display);
+  font-size: clamp(var(--text-h1), 5vw, var(--text-display));
+  color: var(--ink);
+  line-height: var(--lh-heading);
+  max-width: 520px;
+}
+
+.home-idle-em {
+  font-style: italic;
   color: var(--accent);
 }
 
-.home-idle-heading {
-  font-size: var(--text-h2);
-}
-
-.home-idle-sub {
-  max-width: 360px;
+.home-idle-sub-v2 {
+  max-width: 400px;
   color: var(--ink-soft);
-  font-size: var(--text-small);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
 }
 
-.home-active {
+.home-idle-cta {
+  min-width: 200px;
+  height: 52px;
+  font-size: var(--text-body);
+}
+
+/* How-it-works strip */
+.home-how-strip {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+@media (min-width: 560px) {
+  .home-how-strip {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.home-how-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.home-how-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunk);
+  margin-bottom: var(--space-1);
+}
+
+.home-how-title {
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.home-how-desc {
+  font-size: var(--text-small);
+  color: var(--ink-soft);
+  line-height: var(--lh-body);
+}
+
+/* Active state bento */
+.home-active-v2 {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -611,24 +774,43 @@
   align-items: center;
 }
 
-.home-status-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-4);
+/* TEE verified pill */
+.home-tee-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--sage-tint);
+  color: var(--sage-deep);
+  font-size: var(--text-caption);
+  font-weight: 600;
 }
 
-.home-status-item {
+/* Status bento: 3-up cards at md+, stacked on mobile */
+.home-status-bento {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+}
+
+@media (min-width: 560px) {
+  .home-status-bento {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.home-status-card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-2);
 }
 
 .home-status-label {
   font-size: var(--text-caption);
   font-weight: 500;
   color: var(--ink-soft);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
 }
 
 .home-roadmap-card {
@@ -647,7 +829,7 @@
 
 .home-roadmap-placeholder {
   font-size: var(--text-small);
-  color: var(--muted);
+  color: var(--ink-faint);
   font-style: italic;
 }
 
@@ -655,6 +837,37 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
+}
+
+/* Legacy idle classes (kept so nothing breaks if referenced) */
+.home-idle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-12) 0;
+  text-align: center;
+}
+
+.home-idle-eye {
+  font-size: 3rem;
+  color: var(--accent);
+}
+
+.home-idle-heading {
+  font-size: var(--text-h2);
+}
+
+.home-idle-sub {
+  max-width: 360px;
+  color: var(--ink-soft);
+  font-size: var(--text-small);
+}
+
+.home-active {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
 /* Dev toggle */
@@ -1085,12 +1298,12 @@
 }
 
 .settings-section-title {
-  font-size: var(--text-body);
+  font-size: var(--text-small);
   font-weight: 600;
   color: var(--ink-soft);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--tracking-label);
   font-family: var(--font-body);
+  text-transform: none;
 }
 
 .balance-row {
