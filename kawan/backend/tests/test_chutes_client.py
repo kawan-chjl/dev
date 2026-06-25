@@ -97,3 +97,42 @@ async def test_structured_raises_on_non_200_after_retry():
             )
     finally:
         await http.aclose()
+
+
+async def test_structured_wraps_malformed_response_in_chutes_error():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"unexpected": "shape"})  # no choices[]
+
+    client, http = _client(handler, _Tokens())
+    try:
+        with pytest.raises(ChutesError):
+            await client.structured(
+                user_id="u1", model="m1", messages=[{"role": "user", "content": "hi"}],
+                schema=_SCHEMA, schema_name="probe",
+            )
+    finally:
+        await http.aclose()
+
+
+async def test_structured_owns_and_closes_its_client_when_none_injected(monkeypatch):
+    # Production path: http=None → ChutesClient builds and closes its own AsyncClient.
+    real_async_client = httpx.AsyncClient
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"choices": [{"message": {"content": json.dumps({"ok": True})}}]})
+
+    created = []
+
+    def _factory(*args, **kwargs):
+        client = real_async_client(transport=httpx.MockTransport(handler))
+        created.append(client)
+        return client
+
+    monkeypatch.setattr(httpx, "AsyncClient", _factory)
+    client = ChutesClient(_Tokens(), base_url="https://llm.chutes.ai/v1")  # no http injected
+    out = await client.structured(
+        user_id="u1", model="m1", messages=[{"role": "user", "content": "hi"}],
+        schema=_SCHEMA, schema_name="probe",
+    )
+    assert out == {"ok": True}
+    assert created and created[0].is_closed  # owns=True path closed its client

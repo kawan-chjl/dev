@@ -58,8 +58,13 @@ class ChutesClient:
                 resp = await self._post(http, token, payload)
             if resp.status_code != 200:
                 raise ChutesError(f"chutes {resp.status_code}: {resp.text[:200]}")
-            content = resp.json()["choices"][0]["message"]["content"]
-            return json.loads(content)
+            try:
+                content = resp.json()["choices"][0]["message"]["content"]
+                return json.loads(content)
+            except (KeyError, IndexError, TypeError, ValueError) as exc:
+                # malformed body or truncated/non-JSON content (e.g. reasoning-model
+                # max_tokens cutoff) — surface as ChutesError like every other failure
+                raise ChutesError(f"chutes malformed response: {exc}") from exc
         finally:
             if owns:
                 await http.aclose()
