@@ -5,8 +5,8 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import pipeline, scheduler, state
@@ -14,7 +14,7 @@ from app.db import get_session
 from app.deps import current_user
 from app.models import Checkin, Commitment, Evidence, Plan, Proposal, SoftContext, SuccessPattern, User
 from app.pipeline import record_contact
-from app.schemas import CommitmentCreate, CommitmentOut, CommitmentPatch, ContextTurnIn, DebriefIn
+from app.schemas import CommitmentCreate, CommitmentListOut, CommitmentOut, CommitmentPatch, ContextTurnIn, DebriefIn
 from app.util import as_utc, now_utc, to_jsonable
 from app.wiring import LLM
 
@@ -40,6 +40,31 @@ async def create(body: CommitmentCreate, user: User = Depends(current_user), db:
     await db.commit()
     await db.refresh(c)
     return c
+
+
+@router.get("", response_model=CommitmentListOut)
+async def list_commitments(
+    limit: int = Query(10, ge=1, le=50),
+    offset: int = Query(0, ge=0),
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_session),
+) -> CommitmentListOut:
+    """List all the caller's commitments, newest first, paginated.
+    POST /commitments remains unguarded (PO override, Gate 1)."""
+    total = await db.scalar(
+        select(func.count()).select_from(Commitment).where(Commitment.user_id == user.id)
+    )
+    rows = (
+        await db.scalars(
+            select(Commitment)
+            .where(Commitment.user_id == user.id)
+            .order_by(Commitment.created_at.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+    ).all()
+    items = [CommitmentOut.model_validate(r) for r in rows]
+    return CommitmentListOut(items=items, total=total or 0, limit=limit, offset=offset)
 
 
 @router.get("/active", response_model=CommitmentOut)

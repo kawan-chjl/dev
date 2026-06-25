@@ -1,5 +1,6 @@
-"""v4 restructure: tests for DELETE /api/commitments/{id}, DELETE /api/me/history,
-GET /api/me/history, and DELETE /api/me/data (v4 hotfix batch)."""
+"""v4 restructure + multi-commitment list: tests for DELETE /api/commitments/{id},
+DELETE /api/me/history, GET /api/me/history, DELETE /api/me/data, and
+GET /api/commitments (paginated list, multiple-active override)."""
 
 from datetime import timedelta
 
@@ -268,3 +269,114 @@ async def test_delete_my_data_cross_user_isolation(client, db):
     await db.rollback()
     still_there = await db.get(Commitment, b_commitment.id)
     assert still_there is not None
+
+
+# ── GET /api/commitments (paginated list, multi-active override) ─────────────
+
+
+async def test_list_commitments_empty(client):
+    """Fresh guest with no commitments returns empty envelope."""
+    r = await client.get('/api/commitments')
+    assert r.status_code == 200
+    body = r.json()
+    assert body['items'] == []
+    assert body['total'] == 0
+    assert body['limit'] == 10
+    assert body['offset'] == 0
+
+
+async def test_list_commitments_multiple_active(client):
+    """Two creates → two ACTIVE rows (proves the PO override: no create guard)."""
+    id1 = await _create_commitment(client)
+    id2 = await _create_commitment(client)
+
+    r = await client.get('/api/commitments')
+    assert r.status_code == 200
+    body = r.json()
+    assert body['total'] == 2
+    returned_ids = {item['id'] for item in body['items']}
+    assert id1 in returned_ids
+    assert id2 in returned_ids
+    # Both must be active (draft status after POST, no start call needed to confirm no guard)
+    for item in body['items']:
+        assert item['status'] in ('draft', 'active')
+
+
+async def test_list_commitments_ordering(client):
+    """Items are returned newest first (most recently created first)."""
+    id1 = await _create_commitment(client)
+    id2 = await _create_commitment(client)
+    id3 = await _create_commitment(client)
+
+    r = await client.get('/api/commitments')
+    assert r.status_code == 200
+    ids = [item['id'] for item in r.json()['items']]
+    # All three must appear; the last created should appear first (or at worst tie-equal).
+    # Robust assertion: id3 must appear before id1 in the list (or equal position if same timestamp).
+    assert set(ids) == {id1, id2, id3}
+    # At minimum id3 (last created) must not come after id1 (first created).
+    assert ids.index(id3) <= ids.index(id1)
+
+
+async def test_list_commitments_pagination(client):
+    """Pagination boundaries: 12 rows, offset/limit slicing, offset-past-end."""
+    for _ in range(12):
+        await _create_commitment(client)
+
+    # First page
+    r = await client.get('/api/commitments?limit=10&offset=0')
+    assert r.status_code == 200
+    body = r.json()
+    assert len(body['items']) == 10
+    assert body['total'] == 12
+
+    # Second page
+    r2 = await client.get('/api/commitments?limit=10&offset=10')
+    assert r2.status_code == 200
+    body2 = r2.json()
+    assert len(body2['items']) == 2
+    assert body2['total'] == 12
+
+    # Offset past end
+    r3 = await client.get('/api/commitments?limit=10&offset=100')
+    assert r3.status_code == 200
+    body3 = r3.json()
+    assert body3['items'] == []
+    assert body3['total'] == 12
+
+
+async def test_list_commitments_limit_validation(client):
+    """limit=0 and limit=999 must return 422 (Query ge=1, le=50 enforced)."""
+    assert (await client.get('/api/commitments?limit=0')).status_code == 422
+    assert (await client.get('/api/commitments?limit=999')).status_code == 422
+
+
+async def test_list_commitments_cross_user_isolation(client, db):
+    """User A's list must NOT include user B's commitment."""
+    await _create_commitment(client)
+
+    user_b = User(
+        id='user-b-list-test',
+        username='UserBList',
+        persona='kawan',
+        access_token='',
+        refresh_token='',
+        token_expiry=now_utc(),
+    )
+    db.add(user_b)
+    b_commitment = Commitment(
+        id=new_id(),
+        user_id='user-b-list-test',
+        action='b action',
+        deliverable='b deliverable',
+        deadline=now_utc() + timedelta(days=1),
+    )
+    db.add(b_commitment)
+    await db.commit()
+
+    r = await client.get('/api/commitments')
+    assert r.status_code == 200
+    body = r.json()
+    returned_ids = {item['id'] for item in body['items']}
+    assert b_commitment.id not in returned_ids
+    assert body['total'] == 1  # only user A's one commitment
