@@ -17,6 +17,7 @@ import { Badge } from '../../ui/Badge'
 import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
 import { Chip } from '../../ui/Chip'
+import { Tooltip } from '../../ui/Tooltip'
 import type { PageSection } from '../OnThisPage'
 import { OnThisPage } from '../OnThisPage'
 import { PageHeader } from '../PageHeader'
@@ -199,14 +200,20 @@ export function CommitmentDetail() {
           </section>
 
           <section id="section-evidence" className="detail-section">
-            <h2 className="detail-section-heading">Evidence</h2>
+            <h2 className="detail-section-heading">
+              Evidence
+              <Tooltip text="How Kawan verifies your work. Screenshot = you upload proof. GitHub = commits are checked automatically." />
+            </h2>
             <Card className="detail-card">
               <ReadOnlyField label="Evidence type" value={match.evidence_type} />
             </Card>
           </section>
 
           <section id="section-accountability" className="detail-section">
-            <h2 className="detail-section-heading">Accountability</h2>
+            <h2 className="detail-section-heading">
+              Accountability
+              <Tooltip text="An optional contact who receives a message if you miss your commitment." />
+            </h2>
             <Card className="detail-card">
               <ReadOnlyField
                 label="Accountability contact"
@@ -216,7 +223,10 @@ export function CommitmentDetail() {
           </section>
 
           <section id="section-rest-days" className="detail-section">
-            <h2 className="detail-section-heading">Rest days</h2>
+            <h2 className="detail-section-heading">
+              Rest days
+              <Tooltip text="Days you can skip a check-in without penalty. You set the total; Kawan tracks how many you have left." />
+            </h2>
             <Card className="detail-card">
               <ReadOnlyField
                 label="Rest days left"
@@ -226,7 +236,10 @@ export function CommitmentDetail() {
           </section>
 
           <section id="section-how-firm" className="detail-section">
-            <h2 className="detail-section-heading">How firm</h2>
+            <h2 className="detail-section-heading">
+              How firm
+              <Tooltip text="Controls Kawan's tone during check-ins. Gentle is encouraging, Direct is no-nonsense, Blunt is maximum accountability." />
+            </h2>
             <Card className="detail-card">
               <ReadOnlyField label="How Kawan checks in" value={escalationLabels[match.escalation]} />
             </Card>

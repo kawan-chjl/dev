@@ -48,7 +48,7 @@ export function Analytics() {
       {state === 'loading' && <p className="timeline-loading">Loading...</p>}
 
       {noRecords && (
-        <Card className="analytics-no-records-card">
+        <Card className="empty-state-card">
           <div className="empty-state-icon-wrap" aria-hidden="true">
             <TrendingUp size={40} color="var(--ink-faint)" aria-hidden="true" />
           </div>

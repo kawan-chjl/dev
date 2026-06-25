@@ -790,6 +790,9 @@
 }
 
 .plan-setting-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
   font-size: var(--text-small);
   font-weight: 500;
   color: var(--ink-soft);

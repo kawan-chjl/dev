@@ -14,7 +14,9 @@ import type { Commitment, CommitmentStatus } from '../../types/api'
 import { Badge } from '../../ui/Badge'
 import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
+import { Checkbox } from '../../ui/Checkbox'
 import { Chip } from '../../ui/Chip'
+import { Modal } from '../../ui/Modal'
 import { PageHeader } from '../PageHeader'
 
 type Filter = 'All' | 'Ongoing' | 'Completed'
@@ -158,151 +160,144 @@ export function Commitments() {
         </Card>
       </div>
 
-      {/* Dashboard body: table + pipeline rail */}
+      {/* Dashboard body: table panel + pipeline rail panel */}
       <div className="commitments-dashboard-body">
-        <div className="commitments-main">
-          {/* Filter row */}
-          <fieldset className="commitments-filter-row">
-            <legend className="commitments-filter-legend">Filter commitments</legend>
-            {(['All', 'Ongoing', 'Completed'] as Filter[]).map((f) => (
-              <button
-                key={f}
-                type="button"
-                className={`commitments-filter-chip${filter === f ? ' commitments-filter-chip-active' : ''}`}
-                onClick={() => {
-                  setFilter(f)
-                  setSelected(new Set())
-                }}
-                aria-pressed={filter === f}
-              >
-                {f}
-              </button>
-            ))}
-          </fieldset>
+        <Card className="commitments-main-card">
+          <div className="commitments-main">
+            {/* Filter row */}
+            <fieldset className="commitments-filter-row">
+              <legend className="commitments-filter-legend">Filter commitments</legend>
+              {(['All', 'Ongoing', 'Completed'] as Filter[]).map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  className={`commitments-filter-chip${filter === f ? ' commitments-filter-chip-active' : ''}`}
+                  onClick={() => {
+                    setFilter(f)
+                    setSelected(new Set())
+                  }}
+                  aria-pressed={filter === f}
+                >
+                  {f}
+                </button>
+              ))}
+            </fieldset>
 
-          {/* Selection toolbar */}
-          {selected.size > 0 && (
-            <div className="commitments-selection-toolbar">
-              <span className="commitments-selection-count">{selected.size} selected</span>
-              <Button variant="secondary" onClick={() => setConfirmOpen(true)} disabled={deleting}>
-                <Trash2 size={14} aria-hidden="true" />
-                {deleting ? 'Removing...' : 'Remove selected'}
-              </Button>
-              <button type="button" className="commitments-selection-clear" onClick={() => setSelected(new Set())}>
-                Clear
-              </button>
-            </div>
-          )}
+            {/* Selection toolbar */}
+            {selected.size > 0 && (
+              <div className="commitments-selection-toolbar">
+                <span className="commitments-selection-count">{selected.size} selected</span>
+                <Button variant="secondary" onClick={() => setConfirmOpen(true)} disabled={deleting}>
+                  <Trash2 size={14} aria-hidden="true" />
+                  {deleting ? 'Removing...' : 'Remove selected'}
+                </Button>
+                <button type="button" className="commitments-selection-clear" onClick={() => setSelected(new Set())}>
+                  Clear
+                </button>
+              </div>
+            )}
 
-          {/* Confirm dialog */}
-          {confirmOpen && (
-            <div
-              className="commitments-confirm-overlay"
-              role="alertdialog"
-              aria-modal="true"
-              aria-label="Confirm deletion"
+            {/* Confirm dialog — portaled above all shell layers via Modal */}
+            <Modal
+              open={confirmOpen}
+              onClose={() => setConfirmOpen(false)}
+              label="Confirm deletion"
+              panelClassName="modal-panel-confirm"
             >
-              <div className="commitments-confirm-panel">
-                <p className="commitments-confirm-heading">Remove selected commitments?</p>
-                <p className="commitments-confirm-body">
-                  This permanently deletes the selected commitments and all their check-in history. This cannot be
-                  undone.
-                </p>
-                <div className="commitments-confirm-actions">
-                  <Button variant="secondary" onClick={() => setConfirmOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button variant="accent" onClick={handleDelete}>
-                    Remove permanently
-                  </Button>
+              <p className="commitments-confirm-heading">Remove selected commitments?</p>
+              <p className="commitments-confirm-body">
+                This permanently deletes the selected commitments and all their check-in history. This cannot be undone.
+              </p>
+              <div className="commitments-confirm-actions">
+                <Button variant="secondary" onClick={() => setConfirmOpen(false)}>
+                  Cancel
+                </Button>
+                <Button variant="accent" onClick={handleDelete}>
+                  Remove permanently
+                </Button>
+              </div>
+            </Modal>
+
+            {/* Table or empty state */}
+            {filtered.length === 0 ? (
+              <Card className="empty-state-card">
+                <div className="empty-state-icon-wrap" aria-hidden="true">
+                  <CheckCircle size={40} color="var(--ink-faint)" aria-hidden="true" />
                 </div>
-              </div>
-            </div>
-          )}
-
-          {/* Table or empty state */}
-          {filtered.length === 0 ? (
-            <Card className="empty-state-card">
-              <div className="empty-state-icon-wrap" aria-hidden="true">
-                <CheckCircle size={40} color="var(--ink-faint)" aria-hidden="true" />
-              </div>
-              <p className="empty-state-heading">
-                {filter === 'All'
-                  ? 'Nothing here yet'
-                  : filter === 'Completed'
-                    ? 'Finished commitments will show here.'
-                    : 'No ongoing commitments.'}
-              </p>
-              <p className="empty-state-body">
-                {filter === 'All'
-                  ? 'When you make a commitment, it shows up here. One at a time, for real.'
-                  : filter === 'Completed'
-                    ? 'Complete your first commitment and it will appear here.'
-                    : 'Make a commitment to get started.'}
-              </p>
-              <Button variant="accent" onClick={() => navigate('/commitments/new')}>
-                Make a commitment
-              </Button>
-            </Card>
-          ) : (
-            <div className="commitments-table-wrapper">
-              <table className="commitments-table">
-                <thead>
-                  <tr>
-                    <th scope="col" className="commitments-table-check-col">
-                      <input
-                        type="checkbox"
-                        aria-label="Select all visible"
-                        checked={allSelected}
-                        onChange={toggleAll}
-                      />
-                    </th>
-                    <th scope="col">Action</th>
-                    <th scope="col">Deliverable</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">Deadline</th>
-                    <th scope="col" aria-label="Row actions" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((c) => (
-                    <tr key={c.id} className={selected.has(c.id) ? 'commitments-table-row-selected' : ''}>
-                      <td className="commitments-table-check-col">
-                        <input
-                          type="checkbox"
-                          aria-label={`Select commitment: ${c.action}`}
-                          checked={selected.has(c.id)}
-                          onChange={() => toggleRow(c.id)}
-                        />
-                      </td>
-                      <td className="commitments-table-action">{c.action}</td>
-                      <td className="commitments-table-deliverable">{c.deliverable}</td>
-                      <td>
-                        <Chip variant={c.status === 'active' ? 'sage' : 'default'}>{c.status}</Chip>
-                      </td>
-                      <td>
-                        <Badge variant="muted">{formatDate(c.deadline)}</Badge>
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          className="commitments-table-view-btn"
-                          aria-label={`View commitment: ${c.action}`}
-                          onClick={() => navigate(`/commitments/${c.id}`)}
-                        >
-                          <Eye size={14} aria-hidden="true" />
-                          View
-                        </button>
-                      </td>
+                <p className="empty-state-heading">
+                  {filter === 'All'
+                    ? 'Nothing here yet'
+                    : filter === 'Completed'
+                      ? 'Finished commitments will show here.'
+                      : 'No ongoing commitments.'}
+                </p>
+                <p className="empty-state-body">
+                  {filter === 'All'
+                    ? 'When you make a commitment, it shows up here. One at a time, for real.'
+                    : filter === 'Completed'
+                      ? 'Complete your first commitment and it will appear here.'
+                      : 'Make a commitment to get started.'}
+                </p>
+                <Button variant="accent" onClick={() => navigate('/commitments/new')}>
+                  Make a commitment
+                </Button>
+              </Card>
+            ) : (
+              <div className="commitments-table-wrapper">
+                <table className="commitments-table">
+                  <thead>
+                    <tr>
+                      <th scope="col" className="commitments-table-check-col">
+                        <Checkbox aria-label="Select all visible" checked={allSelected} onChange={toggleAll} />
+                      </th>
+                      <th scope="col">Action</th>
+                      <th scope="col">Deliverable</th>
+                      <th scope="col">Status</th>
+                      <th scope="col">Deadline</th>
+                      <th scope="col" aria-label="Row actions" />
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                  </thead>
+                  <tbody>
+                    {filtered.map((c) => (
+                      <tr key={c.id} className={selected.has(c.id) ? 'commitments-table-row-selected' : ''}>
+                        <td className="commitments-table-check-col">
+                          <Checkbox
+                            aria-label={`Select commitment: ${c.action}`}
+                            checked={selected.has(c.id)}
+                            onChange={() => toggleRow(c.id)}
+                          />
+                        </td>
+                        <td className="commitments-table-action">{c.action}</td>
+                        <td className="commitments-table-deliverable">{c.deliverable}</td>
+                        <td>
+                          <Chip variant={c.status === 'active' ? 'sage' : 'default'}>{c.status}</Chip>
+                        </td>
+                        <td>
+                          <Badge variant="muted">{formatDate(c.deadline)}</Badge>
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="commitments-table-view-btn"
+                            aria-label={`View commitment: ${c.action}`}
+                            onClick={() => navigate(`/commitments/${c.id}`)}
+                          >
+                            <Eye size={14} aria-hidden="true" />
+                            View
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </Card>
 
-        <PipelineRail />
+        <Card className="pipeline-rail-card">
+          <PipelineRail />
+        </Card>
       </div>
     </div>
   )

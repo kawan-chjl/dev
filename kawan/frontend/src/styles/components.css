@@ -224,3 +224,142 @@
   background: var(--surface-sunk);
   color: var(--ink);
 }
+
+/* ── Modal portal (ui/Modal.tsx) ── */
+/* Portaled to document.body; z-index above all shell layers (sidebar z-60, topbar z-50). */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  background: rgba(58, 42, 30, 0.5);
+  -webkit-backdrop-filter: var(--blur-backdrop);
+  backdrop-filter: var(--blur-backdrop);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  animation: modal-backdrop-in var(--duration-ui) var(--ease-out) both;
+}
+
+@keyframes modal-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-backdrop {
+    animation: none;
+  }
+}
+
+.modal-panel {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 480px;
+  max-height: 85vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  outline: none;
+  animation: modal-panel-in var(--duration-panel) var(--ease-out) both;
+}
+
+@keyframes modal-panel-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-panel {
+    animation: none;
+  }
+}
+
+/* Narrow confirm variant */
+.modal-panel-confirm {
+  max-width: 420px;
+  padding: var(--space-6);
+  gap: var(--space-4);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Tooltip (ui/Tooltip.tsx) ── */
+.kawan-tooltip-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.kawan-tooltip-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: default;
+  color: var(--ink-faint);
+  border-radius: var(--radius-sm);
+  transition: color var(--duration-ui) var(--ease-out);
+}
+
+.kawan-tooltip-trigger:hover,
+.kawan-tooltip-trigger:focus-visible {
+  color: var(--ink-soft);
+  outline: none;
+}
+
+.kawan-tooltip-trigger:focus-visible {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.kawan-tooltip-popover {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-modal);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-2) var(--space-3);
+  width: max-content;
+  max-width: 240px;
+  font-size: var(--text-caption);
+  color: var(--ink-soft);
+  line-height: 1.5;
+  pointer-events: none;
+  animation: tooltip-in var(--duration-ui) var(--ease-out) both;
+}
+
+@keyframes tooltip-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kawan-tooltip-popover {
+    animation: none;
+  }
+}

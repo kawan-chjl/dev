@@ -94,19 +94,18 @@ function ActiveState({ commitment, commitments }: ActiveStateProps) {
   const events = timeline?.events ?? []
   const verified = verifiedCount(events)
 
-  // Recent Activity: recently opened commitments from localStorage + the current commitment
+  // Recent Activity: recently opened commitments + the active commitment
   const recentIds = getRecentCommitmentIds()
   const recentCommitments = recentIds.map((id) => commitments.find((c) => c.id === id)).filter(Boolean) as Commitment[]
-  // Always show the active commitment if nothing in recent
   const recentItems = recentCommitments.length > 0 ? recentCommitments : [commitment]
 
   return (
-    <div className="home-bento-v4">
-      {/* Left: four quick-access widgets */}
-      <div className="home-widgets-grid">
-        {/* Commitment widget */}
+    <div className="home-bento-v5">
+      {/* Left column: large Commitment card + two smaller cards */}
+      <div className="home-left-col">
+        {/* Large Commitment card */}
         <Card
-          className="home-widget-card home-widget-commitment"
+          className="home-card-commitment"
           role="button"
           tabIndex={0}
           onClick={() => navigate(`/commitments/${commitment.id}`)}
@@ -133,45 +132,48 @@ function ActiveState({ commitment, commitments }: ActiveStateProps) {
           </div>
         </Card>
 
-        {/* Timeline widget */}
-        <Card
-          className="home-widget-card home-widget-timeline"
-          role="button"
-          tabIndex={0}
-          onClick={() => navigate('/analytics')}
-          onKeyDown={(e) => e.key === 'Enter' && navigate('/analytics')}
-          aria-label="View analytics"
-        >
-          <div className="home-widget-icon" aria-hidden="true">
-            <TrendingUp size={20} color="var(--sage-deep)" />
-          </div>
-          <p className="home-widget-label">Analytics</p>
-          <p className="home-widget-sub">Your check-ins and verdicts over time.</p>
-        </Card>
+        {/* Two smaller cards */}
+        <div className="home-small-cards-row">
+          <Card
+            className="home-card-small"
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate('/analytics')}
+            onKeyDown={(e) => e.key === 'Enter' && navigate('/analytics')}
+            aria-label="View analytics"
+          >
+            <div className="home-widget-icon" aria-hidden="true">
+              <TrendingUp size={20} color="var(--sage-deep)" />
+            </div>
+            <p className="home-widget-label">Analytics</p>
+            <p className="home-widget-sub">Your check-ins and verdicts over time.</p>
+          </Card>
 
-        {/* Workspace widget */}
-        <Card
-          className="home-widget-card home-widget-workspace"
-          role="button"
-          tabIndex={0}
-          onClick={() => setWorkspaceOpen(true)}
-          onKeyDown={(e) => e.key === 'Enter' && setWorkspaceOpen(true)}
-          aria-label="Open workspace"
-        >
-          <div className="home-widget-icon" aria-hidden="true">
-            <BarChart2 size={20} color="var(--clay)" />
-          </div>
-          <p className="home-widget-label">Workspace</p>
-          <p className="home-widget-sub">Talk to Kawan about your commitment.</p>
-        </Card>
+          <Card
+            className="home-card-small"
+            role="button"
+            tabIndex={0}
+            onClick={() => setWorkspaceOpen(true)}
+            onKeyDown={(e) => e.key === 'Enter' && setWorkspaceOpen(true)}
+            aria-label="Open workspace"
+          >
+            <div className="home-widget-icon" aria-hidden="true">
+              <BarChart2 size={20} color="var(--clay)" />
+            </div>
+            <p className="home-widget-label">Workspace</p>
+            <p className="home-widget-sub">Talk to Kawan about your commitment.</p>
+          </Card>
+        </div>
+      </div>
 
-        {/* Recent Activity widget */}
-        <Card className="home-widget-card home-widget-recent" aria-label="Recent commitments">
+      {/* Right: tall Recent Activity rail */}
+      <aside className="home-right-rail-v5">
+        <Card className="home-rail-card-v5">
           <div className="home-widget-icon" aria-hidden="true">
             <Clock size={20} color="var(--ink-soft)" />
           </div>
-          <p className="home-widget-label">Recent Activity</p>
-          <ul className="home-recent-list">
+          <p className="home-rail-heading-v5">Recent Activity</p>
+          <ul className="home-recent-list-v5">
             {recentItems.map((c) => (
               <li key={c.id} className="home-recent-item">
                 <button type="button" className="home-recent-btn" onClick={() => navigate(`/commitments/${c.id}`)}>
@@ -182,27 +184,9 @@ function ActiveState({ commitment, commitments }: ActiveStateProps) {
             ))}
           </ul>
         </Card>
-      </div>
-
-      {/* Right: tall rail */}
-      <aside className="home-right-rail">
-        <Card className="home-rail-card">
-          <p className="home-rail-heading">Pick up where you left off</p>
-          <p className="home-rail-sub">Your commitment is waiting. Open the workspace to check in with Kawan.</p>
-          <Button variant="accent" onClick={() => navigate(`/workspace/${commitment.id}`)}>
-            Open workspace
-          </Button>
-          <div className="home-rail-divider" />
-          <p className="home-rail-stat-label">Verified so far</p>
-          <span className="home-rail-stat-number">{verified}</span>
-          <p className="home-rail-deadline">
-            <Clock size={13} aria-hidden="true" />
-            {formatDeadline(commitment.deadline)}
-          </p>
-        </Card>
       </aside>
 
-      {workspaceOpen && <WorkspacePickerModal commitments={commitments} onClose={() => setWorkspaceOpen(false)} />}
+      <WorkspacePickerModal open={workspaceOpen} commitments={commitments} onClose={() => setWorkspaceOpen(false)} />
     </div>
   )
 }

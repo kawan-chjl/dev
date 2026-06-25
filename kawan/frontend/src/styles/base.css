@@ -107,3 +107,26 @@ img {
   font-family: var(--font-display);
   font-style: italic;
 }
+
+/* ── Themed scrollbars (cross-cutting) ── */
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+/* Chromium / WebKit */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: var(--radius-pill);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-faint);
+}
