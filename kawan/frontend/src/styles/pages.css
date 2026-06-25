@@ -2418,7 +2418,7 @@
 
 @media (min-width: 900px) {
   .commitments-dashboard-body {
-    grid-template-columns: 1fr 220px;
+    grid-template-columns: 1fr 286px;
     align-items: start;
   }
 }
