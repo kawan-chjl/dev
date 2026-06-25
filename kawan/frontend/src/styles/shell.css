@@ -122,9 +122,11 @@
   flex-shrink: 0;
 }
 .sidebar-logo-name {
-  font-family: var(--font-display);
+  font-family: var(--font-wordmark);
   font-size: var(--text-small);
-  font-weight: 600;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   white-space: nowrap;
   opacity: 0;
   transition: opacity 150ms var(--ease-smooth);
@@ -334,9 +336,11 @@
   border-radius: var(--radius-sm);
 }
 .mobile-drawer-logo span {
-  font-family: var(--font-display);
+  font-family: var(--font-wordmark);
   font-size: var(--text-small);
-  font-weight: 600;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 .mobile-drawer-close {
   display: flex;
@@ -746,9 +750,11 @@
 }
 
 .shell-footer-logo-name {
-  font-family: var(--font-display);
+  font-family: var(--font-wordmark);
   font-size: var(--text-small);
-  font-weight: 600;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   transition: color var(--duration-ui) var(--ease-out);
 }
 [data-theme="light"] .shell-footer-logo-name,
