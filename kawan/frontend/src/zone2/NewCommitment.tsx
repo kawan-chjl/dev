@@ -1,32 +1,30 @@
 // NewCommitment — /commitments/new (Zone 2, no shell chrome)
-// 4-step stepper: Companion → Compose → Context → Plan
+// Single scrolling page with 4 stacked full-ish-height sections + spy-scroll island.
 //
-// Companion: PersonaPicker — choose companion with portrait previews; calls setPersona on continue.
-// Compose: live sentence-builder (action dropdown, deliverable input, deadline picker).
-//          Creates a real commitment via POST /api/commitments. Zero AI calls (TR-10).
-// Context: clearly-labelled stub — AI intake chat is deferred (Lane C absent, Open Q1).
-//          Seam comment below marks where Lane C drops in.
-// Plan:    shows locked hard fields (identity: action/deliverable/deadline) and lets the
-//          user GUI-edit safe hard fields (cadence/evidence/skip) via PATCH /api/commitments/{id}.
-//          AI roadmap stays a labelled placeholder (no POST .../plan call — Open Q1).
-//          "Start commitment" → POST /api/commitments/{id}/start → /home.
+// Section order: Compose -> Context -> Plan -> Companion
+// Companion section holds the primary "Start commitment" CTA.
+// Cancel is always inert (no persona PATCH, no create, no API call) until Start commitment.
+//
+// Spy-scroll island: pinned on the right, shows completion tick when required fields
+// are satisfied, highlights the active section on scroll, smooth-scrolls on click.
+//
+// Motion: each section fades + rises 8px on viewport entry (IntersectionObserver).
+// All motion gated by prefers-reduced-motion: reduce (no transforms when set).
 
 import { Check, Clock, Lock, X } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { MOCK_AUTH } from '../auth/api'
 import { createCommitment, patchCommitment, startCommitment } from '../commitments/api'
+import { listPersonas } from '../mock/provider'
 import type { EvidenceType, Persona } from '../types/api'
 import { Button } from '../ui/Button'
 import { DatePicker } from '../ui/DatePicker'
 import type { SelectOption } from '../ui/Select'
 import { Select } from '../ui/Select'
 import { Tooltip } from '../ui/Tooltip'
-import { PersonaPicker } from './PersonaPicker'
-
-type Step = 0 | 1 | 2 | 3
-const STEP_LABELS = ['Companion', 'Compose', 'Context', 'Plan']
+import { PERSONA_PORTRAITS } from './personaPortraits'
 
 // Hard-coded action enum (Q4 recommended set, matches mockActiveCommitment.action default).
 const ACTION_OPTIONS = ['complete', 'finish', 'ship', 'write', 'build', 'submit'] as const
@@ -41,7 +39,7 @@ const CADENCE_OPTIONS: SelectOption[] = [
   { value: 'weekly', label: 'Weekly' }
 ]
 
-// Evidence options (Q7 — include github with repo field).
+// Evidence options (Q7 - include github with repo field).
 const EVIDENCE_OPTIONS_FULL: { value: EvidenceType; label: string; trust: string }[] = [
   { value: 'github', label: 'GitHub commits', trust: 'high trust' },
   { value: 'screenshot', label: 'Screenshot', trust: 'medium trust' }
@@ -54,117 +52,11 @@ const EVIDENCE_SELECT_OPTIONS: SelectOption[] = EVIDENCE_OPTIONS_FULL.map((o) =>
 // Skip-days options (0-2).
 const SKIP_DAYS_OPTIONS: SelectOption[] = [0, 1, 2].map((n) => ({ value: String(n), label: String(n) }))
 
-// ── ComposeStep ───────────────────────────────────────────────────────────────
+// Section IDs (document order).
+const SECTION_IDS = ['nc-compose', 'nc-context', 'nc-plan', 'nc-companion'] as const
+type SectionId = (typeof SECTION_IDS)[number]
 
-interface ComposeProps {
-  action: Action
-  setAction: (a: Action) => void
-  deliverable: string
-  setDeliverable: (d: string) => void
-  deadlineLocal: string // "YYYY-MM-DDTHH:MM" local string
-  setDeadlineLocal: (d: string) => void
-  error: string | null
-  creating: boolean
-}
-
-function ComposeStep({
-  action,
-  setAction,
-  deliverable,
-  setDeliverable,
-  deadlineLocal,
-  setDeadlineLocal,
-  error,
-  creating
-}: ComposeProps) {
-  return (
-    <div className="compose-step">
-      <h2 className="compose-heading">Make your commitment</h2>
-      <div className="compose-commitment-card">
-        {/* "I will [action] [deliverable] by [date]" sentence */}
-        <div className="compose-sentence">
-          <span className="compose-prefix">I will</span>
-          {/* Action — themed Select */}
-          <Select
-            className="compose-chip compose-chip-action"
-            aria-label="Choose action"
-            value={action}
-            onChange={(v) => setAction(v as Action)}
-            options={ACTION_SELECT_OPTIONS}
-            disabled={creating}
-          />
-          {/* Deliverable */}
-          <label className="compose-chip-deliverable-wrap">
-            <span className="compose-field-label">what</span>
-            <input
-              className="compose-chip compose-chip-deliverable"
-              type="text"
-              placeholder="the deliverable"
-              aria-label="Describe what you will deliver"
-              value={deliverable}
-              onChange={(e) => setDeliverable(e.target.value)}
-              disabled={creating}
-            />
-          </label>
-          <span className="compose-infix">by</span>
-          {/* Deadline — themed DatePicker (label via aria-label on trigger; no native input to bind to) */}
-          <div className="compose-chip-deadline-wrap">
-            <span className="compose-field-label" aria-hidden="true">
-              when
-            </span>
-            <DatePicker
-              value={deadlineLocal}
-              onChange={setDeadlineLocal}
-              disabled={creating}
-              aria-label="Choose deadline"
-            />
-          </div>
-        </div>
-        <p className="compose-hint">Evidence will be verified. Self-report is not accepted.</p>
-      </div>
-      {error && <p className="compose-error">{error}</p>}
-    </div>
-  )
-}
-
-// ── ContextStep (stub — AI intake deferred, Open Q1) ─────────────────────────
-// LANE C SEAM: replace this component body with the real intake chat when
-// POST /api/commitments/{id}/context/turn and its response schema land.
-
-function ContextStep() {
-  return (
-    <div className="context-step">
-      <h2 className="context-heading">Tell Kawan more</h2>
-      {/* AI intake chat — STUBBED (Lane C absent, Open Q1). No POST .../context/turn call. */}
-      <div className="context-stub-notice">
-        <div className="context-stub-icon" aria-hidden="true">
-          <Clock size={24} color="var(--ink-faint)" aria-hidden="true" />
-        </div>
-        <p className="context-stub-label">A few questions about your goal (coming soon)</p>
-        <p className="context-stub-sub">
-          Kawan will ask up to 3 questions here to understand your context. For now, click Continue to set your plan
-          details.
-        </p>
-      </div>
-    </div>
-  )
-}
-
-// ── PlanStep ──────────────────────────────────────────────────────────────────
-// Purely local-state — NO API calls here. All changes are held in draft until
-// handleStart fires. Cancel at any point writes nothing to the server.
-
-interface PlanProps {
-  draft: DraftPlan
-  onDraftChange: (d: DraftPlan) => void
-  action: string
-  deliverable: string
-  deadlineLocal: string
-  starting: boolean
-  startError: string | null
-}
-
-// Local draft shape for plan-step fields (kept separately from Commitment to avoid server writes)
+// Local draft shape for plan-step fields (held locally; NO API writes until handleStart).
 interface DraftPlan {
   cadence: string
   evidence_type: EvidenceType
@@ -179,213 +71,507 @@ const DEFAULT_DRAFT_PLAN: DraftPlan = {
   skip_days_total: 0
 }
 
-function PlanStep({ draft, onDraftChange, action, deliverable, deadlineLocal, starting, startError }: PlanProps) {
+// ── SectionReveal: fade+rise animation on viewport entry ─────────────────────
+
+function SectionReveal({ children, id }: { children: React.ReactNode; id: SectionId }) {
+  const ref = useRef<HTMLElement>(null)
+  const [visible, setVisible] = useState(false)
+  const prefersReduced = useRef(window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true)
+          obs.disconnect()
+        }
+      },
+      { threshold: 0.05 }
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
+
+  const className = prefersReduced.current
+    ? 'nc-section'
+    : `nc-section nc-section-reveal${visible ? ' nc-section-visible' : ''}`
+
+  return (
+    <section ref={ref} id={id} className={className}>
+      {children}
+    </section>
+  )
+}
+
+// ── SpyScrollIsland: on-this-page island with completion ticks ───────────────
+
+interface IslandSection {
+  id: SectionId
+  label: string
+  done: boolean
+}
+
+function SpyScrollIsland({ sections }: { sections: IslandSection[] }) {
+  const [activeId, setActiveId] = useState<SectionId>('nc-compose')
+  const prefersReduced = useRef(window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const visible = new Map<string, boolean>()
+        for (const e of entries) visible.set(e.target.id, e.isIntersecting)
+        for (const s of sections) {
+          if (visible.get(s.id) === true) {
+            setActiveId(s.id as SectionId)
+            break
+          }
+        }
+      },
+      { rootMargin: '-10% 0px -70% 0px', threshold: 0 }
+    )
+    for (const s of sections) {
+      const el = document.getElementById(s.id)
+      if (el) obs.observe(el)
+    }
+    return () => obs.disconnect()
+  }, [sections])
+
+  function scrollTo(id: string) {
+    const el = document.getElementById(id)
+    if (!el) return
+    el.scrollIntoView({ behavior: prefersReduced.current ? 'instant' : 'smooth' })
+  }
+
+  return (
+    <nav className="nc-island" aria-label="On this page">
+      <p className="nc-island-heading">On this page</p>
+      <ul className="nc-island-list">
+        {sections.map((s) => (
+          <li key={s.id}>
+            <button
+              type="button"
+              className={`nc-island-link${activeId === s.id ? ' nc-island-link-active' : ''}`}
+              onClick={() => scrollTo(s.id)}
+            >
+              <span className="nc-island-label">{s.label}</span>
+              {s.done && (
+                <span className="nc-island-tick">
+                  <Check size={11} aria-hidden="true" />
+                  <span className="sr-only">complete</span>
+                </span>
+              )}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  )
+}
+
+// ── ComposeSection ────────────────────────────────────────────────────────────
+
+interface ComposeSectionProps {
+  action: Action
+  setAction: (a: Action) => void
+  deliverable: string
+  setDeliverable: (d: string) => void
+  deadlineLocal: string
+  setDeadlineLocal: (d: string) => void
+  composeError: string | null
+}
+
+function ComposeSection({
+  action,
+  setAction,
+  deliverable,
+  setDeliverable,
+  deadlineLocal,
+  setDeadlineLocal,
+  composeError
+}: ComposeSectionProps) {
+  return (
+    <SectionReveal id="nc-compose">
+      <div className="nc-section-inner">
+        <h2 className="nc-section-heading">Make your commitment</h2>
+        <div className="nc-compose-card">
+          <div className="nc-compose-field-row">
+            <span className="nc-compose-label">Action</span>
+            <Select
+              aria-label="Choose action"
+              value={action}
+              onChange={(v) => setAction(v as Action)}
+              options={ACTION_SELECT_OPTIONS}
+            />
+          </div>
+          <div className="nc-compose-field-row">
+            <label className="nc-compose-label" htmlFor="nc-deliverable">
+              Deliverable
+            </label>
+            <input
+              id="nc-deliverable"
+              className="nc-compose-input"
+              type="text"
+              placeholder="what you will deliver"
+              value={deliverable}
+              onChange={(e) => setDeliverable(e.target.value)}
+              autoComplete="off"
+            />
+          </div>
+          <div className="nc-compose-field-row">
+            <span className="nc-compose-label">Deadline</span>
+            <DatePicker value={deadlineLocal} onChange={setDeadlineLocal} aria-label="Choose deadline" />
+          </div>
+          {composeError && <p className="compose-error">{composeError}</p>}
+          <p className="nc-compose-hint">Evidence will be verified. Self-report is not accepted.</p>
+        </div>
+        <p className="nc-sentence-preview">
+          I will <em>{action}</em> {deliverable || 'the deliverable'}{' '}
+          {deadlineLocal
+            ? `by ${new Date(deadlineLocal).toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric' })}`
+            : 'by the deadline'}
+        </p>
+      </div>
+    </SectionReveal>
+  )
+}
+
+// ── ContextSection (stub - AI intake deferred, Open Q1) ──────────────────────
+// LANE C SEAM: replace this component body with the real intake chat when
+// POST /api/commitments/{id}/context/turn and its response schema land.
+
+function ContextSection() {
+  return (
+    <SectionReveal id="nc-context">
+      <div className="nc-section-inner">
+        <h2 className="nc-section-heading">Tell Kawan more</h2>
+        {/* AI intake chat - STUBBED (Lane C absent, Open Q1). No POST .../context/turn call. */}
+        <div className="nc-context-stub">
+          <div className="nc-context-stub-icon" aria-hidden="true">
+            <Clock size={28} color="var(--ink-faint)" />
+          </div>
+          <p className="nc-context-stub-label">A few questions about your goal (coming soon)</p>
+          <p className="nc-context-stub-sub">
+            Kawan will ask up to 3 questions here to understand your context. Continue past this section to set your
+            plan details now.
+          </p>
+        </div>
+      </div>
+    </SectionReveal>
+  )
+}
+
+// ── PlanSection ───────────────────────────────────────────────────────────────
+// Purely local-state — NO API calls here. All changes are held in draft until
+// handleStart fires. Cancel at any point writes nothing to the server.
+
+interface PlanSectionProps {
+  draft: DraftPlan
+  onDraftChange: (d: DraftPlan) => void
+  action: string
+  deliverable: string
+  deadlineLocal: string
+}
+
+function PlanSection({ draft, onDraftChange, action, deliverable, deadlineLocal }: PlanSectionProps) {
   const evidenceType = draft.evidence_type
   const repo =
     draft.evidence_config !== null && typeof draft.evidence_config?.repo === 'string'
       ? (draft.evidence_config.repo as string)
       : ''
 
-  function handleCadenceChange(value: string) {
-    onDraftChange({ ...draft, cadence: value })
-  }
-
-  function handleEvidenceTypeChange(value: EvidenceType) {
-    const evidence_config = value === 'github' ? (draft.evidence_config ?? {}) : null
-    onDraftChange({ ...draft, evidence_type: value, evidence_config })
-  }
-
-  function handleRepoChange(value: string) {
-    onDraftChange({ ...draft, evidence_config: { repo: value } })
-  }
-
-  function handleSkipDaysChange(value: number) {
-    onDraftChange({ ...draft, skip_days_total: value })
-  }
-
   const trustLabel = EVIDENCE_OPTIONS_FULL.find((o) => o.value === evidenceType)?.trust ?? ''
-  // Format deadline for display
   const deadlineDisplay = deadlineLocal ? new Date(deadlineLocal).toLocaleString('en-MY') : ''
 
   return (
-    <div className="plan-step">
-      <h2 className="plan-heading">Your plan</h2>
+    <SectionReveal id="nc-plan">
+      <div className="nc-section-inner">
+        <h2 className="nc-section-heading">Your plan</h2>
 
-      {/* Locked identity fields (hard fields set in Compose — AI-read-only, TR-25/26) */}
-      <div className="plan-locked-fields">
-        <p className="plan-locked-note">
-          <Lock
-            size={13}
-            aria-hidden="true"
-            style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }}
-          />
-          Only you can change these. Kawan reads them but never edits them.
-        </p>
-        <div className="plan-locked-row">
-          <span className="plan-locked-label">Action</span>
-          <span className="plan-locked-value">{action}</span>
-        </div>
-        <div className="plan-locked-row">
-          <span className="plan-locked-label">Deliverable</span>
-          <span className="plan-locked-value">{deliverable}</span>
-        </div>
-        <div className="plan-locked-row">
-          <span className="plan-locked-label">Deadline</span>
-          <span className="plan-locked-value">{deadlineDisplay}</span>
-        </div>
-      </div>
-
-      {/* AI roadmap — STUBBED (no POST .../plan call — Lane C absent, Open Q1) */}
-      {/* LANE C SEAM: replace this placeholder with the real roadmap renderer when
-          POST /api/commitments/{id}/plan and its roadmap schema land. */}
-      <div className="plan-roadmap-placeholder">
-        <p className="plan-placeholder-text">
-          Your plan shows up here after we talk it through (coming with the AI layer)
-        </p>
-      </div>
-
-      {startError && <p className="compose-error">{startError}</p>}
-
-      {/* Safe hard-field GUI controls (GUI-set, user session, never AI — TR-25/26) */}
-      <div className="plan-settings">
-        {/* Cadence */}
-        <div className="plan-setting-row">
-          <span className="plan-setting-label">
-            Cadence
-            <Tooltip text="How often Kawan checks in on your progress." />
-          </span>
-          <Select
-            className="plan-setting-select"
-            aria-label="Check-in cadence"
-            value={draft.cadence}
-            onChange={handleCadenceChange}
-            options={CADENCE_OPTIONS}
-            disabled={starting}
-          />
+        {/* Locked identity fields (hard fields set in Compose - AI-read-only, TR-25/26) */}
+        <div className="plan-locked-fields">
+          <p className="plan-locked-note">
+            <Lock
+              size={13}
+              aria-hidden="true"
+              style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }}
+            />
+            Only you can change these. Kawan reads them but never edits them.
+          </p>
+          <div className="plan-locked-row">
+            <span className="plan-locked-label">Action</span>
+            <span className="plan-locked-value">{action}</span>
+          </div>
+          <div className="plan-locked-row">
+            <span className="plan-locked-label">Deliverable</span>
+            <span className="plan-locked-value">{deliverable}</span>
+          </div>
+          <div className="plan-locked-row">
+            <span className="plan-locked-label">Deadline</span>
+            <span className="plan-locked-value">{deadlineDisplay}</span>
+          </div>
         </div>
 
-        {/* Evidence type */}
-        <div className="plan-setting-row">
-          <span className="plan-setting-label">
-            Evidence
-            <Tooltip text="How you will prove progress. Screenshot requires you to upload proof. GitHub checks your commits automatically." />
-          </span>
-          <Select
-            className="plan-setting-select"
-            aria-label="Evidence type"
-            value={evidenceType}
-            onChange={(v) => handleEvidenceTypeChange(v as EvidenceType)}
-            options={EVIDENCE_SELECT_OPTIONS}
-            disabled={starting}
-          />
+        {/* AI roadmap - STUBBED (no POST .../plan call - Lane C absent, Open Q1) */}
+        {/* LANE C SEAM: replace this placeholder with the real roadmap renderer when
+            POST /api/commitments/{id}/plan and its roadmap schema land. */}
+        <div className="plan-roadmap-placeholder">
+          <p className="plan-placeholder-text">
+            Your plan shows up here after we talk it through (coming with the AI layer)
+          </p>
         </div>
 
-        {/* GitHub repo field — shown when evidence_type = github (Q7) */}
-        {evidenceType === 'github' && (
-          <div className="plan-setting-row plan-setting-repo">
+        {/* Safe hard-field GUI controls (GUI-set, user session, never AI - TR-25/26) */}
+        <div className="plan-settings">
+          <div className="plan-setting-row">
             <span className="plan-setting-label">
-              GitHub repo <span className="plan-trust-label">{trustLabel}</span>
+              Cadence
+              <Tooltip text="How often Kawan checks in on your progress." />
             </span>
-            <input
-              className="plan-setting-input"
-              type="text"
-              placeholder="owner/repo"
-              aria-label="GitHub repository (owner/repo)"
-              defaultValue={repo}
-              onBlur={(e) => {
-                if (e.target.value !== repo) handleRepoChange(e.target.value)
-              }}
-              disabled={starting}
+            <Select
+              className="plan-setting-select"
+              aria-label="Check-in cadence"
+              value={draft.cadence}
+              onChange={(v) => onDraftChange({ ...draft, cadence: v })}
+              options={CADENCE_OPTIONS}
             />
           </div>
-        )}
 
-        {/* Skip days */}
-        <div className="plan-setting-row">
-          <span className="plan-setting-label">
-            Skip days
-            <Tooltip text="The number of check-ins you can skip without penalty. 0 means every check-in counts." />
-          </span>
-          <Select
-            className="plan-setting-select"
-            aria-label="Allowed skip days"
-            value={String(draft.skip_days_total)}
-            onChange={(v) => handleSkipDaysChange(Number(v))}
-            options={SKIP_DAYS_OPTIONS}
-            disabled={starting}
-          />
+          <div className="plan-setting-row">
+            <span className="plan-setting-label">
+              Evidence
+              <Tooltip text="How you will prove progress. Screenshot requires you to upload proof. GitHub checks your commits automatically." />
+            </span>
+            <Select
+              className="plan-setting-select"
+              aria-label="Evidence type"
+              value={evidenceType}
+              onChange={(v) => {
+                const t = v as EvidenceType
+                const evidence_config = t === 'github' ? (draft.evidence_config ?? {}) : null
+                onDraftChange({ ...draft, evidence_type: t, evidence_config })
+              }}
+              options={EVIDENCE_SELECT_OPTIONS}
+            />
+          </div>
+
+          {/* GitHub repo field - shown when evidence_type = github (Q7) */}
+          {evidenceType === 'github' && (
+            <div className="plan-setting-row plan-setting-repo">
+              <span className="plan-setting-label">
+                GitHub repo <span className="plan-trust-label">{trustLabel}</span>
+              </span>
+              <input
+                className="plan-setting-input"
+                type="text"
+                placeholder="owner/repo"
+                aria-label="GitHub repository (owner/repo)"
+                defaultValue={repo}
+                onBlur={(e) => {
+                  if (e.target.value !== repo) {
+                    onDraftChange({ ...draft, evidence_config: { repo: e.target.value } })
+                  }
+                }}
+              />
+            </div>
+          )}
+
+          <div className="plan-setting-row">
+            <span className="plan-setting-label">
+              Skip days
+              <Tooltip text="The number of check-ins you can skip without penalty. 0 means every check-in counts." />
+            </span>
+            <Select
+              className="plan-setting-select"
+              aria-label="Allowed skip days"
+              value={String(draft.skip_days_total)}
+              onChange={(v) => onDraftChange({ ...draft, skip_days_total: Number(v) })}
+              options={SKIP_DAYS_OPTIONS}
+            />
+          </div>
         </div>
       </div>
-    </div>
+    </SectionReveal>
   )
 }
 
-// ── NewCommitment (shell + state) ─────────────────────────────────────────────
+// ── CompanionSection: horizontal cube-card grid ───────────────────────────────
+// Always horizontal at every width - horizontal scroll + scroll-snap on narrow screens.
+// portrait image + name + role + short description per card.
+// "Start commitment" CTA lives here (companion section is LAST per spec).
+
+interface CompanionSectionProps {
+  selectedPersona: Persona
+  onSelect: (p: Persona) => void
+  starting: boolean
+  startError: string | null
+  onStart: () => void
+  composeValid: boolean
+}
+
+function PersonaPortrait({ persona, name }: { persona: Persona; name: string }) {
+  const [imgFailed, setImgFailed] = useState(false)
+  const initial = name.charAt(0).toUpperCase()
+
+  if (imgFailed) {
+    return (
+      <div className="nc-companion-portrait-fallback" aria-hidden="true">
+        {initial}
+      </div>
+    )
+  }
+
+  return (
+    <img
+      className="nc-companion-portrait-img"
+      src={PERSONA_PORTRAITS[persona]}
+      alt={`Portrait of ${name}`}
+      onError={() => setImgFailed(true)}
+      loading="lazy"
+    />
+  )
+}
+
+function CompanionSection({
+  selectedPersona,
+  onSelect,
+  starting,
+  startError,
+  onStart,
+  composeValid
+}: CompanionSectionProps) {
+  const personas = listPersonas()
+
+  return (
+    <SectionReveal id="nc-companion">
+      <div className="nc-section-inner">
+        <h2 className="nc-section-heading">Choose your companion</h2>
+        <p className="nc-companion-sub">
+          Your companion checks in with you, reviews your evidence, and gives you a verdict. Pick the one that fits how
+          you want to be held to account.
+        </p>
+
+        {/* Horizontal cube-card grid - always horizontal, scroll-snap on narrow */}
+        <div className="nc-companion-grid">
+          {personas.map((p) => {
+            const isSelected = selectedPersona === p.id
+            return (
+              <button
+                key={p.id}
+                type="button"
+                aria-pressed={isSelected}
+                className={`nc-companion-card${isSelected ? ' nc-companion-card-selected' : ''}`}
+                onClick={() => onSelect(p.id as Persona)}
+              >
+                <div className="nc-companion-portrait">
+                  <PersonaPortrait persona={p.id as Persona} name={p.name} />
+                </div>
+                <div className="nc-companion-card-body">
+                  <p className="nc-companion-name">{p.name}</p>
+                  <p className="nc-companion-archetype">{p.archetype}</p>
+                  <p className="nc-companion-tone">{p.tone}</p>
+                </div>
+                {isSelected && (
+                  <div className="nc-companion-check" aria-hidden="true">
+                    <Check size={12} />
+                  </div>
+                )}
+              </button>
+            )
+          })}
+        </div>
+
+        {startError && <p className="compose-error">{startError}</p>}
+
+        {!composeValid && <p className="nc-cta-hint">Fill in the Compose section above before starting.</p>}
+
+        <div className="nc-cta-row">
+          <Button variant="accent" onClick={onStart} disabled={starting || !composeValid}>
+            {starting ? 'Starting...' : 'Start commitment'}
+          </Button>
+        </div>
+      </div>
+    </SectionReveal>
+  )
+}
+
+// ── NewCommitment (root page) ─────────────────────────────────────────────────
 
 export function NewCommitment() {
   const navigate = useNavigate()
   const { me, setPersona } = useAuth()
-  const [step, setStep] = useState<Step>(0)
 
-  // Companion step state — seeded from current persona
+  // Companion selection - seeded from current persona.
+  // NO setPersona call here; committed only in handleStart.
   const [selectedPersona, setSelectedPersona] = useState<Persona>(me?.persona ?? 'kawan')
 
-  // Compose state — lifted so it survives step navigation and feeds handleStart.
-  // NO API calls until the final "Start commitment" — Cancel at any prior step is inert.
+  // Compose state - lifted so it survives scroll and feeds handleStart.
+  // NO API calls until the final "Start commitment" - Cancel at any prior point is inert.
   const [action, setAction] = useState<Action>('complete')
   const [deliverable, setDeliverable] = useState('')
   const [deadlineLocal, setDeadlineLocal] = useState('')
   const [composeError, setComposeError] = useState<string | null>(null)
 
-  // Plan step draft — held locally; NO API writes until handleStart.
+  // Plan draft - held locally; NO API writes until handleStart.
   const [draftPlan, setDraftPlan] = useState<DraftPlan>({ ...DEFAULT_DRAFT_PLAN })
+
+  // Start commitment state
   const [starting, setStarting] = useState(false)
   const [startError, setStartError] = useState<string | null>(null)
 
-  // ── Companion → Continue ──────────────────────────────────────────────────
-  // NO setPersona call here. The persona choice is committed ONLY in handleStart,
-  // so Cancel at any step leaves the existing persona untouched.
-  function handleCompanionContinue() {
-    setStep(1)
+  // Compose validity for section tick + CTA guard.
+  function isComposeValid(): boolean {
+    if (!deliverable.trim()) return false
+    if (!deadlineLocal) return false
+    const dl = new Date(deadlineLocal)
+    if (Number.isNaN(dl.getTime())) return false
+    if (dl <= new Date()) return false
+    return true
   }
 
-  // ── Compose → Continue ────────────────────────────────────────────────────
-  // Validates the compose fields locally; NO API call yet.
-  // createCommitment is deferred to handleStart so Cancel writes nothing.
+  const composeValid = isComposeValid()
 
-  function handleComposeContinue() {
+  // Island sections with completion state
+  const islandSections: IslandSection[] = [
+    { id: 'nc-compose', label: 'Compose', done: composeValid },
+    { id: 'nc-context', label: 'Context', done: false },
+    { id: 'nc-plan', label: 'Plan', done: false },
+    { id: 'nc-companion', label: 'Companion', done: !!selectedPersona }
+  ]
+
+  // ── Cancel - fully inert: NO API calls, NO persona writes ────────────────
+  // Because createCommitment is deferred to handleStart, Cancel at any point
+  // leaves the server and localStorage byte-for-byte unchanged.
+  function handleCancel() {
+    navigate('/home')
+  }
+
+  // ── Start commitment - first and only API write in the entire flow ─────────
+  async function handleStart() {
+    if (starting) return
+
+    // Validate compose before writing anything
     if (!deliverable.trim()) {
       setComposeError('Please describe what you will deliver.')
+      document.getElementById('nc-compose')?.scrollIntoView({ behavior: 'smooth' })
       return
     }
     if (!deadlineLocal) {
       setComposeError('Please pick a deadline.')
+      document.getElementById('nc-compose')?.scrollIntoView({ behavior: 'smooth' })
       return
     }
-
     const deadlineDate = new Date(deadlineLocal)
-    const now = new Date()
-
-    if (deadlineDate <= now) {
+    if (deadlineDate <= new Date()) {
       setComposeError('Deadline must be in the future.')
+      document.getElementById('nc-compose')?.scrollIntoView({ behavior: 'smooth' })
       return
     }
-
-    const diffMs = deadlineDate.getTime() - now.getTime()
+    const diffMs = deadlineDate.getTime() - Date.now()
     if (diffMs < 60 * 60 * 1000) {
       if (!window.confirm("That's under an hour. Are you sure?")) return
     }
-
-    setComposeError(null)
-    setStep(2)
-  }
-
-  // ── Plan → Start ──────────────────────────────────────────────────────────
-  // First API write in the entire flow: create → patch plan fields → start → set persona.
-  // Cancel before this point leaves the server byte-for-byte unchanged.
-
-  async function handleStart() {
-    if (starting) return
 
     if (MOCK_AUTH) {
       await setPersona(selectedPersona)
@@ -395,7 +581,7 @@ export function NewCommitment() {
 
     setStarting(true)
     setStartError(null)
-    const deadlineISO = new Date(deadlineLocal).toISOString()
+    const deadlineISO = deadlineDate.toISOString()
     try {
       // 1. Create the commitment (first write)
       const created = await createCommitment({ action, deliverable, deadline: deadlineISO })
@@ -412,7 +598,7 @@ export function NewCommitment() {
           skip_days_total: draftPlan.skip_days_total
         })
       }
-      // 3. Start the commitment (draft → active)
+      // 3. Start the commitment (draft to active)
       await startCommitment(created.id)
       // 4. Persist persona selection ONLY on full success
       await setPersona(selectedPersona)
@@ -425,121 +611,52 @@ export function NewCommitment() {
     }
   }
 
-  // ── Cancel — fully inert: NO API calls, NO persona writes ────────────────
-  // Because createCommitment is deferred to handleStart, Cancel at any step
-  // leaves the server and localStorage byte-for-byte unchanged.
-
-  function handleCancel() {
-    navigate('/home')
-  }
-
-  // ── Continue handler for each step ────────────────────────────────────────
-
-  function handleContinue() {
-    if (step === 0) {
-      handleCompanionContinue() // sync now — persona not persisted until handleStart
-    } else if (step === 1) {
-      handleComposeContinue()
-    } else {
-      setStep((s) => (s + 1) as Step)
-    }
-  }
-
-  // ── Render step ────────────────────────────────────────────────────────────
-
-  function renderStep() {
-    if (step === 0) {
-      return <PersonaPicker selected={selectedPersona} onSelect={setSelectedPersona} />
-    }
-    if (step === 1) {
-      return (
-        <ComposeStep
-          action={action}
-          setAction={setAction}
-          deliverable={deliverable}
-          setDeliverable={setDeliverable}
-          deadlineLocal={deadlineLocal}
-          setDeadlineLocal={setDeadlineLocal}
-          error={composeError}
-          creating={false}
-        />
-      )
-    }
-    if (step === 2) {
-      return <ContextStep />
-    }
-    // step === 3
-    return (
-      <PlanStep
-        draft={draftPlan}
-        onDraftChange={setDraftPlan}
-        action={action}
-        deliverable={deliverable}
-        deadlineLocal={deadlineLocal}
-        starting={starting}
-        startError={startError}
-      />
-    )
-  }
-
-  // Disable "Continue" on Compose (step 1) while required fields are empty.
-  const continueDisabled = (step === 1 && (!deliverable.trim() || !deadlineLocal)) || starting
-
   return (
-    <div className="workspace-root new-commitment-root">
-      {/* Header */}
+    <div className="workspace-root nc-root">
+      {/* Fixed topbar with Cancel only */}
       <div className="workspace-topbar">
         <button type="button" className="workspace-back-btn" aria-label="Cancel and go back" onClick={handleCancel}>
           <X size={14} aria-hidden="true" /> Cancel
         </button>
-        {/* Progress indicator — connected track stepper */}
-        <nav className="new-commitment-stepper-wrap" aria-label="Commitment setup steps">
-          <div className="stepper-v2">
-            {STEP_LABELS.map((label, i) => {
-              const isDone = i < step
-              const isCurrent = i === step
-              const nodeClass = `stepper-v2-node${isDone ? ' stepper-v2-done' : isCurrent ? ' stepper-v2-current' : ' stepper-v2-upcoming'}`
-              return (
-                <div key={label} className="stepper-v2-step">
-                  {i > 0 && <div className={`stepper-v2-track${isDone ? ' stepper-v2-track-done' : ''}`} />}
-                  <div className={nodeClass} aria-current={isCurrent ? 'step' : undefined}>
-                    <div className="stepper-v2-circle" aria-hidden="true">
-                      {isDone ? <Check size={12} /> : i + 1}
-                    </div>
-                    <span className="stepper-v2-label">{label}</span>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-          <span className="stepper-v2-counter" aria-live="polite" aria-atomic="true">
-            {step + 1} / {STEP_LABELS.length}
-          </span>
-        </nav>
+        <div className="nc-topbar-title">New commitment</div>
         <div className="workspace-spacer" aria-hidden="true" />
       </div>
 
-      {/* Step content — centered vertically; long steps scroll naturally */}
-      <div className="new-commitment-content">
-        <div className="new-commitment-step-center">{renderStep()}</div>
-      </div>
+      {/* Page body: scrollable content + pinned island */}
+      <div className="nc-body">
+        {/* Scrollable sections column */}
+        <div className="nc-scroll">
+          <ComposeSection
+            action={action}
+            setAction={setAction}
+            deliverable={deliverable}
+            setDeliverable={setDeliverable}
+            deadlineLocal={deadlineLocal}
+            setDeadlineLocal={setDeadlineLocal}
+            composeError={composeError}
+          />
+          <ContextSection />
+          <PlanSection
+            draft={draftPlan}
+            onDraftChange={setDraftPlan}
+            action={action}
+            deliverable={deliverable}
+            deadlineLocal={deadlineLocal}
+          />
+          <CompanionSection
+            selectedPersona={selectedPersona}
+            onSelect={setSelectedPersona}
+            starting={starting}
+            startError={startError}
+            onStart={handleStart}
+            composeValid={composeValid}
+          />
+        </div>
 
-      {/* Step navigation */}
-      <div className="new-commitment-footer">
-        {step > 0 && (
-          <Button variant="secondary" onClick={() => setStep((s) => (s - 1) as Step)} disabled={starting}>
-            Back
-          </Button>
-        )}
-        {step < 3 ? (
-          <Button variant="primary" onClick={handleContinue} disabled={continueDisabled}>
-            Continue
-          </Button>
-        ) : (
-          <Button variant="accent" onClick={handleStart} disabled={starting}>
-            {starting ? 'Starting...' : 'Start commitment'}
-          </Button>
-        )}
+        {/* Spy-scroll island - pinned right rail (hidden under 900px) */}
+        <div className="nc-island-col">
+          <SpyScrollIsland sections={islandSections} />
+        </div>
       </div>
     </div>
   )

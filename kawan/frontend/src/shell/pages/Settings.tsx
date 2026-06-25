@@ -3,6 +3,7 @@
 // "Delete all data" (data-only, keeps login), logout.
 // Persona is sourced from me.persona (single source of truth via AuthContext).
 
+import { Check } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthProvider'
@@ -10,10 +11,33 @@ import { MOCK_AUTH } from '../../auth/api'
 import { deleteMyData } from '../../commitments/api'
 import { listPersonas } from '../../mock/provider'
 import { useNotifications } from '../../notifications/NotificationProvider'
+import type { Persona } from '../../types/api'
 import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
 import { Modal } from '../../ui/Modal'
+import { PERSONA_PORTRAITS } from '../../zone2/personaPortraits'
 import { PageHeader } from '../PageHeader'
+
+function SettingsPersonaPortrait({ persona, name }: { persona: Persona; name: string }) {
+  const [imgFailed, setImgFailed] = useState(false)
+  const initial = name.charAt(0).toUpperCase()
+  if (imgFailed) {
+    return (
+      <div className="nc-companion-portrait-fallback" aria-hidden="true">
+        {initial}
+      </div>
+    )
+  }
+  return (
+    <img
+      className="nc-companion-portrait-img"
+      src={PERSONA_PORTRAITS[persona]}
+      alt={`Portrait of ${name}`}
+      onError={() => setImgFailed(true)}
+      loading="lazy"
+    />
+  )
+}
 
 export function Settings() {
   const { me, signOut, setPersona } = useAuth()
@@ -50,27 +74,38 @@ export function Settings() {
     <div className="shell-page">
       <PageHeader title="Settings" subtitle="Choose your companion, manage your account, and control your data." />
 
-      {/* Companion selector - portrait-free themed list */}
+      {/* Companion selector - horizontal cube-card grid (matches onboarding companion cards) */}
       <section className="settings-section" aria-labelledby="persona-heading">
         <h3 id="persona-heading" className="settings-section-title">
           Your companion
         </h3>
-        <div className="companion-selector">
-          {personas.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              aria-pressed={selectedPersona === p.id}
-              className={`companion-selector-row${selectedPersona === p.id ? ' companion-selector-row-selected' : ''}`}
-              onClick={() => setPersona(p.id)}
-            >
-              <div>
-                <p className="companion-selector-name">{p.name}</p>
-                <p className="companion-selector-archetype">{p.archetype}</p>
-                <p className="companion-selector-tone">{p.tone}</p>
-              </div>
-            </button>
-          ))}
+        <div className="nc-companion-grid">
+          {personas.map((p) => {
+            const isSelected = selectedPersona === p.id
+            return (
+              <button
+                key={p.id}
+                type="button"
+                aria-pressed={isSelected}
+                className={`nc-companion-card${isSelected ? ' nc-companion-card-selected' : ''}`}
+                onClick={() => setPersona(p.id)}
+              >
+                <div className="nc-companion-portrait">
+                  <SettingsPersonaPortrait persona={p.id as Persona} name={p.name} />
+                </div>
+                <div className="nc-companion-card-body">
+                  <p className="nc-companion-name">{p.name}</p>
+                  <p className="nc-companion-archetype">{p.archetype}</p>
+                  <p className="nc-companion-tone">{p.tone}</p>
+                </div>
+                {isSelected && (
+                  <div className="nc-companion-check" aria-hidden="true">
+                    <Check size={12} />
+                  </div>
+                )}
+              </button>
+            )
+          })}
         </div>
       </section>
 

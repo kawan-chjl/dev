@@ -554,50 +554,6 @@
   padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0));
 }
 
-/* Stepper */
-.stepper {
-  display: flex;
-  gap: var(--space-6);
-  align-items: center;
-}
-
-.stepper-step {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  opacity: 0.4;
-}
-.stepper-step-active {
-  opacity: 1;
-}
-.stepper-step-done {
-  opacity: 0.7;
-}
-
-.stepper-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: var(--radius-pill);
-  background: var(--muted);
-}
-.stepper-step-active .stepper-dot {
-  background: var(--accent);
-}
-.stepper-step-done .stepper-dot {
-  background: var(--sage-deep);
-}
-
-.stepper-label {
-  font-size: var(--text-caption);
-  font-weight: 500;
-  color: var(--muted);
-  white-space: nowrap;
-}
-.stepper-step-active .stepper-label {
-  color: var(--ink);
-}
-
 /* Compose step */
 .compose-step {
   display: flex;
@@ -1024,4 +980,439 @@
   color: var(--sage-deep);
   font-weight: 600;
   margin-left: var(--space-2);
+}
+
+/* ── NewCommitment scrolling redesign ── */
+
+/* Root override: bg matches shell (warm) not the dark workspace */
+.nc-root {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* Topbar title - centered between Cancel and spacer */
+.nc-topbar-title {
+  font-family: var(--font-display);
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: rgba(244, 236, 225, 0.7);
+  letter-spacing: 0.02em;
+  flex: 1;
+  text-align: center;
+}
+
+/* Body: grid layout — content col left, island col right.
+   No overflow here. The window is the scroll container (workspace-root has
+   only min-height, so it grows with content and the window scrolls).
+   Any overflow on this element would intercept the window scroll and break
+   position:sticky on the inner island nav. */
+.nc-body {
+  display: grid;
+  grid-template-columns: 1fr;
+  flex: 1;
+}
+
+@media (min-width: 900px) {
+  .nc-body {
+    grid-template-columns: 1fr 180px;
+  }
+}
+
+/* Content column (grid col 1) — natural height, no scroll of its own */
+.nc-scroll {
+  padding-bottom: var(--space-16);
+}
+
+/* Right-rail column (grid col 2) — hidden on narrow, stretches to full grid
+   row height on wide so the sticky inner nav can track the whole scroll */
+.nc-island-col {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .nc-island-col {
+    display: block;
+    /* no position:sticky here — column must stretch, not shrink */
+    padding: var(--space-6) var(--space-4) 0 0;
+  }
+}
+
+/* The island nav: sticky within the full-height column.
+   top = topbar (52px) + breathing room so it clears the fixed topbar. */
+.nc-island {
+  position: sticky;
+  top: calc(52px + var(--space-6));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+
+.nc-island-heading {
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--ink-faint);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  margin-bottom: var(--space-1);
+}
+
+.nc-island-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Inactive link: --ink-soft gives >=4.5:1 on --surface in both themes */
+.nc-island-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  text-align: left;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  border: none;
+  background: none;
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  color: var(--ink-soft);
+  cursor: pointer;
+  gap: var(--space-2);
+  transition:
+    background var(--duration-ui) var(--ease-out),
+    color var(--duration-ui) var(--ease-out);
+}
+.nc-island-link:hover {
+  background: var(--surface-sunk);
+  color: var(--ink);
+}
+.nc-island-link-active {
+  color: var(--accent-press);
+  background: var(--accent-tint);
+  font-weight: 600;
+}
+
+.nc-island-label {
+  flex: 1;
+}
+
+.nc-island-tick {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--sage-deep);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+/* Individual section */
+.nc-section {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-bottom: 1px solid var(--line);
+}
+
+/* Section reveal animation: fade + rise 8px on viewport entry */
+.nc-section-reveal {
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 350ms var(--ease-out),
+    transform 350ms var(--ease-out);
+}
+.nc-section-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* No transforms when reduced-motion preferred (class not applied; fallback via CSS) */
+@media (prefers-reduced-motion: reduce) {
+  .nc-section-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+.nc-section-inner {
+  max-width: 620px;
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--space-12) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.nc-section-heading {
+  font-family: var(--font-display);
+  font-size: var(--text-h2);
+  font-weight: 600;
+  color: var(--ink);
+  line-height: var(--lh-heading);
+}
+
+/* ── Compose section ── */
+
+.nc-compose-card {
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.nc-compose-field-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.nc-compose-label {
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--ink-soft);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.nc-compose-input {
+  height: 44px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--line);
+  background: var(--surface-2);
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  color: var(--ink);
+  width: 100%;
+  transition: border-color var(--duration-ui) var(--ease-out);
+}
+.nc-compose-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.nc-compose-input::placeholder {
+  color: var(--ink-faint);
+}
+
+.nc-compose-hint {
+  font-size: var(--text-small);
+  color: var(--ink-soft);
+  padding-top: var(--space-1);
+  border-top: 1px solid var(--line);
+  margin-top: var(--space-1);
+}
+
+/* Live sentence preview */
+.nc-sentence-preview {
+  font-size: var(--text-small);
+  color: var(--ink-soft);
+  font-style: italic;
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--accent-tint);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.nc-sentence-preview em {
+  color: var(--accent);
+  font-style: italic;
+}
+
+/* ── Context section stub ── */
+
+.nc-context-stub {
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  border: 1.5px dashed var(--line);
+  padding: var(--space-8) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
+}
+
+.nc-context-stub-icon {
+  margin-bottom: var(--space-2);
+}
+
+.nc-context-stub-label {
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.nc-context-stub-sub {
+  font-size: var(--text-small);
+  color: var(--ink-faint);
+  line-height: var(--lh-body);
+  max-width: 380px;
+}
+
+/* ── Companion section cube-card grid ── */
+/* Always horizontal: flex row, overflow-x scroll + scroll-snap on narrow */
+
+.nc-companion-sub {
+  font-size: var(--text-small);
+  color: var(--ink-soft);
+  line-height: var(--lh-body);
+}
+
+.nc-companion-grid {
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-4);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: var(--space-2); /* space for scrollbar */
+}
+
+/* Each card: portrait (3:4 aspect ratio) + content below */
+.nc-companion-card {
+  flex: 0 0 180px;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
+  border: 2px solid var(--line);
+  background: var(--surface);
+  cursor: pointer;
+  text-align: left;
+  position: relative;
+  transition:
+    border-color var(--duration-ui) var(--ease-out),
+    box-shadow var(--duration-ui) var(--ease-out),
+    background var(--duration-ui) var(--ease-out);
+}
+.nc-companion-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--line-strong);
+}
+.nc-companion-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.nc-companion-card-selected {
+  border-color: var(--accent);
+  background: var(--accent-tint);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+.nc-companion-card-selected:hover {
+  border-color: var(--accent-press);
+}
+
+@media (min-width: 620px) {
+  .nc-companion-grid {
+    overflow-x: visible;
+    scroll-snap-type: none;
+  }
+  .nc-companion-card {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
+
+/* Portrait - 3:4 ratio */
+.nc-companion-portrait {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--surface-sunk);
+  flex-shrink: 0;
+}
+
+.nc-companion-portrait-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  display: block;
+}
+
+.nc-companion-portrait-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: var(--text-display);
+  font-weight: 700;
+  color: var(--ink-faint);
+  background: var(--surface-sunk);
+}
+
+.nc-companion-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1;
+}
+
+.nc-companion-name {
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.nc-companion-archetype {
+  font-size: var(--text-small);
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.nc-companion-tone {
+  font-size: var(--text-caption);
+  color: var(--ink-faint);
+  line-height: var(--lh-body);
+}
+
+/* Selection check badge */
+.nc-companion-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+}
+
+/* CTA row at bottom of companion section */
+.nc-cta-row {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: var(--space-4);
+  border-top: 1.5px solid var(--line);
+}
+
+.nc-cta-hint {
+  font-size: var(--text-small);
+  color: var(--ink-faint);
+  font-style: italic;
 }
