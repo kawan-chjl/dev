@@ -12,7 +12,7 @@ export function ScrollRevealFooter() {
         {/* Row 1: Logo lockup */}
         <div className="shell-footer-row shell-footer-row-logo">
           <Link to="/" className="shell-footer-logo-link" aria-label="Kawan home">
-            <img src="/kawan-logo.png" alt="" className="shell-footer-logo-img" width={20} height={20} />
+            <img src="/kawan-logo.png" alt="" className="shell-footer-logo-img" width={26} height={26} />
             <span className="shell-footer-logo-name">Kawan</span>
           </Link>
         </div>
