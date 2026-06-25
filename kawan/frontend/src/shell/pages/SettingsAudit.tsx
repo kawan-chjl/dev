@@ -4,6 +4,7 @@
 import { getActiveCommitment, getAuditLog } from '../../mock/provider'
 import { Badge } from '../../ui/Badge'
 import { Card } from '../../ui/Card'
+import { PageHeader } from '../PageHeader'
 
 function formatAt(iso: string): string {
   return new Date(iso).toLocaleString('en-MY', {
@@ -30,10 +31,7 @@ export function SettingsAudit() {
 
   return (
     <div className="shell-page">
-      <div className="page-header">
-        <h2>History</h2>
-        <p className="page-subtitle">Every change you made, and when.</p>
-      </div>
+      <PageHeader title="History" subtitle="Every change you made, and when." />
 
       {rows.length === 0 ? (
         <Card className="empty-state-card">

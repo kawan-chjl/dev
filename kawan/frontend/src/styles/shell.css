@@ -575,6 +575,11 @@
   color: var(--ink-faint);
   margin-top: 2px;
 }
+.topbar-popover-balance {
+  font-size: var(--text-caption);
+  color: var(--ink-soft);
+  margin-top: var(--space-1);
+}
 .topbar-popover-body {
   padding: var(--space-2);
 }
@@ -613,9 +618,6 @@
 
 /* ── Content (Layer 3) ── */
 .shell-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
   padding-top: var(--topbar-h);
 }
 
@@ -625,13 +627,22 @@
   }
 }
 
+/* .page-scroll — proofrank foldover mechanic.
+   Sits z-index:1 with an opaque bg on top of the fixed footer (z-index:0).
+   margin-bottom matches the footer height so scrolling to the bottom reveals it. */
+.page-scroll {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  margin-bottom: 160px;
+  background: var(--bg);
+}
+
 .shell-page {
   padding: var(--space-6) var(--space-4);
   max-width: 800px;
   margin: 0 auto;
   width: 100%;
-  /* flex: 1 0 auto: grow fills short pages (pins footer), shrink:0 keeps natural height on tall pages */
-  flex: 1 0 auto;
 }
 
 @media (min-width: 769px) {
@@ -640,24 +651,39 @@
   }
 }
 
-/* ── Footer (Layer 4 — scroll-reveal, warm dark band) ── */
+/* ── Footer (Layer 4 — fixed behind content, warm dark band) ── */
 .shell-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 0;
+  height: 160px;
   background: #1a140f;
   color: #f4ece1;
   border-top: 1px solid rgba(58, 42, 30, 0.3);
-  flex-shrink: 0;
 }
+
+/* Offset by sidebar on desktop */
+@media (min-width: 769px) {
+  .shell-footer {
+    left: var(--sidebar-w);
+  }
+}
+
 [data-theme="dark"] .shell-footer {
   background: #140f0b;
   border-top-color: #3a2c20;
 }
 
 .shell-footer-inner {
-  padding: var(--space-8) var(--space-6);
+  padding: var(--space-6) var(--space-6);
   max-width: 800px;
   margin: 0 auto;
+  height: 100%;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: var(--space-4);
 }
 
