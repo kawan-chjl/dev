@@ -290,7 +290,7 @@
   border: 1.5px solid rgba(244, 236, 225, 0.1);
   border-radius: var(--radius-card);
   backdrop-filter: blur(16px) saturate(160%);
-  padding: var(--space-4) 56px var(--space-4) var(--space-5);
+  padding: var(--space-4) 92px var(--space-4) var(--space-5); /* 92px = advance(36) + mic(32) + gaps */
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
   animation: stage-fade-in var(--duration-panel) var(--ease-smooth) both;
 }
@@ -1482,4 +1482,168 @@
   font-size: var(--text-small);
   color: var(--ink-faint);
   font-style: italic;
+}
+
+/* Visually hidden but accessible (screen readers) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── D2 Voice controls (mute + stop, always visible in workspace) ── */
+/* fieldset reset — Biome requires <fieldset> for role=group groupings */
+fieldset.stage-voice-controls {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.stage-voice-controls {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  display: flex;
+  gap: var(--space-2);
+  z-index: 15;
+}
+
+.stage-voice-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-pill);
+  background: rgba(22, 16, 9, 0.72);
+  border: 1px solid rgba(244, 236, 225, 0.14);
+  color: rgba(244, 236, 225, 0.7);
+  cursor: pointer;
+  backdrop-filter: var(--blur-backdrop);
+  transition:
+    background var(--duration-ui) var(--ease-smooth),
+    color var(--duration-ui) var(--ease-smooth);
+}
+.stage-voice-btn:hover:not(:disabled) {
+  background: rgba(244, 236, 225, 0.12);
+  color: #f4ece1;
+}
+.stage-voice-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.stage-voice-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Mic button inside the dialogue box advance row */
+.stage-mic-bar-btn {
+  position: absolute;
+  right: 52px;
+  bottom: var(--space-3);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-pill);
+  background: rgba(22, 16, 9, 0.6);
+  border: 1px solid rgba(244, 236, 225, 0.1);
+  color: rgba(244, 236, 225, 0.55);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background var(--duration-ui) var(--ease-smooth),
+    color var(--duration-ui) var(--ease-smooth);
+}
+.stage-mic-bar-btn:hover:not(:disabled) {
+  background: rgba(217, 100, 58, 0.2);
+  color: var(--accent);
+}
+.stage-mic-bar-btn[aria-pressed="true"] {
+  background: rgba(217, 100, 58, 0.3);
+  color: var(--accent);
+  border-color: rgba(217, 100, 58, 0.5);
+}
+.stage-mic-bar-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* Wider advance button when mic is present (shift right by 40px) */
+.stage-dialogue-box .stage-advance-btn {
+  right: var(--space-3);
+}
+
+/* Mic transcript display */
+.stage-mic-transcript {
+  position: absolute;
+  bottom: 120px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(22, 16, 9, 0.88);
+  border: 1px solid rgba(244, 236, 225, 0.12);
+  border-radius: var(--radius-card);
+  padding: var(--space-2) var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  backdrop-filter: var(--blur-backdrop);
+  max-width: min(480px, 90vw);
+  z-index: 20;
+}
+
+.stage-mic-label {
+  font-family: var(--font-body);
+  font-size: var(--text-caption);
+  color: var(--accent);
+  font-weight: 500;
+  white-space: nowrap;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.stage-mic-text {
+  font-family: var(--font-display);
+  font-size: var(--text-small);
+  color: rgba(244, 236, 225, 0.85);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Dev-only text input inside harness */
+.stage-dev-text {
+  background: rgba(244, 236, 225, 0.08);
+  border: 1px solid rgba(244, 236, 225, 0.15);
+  border-radius: var(--radius-sm);
+  color: rgba(244, 236, 225, 0.85);
+  font-family: var(--font-body);
+  font-size: var(--text-caption);
+  padding: 2px var(--space-2);
+  min-height: 28px;
+  width: 200px;
+}
+
+/* Mic affordance in action surface */
+.stage-mic-btn {
+  flex-shrink: 0;
+  min-width: 36px;
+  height: 36px;
+  padding: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-voice-btn,
+  .stage-mic-bar-btn {
+    transition: none;
+  }
 }

@@ -19,7 +19,7 @@ Lane responsibilities and task breakdown for the 4-person team, derived from `ka
 - **22 Jun (D12)** — team Pro subscription expires → all LLM-heavy prompt tuning must be finished (Phase 3 gate).
 - **30 Jun (D20)** — Devpost submission deadline.
 
-> **Calendar reality (26 Jun):** D12 (the Pro-expiry tuning gate) has passed; remaining LLM tuning runs on PAYG (a heavy dev-day is <$1, spec §3.2). Lane C is still **unbuilt** (`docs/next-up.md`); the dates above are the original plan, kept for the record. Lane C now runs on the post-D12 PAYG footing · batch bulk eval loops, don't architect around quota.
+> **Calendar reality (26 Jun):** D12 (the Pro-expiry tuning gate) has passed; remaining LLM tuning runs on PAYG (a heavy dev-day is <$1, spec §3.2). Lane C is still **unbuilt**; the dates above are the original plan, kept for the record. Lane C now runs on the post-D12 PAYG footing · batch bulk eval loops, don't architect around quota.
 
 ## 2. Lane ownership
 
@@ -32,7 +32,7 @@ Lane responsibilities and task breakdown for the 4-person team, derived from `ka
 
 ~6 days/person slack against the 20-day window is intentional (hackathon reality buffer). The two genuinely novel integrations — **SIWC** (lane B) and the **evidence judge** (lane C) — are week-1 items by design.
 
-> **Ownership note (26 Jun):** Lane D went MIA and is **now PO-owned** (`docs/next-up.md` §5). The PO also owns Lane A. To keep the **AI workflow + L2D/chat redesign** off the PO's single pair of hands, §5.4 hands the **AI behaviour** to Lane C, the **supporting backend** to Lane B, and §5.5 hands the **view/chat wiring** to the **agent frontend team** (the PM-orchestrated PL→PG→QA crew that shipped A1–A5 and the v2/v3/v4 redesign). The PO keeps only the taste/sign-off slices that genuinely need a human (voice, persona register, demo).
+> **Ownership note (26 Jun):** Lane D went MIA and is **now PO-owned**. The PO also owns Lane A. To keep the **AI workflow + L2D/chat redesign** off the PO's single pair of hands, §5.4 hands the **AI behaviour** to Lane C, the **supporting backend** to Lane B, and §5.5 hands the **view/chat wiring** to the **agent frontend team** (the PM-orchestrated PL→PG→QA crew that shipped A1–A5 and the v2/v3/v4 redesign). The PO keeps only the taste/sign-off slices that genuinely need a human (voice, persona register, demo).
 
 ## 3. Phase gates (from spec §12.2)
 
@@ -79,7 +79,7 @@ Acceptance = the gate it must satisfy. `Deps` reference task IDs. Day estimates 
 | A4  | Timeline / momentum view     | 2d   | 4     | B3     | Check-in timeline + momentum dots + celebration/identity beats + habit-loop close (one-question debrief, seeded next commitment / `Repeat this`, spec §5.6); shows scheduler activity without waiting on it. |
 | A5  | Frontend polish pass         | 3d   | 4     | A1–A4  | Responsive PWA, TEE attestation badge, audit-log "who changed what" view (spec §8.2), persona picker refinement. Freeze D17.                                                                                 |
 
-> **Lane A status (26 Jun):** A1, A2, A4, A5, SIWC frontend, and the v2/v3/v4 redesign are **done and merged** (`docs/next-up.md`). **A3 (workspace chat) is the one Lane A item still open**, and it is exactly the piece the PO does not want to own end-to-end. §5.5 splits A3 into a **view/chat-wiring** half (agent frontend team) and an **AI-behaviour** half (Lane C, via C2 plus a new Lane B endpoint, B5).
+> **Lane A status (26 Jun):** A1, A2, A4, A5, SIWC frontend, and the v2/v3/v4 redesign are **done and merged**. **A3 (workspace chat) is the one Lane A item still open**, and it is exactly the piece the PO does not want to own end-to-end. §5.5 splits A3 into a **view/chat-wiring** half (agent frontend team) and an **AI-behaviour** half (Lane C, via C2 plus a new Lane B endpoint, B5).
 
 ### Lane B — Backend core (12d)
 
@@ -102,7 +102,7 @@ Acceptance = the gate it must satisfy. `Deps` reference task IDs. Day estimates 
 | C3  | Evidence adapters + judge                 | 4d   | 3     | C1, S2 | Pluggable interface; GitHub adapter (trivial-commit filter `stats.total < 3`); screenshot → TEE vision; three-valued verdict, `unclear` never punishes. **The §9.3 vision call lives in the adapter, see §9-D1.**        |
 | C4  | Persona tone tuning                       | 3d   | 4     | C2     | Skeptical-but-fair register across touchpoints; variant-persona QA (3 presets). Implements the register chosen for Q3 (team taste decision due **D2–3**, not here); hero passes ideally land pre-22 Jun (spec §11.2).    |
 
-> **Lane C status (26 Jun):** **NOT built** (`docs/next-up.md`). All four §9.2 calls + the §9.3 judge currently run as **deterministic stubs** (`app/stubs.py`), wired in **one file** (`app/wiring.py`). Lane C's whole job is to **replace those stubs behind the identical `app/contracts.py` signatures**: no new orchestration, no scheduler/state/WS changes (Lane B already owns those, ADR-0001). §5.4.1 is the checkbox breakdown of C1–C4.
+> **Lane C status (26 Jun):** **NOT built**. All four §9.2 calls + the §9.3 judge currently run as **deterministic stubs** (`app/stubs.py`), wired in **one file** (`app/wiring.py`). Lane C's whole job is to **replace those stubs behind the identical `app/contracts.py` signatures**: no new orchestration, no scheduler/state/WS changes (Lane B already owns those, ADR-0001). §5.4.1 is the checkbox breakdown of C1–C4.
 
 ### Lane D — Voice, integration, demo (14d)
 
@@ -114,7 +114,7 @@ Acceptance = the gate it must satisfy. `Deps` reference task IDs. Day estimates 
 | D4  | Integration QA + deploy       | 4d   | 4     | all lanes | Full demo thread tested incl. determinism levers (`?demo_deadline=+5m`, pre-staged 2nd account, pre-seeded momentum history on the demo account — spec §6.4). Owns the **Vercel + Render deploy** (auto-deploy from `main`, trd §7.7/TR-79) and the Python **seed/reset script** for a clean pre-staged demo dataset (TR-78). |
 | D5  | Demo script + video + Devpost | 4d   | 5     | D4        | 5-min script (spec §12.5) with **daily dry-runs D17–20**, incl. deliberately triggering the scope-boundary refusal (spec §12.4); recorded backup footage; video by D19; Devpost + README by D20.                                                                                                                              |
 
-> **Lane D status (26 Jun):** PO-owned, **deferred** until the frontend looks demo-ready (`docs/next-up.md` §5); the **deploy half of D4 is done and verified in prod**. The voice path (D1/D2) feeds the §5.5-a reactive Live2D view through the already-locked `Live2DStage.speak()` seam · voice and the reactive-face wiring are the same beat and are tracked there.
+> **Lane D status (26 Jun):** PO-owned, **deferred** until the frontend looks demo-ready; the **deploy half of D4 is done and verified in prod**. The voice path (D1/D2) feeds the §5.5-a reactive Live2D view through the already-locked `Live2DStage.speak()` seam · voice and the reactive-face wiring are the same beat and are tracked there.
 
 ---
 
@@ -194,7 +194,7 @@ This is the work the PO flagged as too much to own alone. It is **three clusters
 
 **The Lane C dependency, made explicit:** (a) reacts to whatever `{say, emotion}` arrives · stub now, real later. (b) needs **B5 + C2 set D** to send-and-receive a real turn; until then the send box stays wired to the stub (commented as the Lane C seam, never faking a reply · same rule the voice plan applies to voice INPUT). (c) is the Lane C deliverable both consume. **Sequencing:** build (a) + the (b) shell against stubs now → land B5 + C2 set D → flip (b)'s data source. No view rewrite at any step.
 
-**What the PO still genuinely owns here** (cannot be offloaded): voice taste / per-persona voice sign-off (OQ-D2a), the Q3 hero register, the LiveroiD scale/anchor + portrait taste (`docs/next-up.md` §1, GPU-bound), and the demo (D5, already human-owned). **What is now offloaded:** all of (a)'s wiring + (b)'s chat UI (agent frontend team) and all of (c) (Lane C) + B5 (Lane B).
+**What the PO still genuinely owns here** (cannot be offloaded): voice taste / per-persona voice sign-off (OQ-D2a), the Q3 hero register, the LiveroiD scale/anchor + portrait taste (GPU-bound), and the demo (D5, already human-owned). **What is now offloaded:** all of (a)'s wiring + (b)'s chat UI (agent frontend team) and all of (c) (Lane C) + B5 (Lane B).
 
 ## 6. Cross-lane dependency map
 
@@ -243,7 +243,7 @@ Flagged, **not** silently resolved (spec is source of truth · where v0.3 scope 
 - **D3 · Prompt premise correction (for the record).** The original ask described the intake send-to-AI as "currently-unbuilt." In fact the **intake (`context/turn`) and plan (`plan`) endpoints already exist and call the stub `LLM`**; the **only** missing send-to-AI seam is the **workspace turn** (now B5). v0.3 scopes to that reality. _No action · just so the PO knows the gap is narrower than stated._
 - **D4 · Per-persona "layered system prompts" must not vary the invariants** (TR-73). The layered prompt = base contract **+ tone fragment + model id** only. Schemas, scope boundary, permissions, state machine, verdict rules, escalation stay identical across all three personas. _Flagged so Lane C does not drift persona behaviour into the product invariants; no open decision, a guardrail._
 - **D5 · The emotion enum is fixed at 6 and is the only Lane-C↔view coupling** (TR-34): `neutral|curious|pleased|skeptical|concerned|proud`. The frontend `Emotion` type + `modelRegistry.expressionMap` map exactly these. **Lane C must constrain every reply's `emotion` to this set** · a 7th value silently no-ops the face. _Guardrail; no open decision._
-- **D6 · Lane B/C ownership is still `_TBD_` in §2.** §5.4 assigns the AI-workflow build to Lanes C and B, but those lanes have **no named human owner** (only Lane A/D = PO). With Lane C unbuilt and the team reduced, **does the agent crew (PL→PG→PM→QA) execute Lane C + B5 too** (as it has executed Lane A/B work to date, per the PO standing directive in `next-up.md` §4), or is a human picking up Lane C? _This is the load-bearing ownership question behind the whole v0.3 expansion · needs the PO's call._
+- **D6 · Lane B/C ownership is still `_TBD_` in §2.** §5.4 assigns the AI-workflow build to Lanes C and B, but those lanes have **no named human owner** (only Lane A/D = PO). With Lane C unbuilt and the team reduced, **does the agent crew (PL→PG→PM→QA) execute Lane C + B5 too** (as it has executed Lane A/B work to date, per the PO standing directive), or is a human picking up Lane C? _This is the load-bearing ownership question behind the whole v0.3 expansion · needs the PO's call._
 
 ## 10. Working agreements appendix — what changed in v0.3
 

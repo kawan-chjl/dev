@@ -8,7 +8,7 @@ from app import models  # noqa: F401 - registers all tables on Base.metadata bef
 from app import scheduler as sched
 from app.config import settings
 from app.db import Base, engine
-from app.routes import auth, commitments, me, push, ws
+from app.routes import auth, commitments, me, push, voice, ws
 
 
 @asynccontextmanager
@@ -49,6 +49,6 @@ async def health() -> dict:
     return {"status": "ok"}
 
 
-for _router in (auth.router, commitments.router, me.router, push.router):
+for _router in (auth.router, commitments.router, me.router, push.router, voice.router):
     app.include_router(_router, prefix="/api")
 app.include_router(ws.router)  # WS at /ws (vite proxies it unprefixed)
