@@ -2,7 +2,7 @@
 // Active commitment cards and idle hero removed per PO redesign (redesign/fredoka-home-branding).
 // The layout is the same regardless of idle/active state: two quick-access cards + right rail.
 
-import { BarChart2, Clock } from 'lucide-react'
+import { BarChart2, Briefcase, ClipboardList, Clock } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getRecentCommitmentIds } from '../../commitments/recent'
@@ -25,37 +25,54 @@ function HomeLayout({ commitments }: { commitments: Commitment[] }) {
 
   return (
     <div className="home-bento-v5">
-      {/* Left column: two quick-action cards */}
-      <div className="home-left-col home-left-col-simple">
+      {/* Left column: Commitment on top, Analytics + Workspace below */}
+      <div className="home-left-col">
         <Card
-          className="home-card-small"
+          className="home-card-commitment"
           role="button"
           tabIndex={0}
-          onClick={() => navigate('/analytics')}
-          onKeyDown={(e) => e.key === 'Enter' && navigate('/analytics')}
-          aria-label="View analytics"
+          onClick={() => navigate('/commitments')}
+          onKeyDown={(e) => e.key === 'Enter' && navigate('/commitments')}
+          aria-label="View and manage your commitments"
         >
           <div className="home-widget-icon" aria-hidden="true">
-            <BarChart2 size={20} color="var(--sage-deep)" />
+            <ClipboardList size={20} color="var(--accent)" />
           </div>
-          <p className="home-widget-label">Analytics</p>
-          <p className="home-widget-sub">Your check-ins and verdicts over time.</p>
+          <p className="home-widget-label">Commitment</p>
+          <p className="home-widget-sub">View and manage your commitments.</p>
         </Card>
 
-        <Card
-          className="home-card-small"
-          role="button"
-          tabIndex={0}
-          onClick={() => setWorkspaceOpen(true)}
-          onKeyDown={(e) => e.key === 'Enter' && setWorkspaceOpen(true)}
-          aria-label="Open workspace"
-        >
-          <div className="home-widget-icon" aria-hidden="true">
-            <BarChart2 size={20} color="var(--clay)" />
-          </div>
-          <p className="home-widget-label">Workspace</p>
-          <p className="home-widget-sub">Talk to Kawan about your commitment.</p>
-        </Card>
+        <div className="home-left-bottom-row">
+          <Card
+            className="home-card-small"
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate('/analytics')}
+            onKeyDown={(e) => e.key === 'Enter' && navigate('/analytics')}
+            aria-label="View analytics"
+          >
+            <div className="home-widget-icon" aria-hidden="true">
+              <BarChart2 size={20} color="var(--sage-deep)" />
+            </div>
+            <p className="home-widget-label">Analytics</p>
+            <p className="home-widget-sub">Your check-ins and verdicts over time.</p>
+          </Card>
+
+          <Card
+            className="home-card-small"
+            role="button"
+            tabIndex={0}
+            onClick={() => setWorkspaceOpen(true)}
+            onKeyDown={(e) => e.key === 'Enter' && setWorkspaceOpen(true)}
+            aria-label="Open workspace"
+          >
+            <div className="home-widget-icon" aria-hidden="true">
+              <Briefcase size={20} color="var(--clay)" />
+            </div>
+            <p className="home-widget-label">Workspace</p>
+            <p className="home-widget-sub">Talk to Kawan about your commitment.</p>
+          </Card>
+        </div>
       </div>
 
       {/* Right: tall Recent Activity rail */}

@@ -1661,17 +1661,35 @@
   }
 }
 
-/* Left column: two quick-action cards side-by-side */
+/* Left column: Commitment card on top (full width), Analytics + Workspace below */
 .home-left-col {
+  display: grid;
+  grid-template-rows: 2fr 1fr;
+  gap: var(--space-4);
+}
+
+/* Bottom row: Analytics and Workspace side by side */
+.home-left-bottom-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-4);
-  align-content: start;
 }
 
-/* Simple variant: cards take natural height, no stretch */
-.home-left-col-simple {
-  align-items: start;
+/* Commitment card — top slot, full left-column width */
+.home-card-commitment {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  cursor: pointer;
+  height: 100%;
+  transition: box-shadow var(--duration-ui) var(--ease-out);
+}
+.home-card-commitment:hover {
+  box-shadow: var(--shadow-md);
+}
+.home-card-commitment:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* Quick-action cards — side by side */
