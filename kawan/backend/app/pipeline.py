@@ -13,6 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import email, push, scheduler, state
+from app.contracts import EvidenceBundle
 from app.models import Checkin, Commitment, Evidence
 from app.util import as_utc, now_utc
 from app.wiring import LLM, adapter_for
@@ -66,6 +67,7 @@ async def run_checkin(db: AsyncSession, c: Commitment, kind: str) -> Checkin:
         c.escalation = min(2, c.escalation + 1)  # rises on consecutive no-new-evidence ticks
 
     snapshot = {
+        "user_id": c.user_id,  # billing user + persona for the real checkin_line (Lane C)
         "had_new_evidence": had_new,
         "evidence_summary": bundle.summary,
         "hours_left": _hours_left(c),
@@ -136,11 +138,14 @@ async def run_final_verify(db: AsyncSession, c: Commitment) -> Evidence:
     return ev
 
 
-async def judge_upload(db: AsyncSession, c: Commitment, raw_ref: dict) -> Evidence:
+async def judge_upload(db: AsyncSession, c: Commitment, raw_ref: dict, *, image_b64: str | None = None) -> Evidence:
     """Screenshot upload (spec §10.3). At/after the deadline it's a final verify; before,
-    it's progress evidence that can reset escalation. File is deleted post-verdict by caller."""
+    it's progress evidence that can reset escalation. The image rides in the bundle's
+    items (never persisted); raw_ref keeps only the filename. File deleted post-verdict."""
     adapter = adapter_for("screenshot")
-    bundle = await adapter.fetch(c, None)
+    bundle = EvidenceBundle(adapter="screenshot", raw_ref=raw_ref,
+                            items=([{"b64": image_b64}] if image_b64 else []),
+                            summary="one uploaded screenshot")
     verdict = await adapter.judge(c, bundle, LLM)
     ev = Evidence(commitment_id=c.id, adapter="screenshot", raw_ref=raw_ref,
                   verdict=verdict.verdict, confidence=verdict.confidence, reasoning=verdict.reasoning)

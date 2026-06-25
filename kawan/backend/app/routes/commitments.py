@@ -132,9 +132,11 @@ async def check(c: Commitment = Depends(_owned), db: AsyncSession = Depends(get_
 @router.post("/{commitment_id}/evidence")
 async def evidence(file: UploadFile = File(...), c: Commitment = Depends(_owned),
                    db: AsyncSession = Depends(get_session)):
-    await file.read()  # consumed then discarded — file deleted post-verdict (TR-46)
+    import base64
+    raw = await file.read()  # consumed then discarded — file deleted post-verdict (TR-46)
+    image_b64 = base64.b64encode(raw).decode()
     await record_contact(db, c)
-    ev = await pipeline.judge_upload(db, c, {"filename": file.filename})
+    ev = await pipeline.judge_upload(db, c, {"filename": file.filename}, image_b64=image_b64)
     return {"verdict": ev.verdict, "confidence": ev.confidence, "reasoning": ev.reasoning, "evidence_id": ev.id}
 
 

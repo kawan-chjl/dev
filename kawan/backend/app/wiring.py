@@ -1,17 +1,35 @@
 """The single place Lane C swaps stubs for real implementations (ADR-0001).
-Everything downstream imports the adapters / LLM / token provider from here, so the
-hand-off is one file. While stubbed, these are also the deterministic demo levers."""
+KAWAN_AI_BACKEND selects 'stub' (deterministic demo levers + offline tests, default)
+or 'chutes' (real TEE inference). Everything downstream imports ADAPTERS / LLM /
+TOKENS from here, so the hand-off is one file."""
 
 from app.auth import AuthTokenProvider
+from app.config import settings
 from app.contracts import EvidenceAdapter, LLMClient, TokenProvider
-from app.stubs import StubGitHubAdapter, StubLLMClient, StubScreenshotAdapter
 
-ADAPTERS: dict[str, EvidenceAdapter] = {
-    "github": StubGitHubAdapter(),
-    "screenshot": StubScreenshotAdapter(),
-}
-LLM: LLMClient = StubLLMClient()
 TOKENS: TokenProvider = AuthTokenProvider()
+
+
+def _build() -> tuple[dict[str, EvidenceAdapter], LLMClient]:
+    if settings.ai_backend == "stub":
+        from app.stubs import StubGitHubAdapter, StubLLMClient, StubScreenshotAdapter
+        return ({"github": StubGitHubAdapter(), "screenshot": StubScreenshotAdapter()}, StubLLMClient())
+
+    # Real Chutes-backed Lane C (imported lazily so the stub path never imports it).
+    from app.adapters.github import GitHubAdapter
+    from app.adapters.screenshot import ScreenshotAdapter
+    from app.chutes import ChutesClient
+    from app.llm.client import ChutesLLMClient, db_persona_resolver
+
+    chutes = ChutesClient(TOKENS, base_url=settings.chutes_inference_base_url)
+    adapters: dict[str, EvidenceAdapter] = {
+        "github": GitHubAdapter(chutes),
+        "screenshot": ScreenshotAdapter(chutes),
+    }
+    return adapters, ChutesLLMClient(chutes, db_persona_resolver)
+
+
+ADAPTERS, LLM = _build()
 
 
 def adapter_for(evidence_type: str) -> EvidenceAdapter:
