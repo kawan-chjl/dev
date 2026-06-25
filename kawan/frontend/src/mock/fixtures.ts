@@ -122,6 +122,8 @@ export interface ConversationTurn {
   action?: 'options' | 'input' | 'proposal'
   /** Options for action='options' */
   options?: string[]
+  /** Optional emotion tag (TR-34) — drives expression + voice tone together (D2/D3 seam) */
+  emotion?: import('../types/api').Emotion
 }
 
 export const mockConversation: ConversationTurn[] = [

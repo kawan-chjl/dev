@@ -36,18 +36,18 @@ export const modelRegistry: Record<Persona, ModelConfig> = {
   },
 
   // adik → Hiyori (Live2D/CubismWebSamples develop branch)
-  // Idle group: "Idle". No expressions folder — all emotions gracefully no-op.
+  // Idle group: "Idle". Expressions authored in D4 (expressions/ folder, registered in model3.json).
   adik: {
     url: '/models/hiyori/Hiyori.model3.json',
     idleMotionGroup: 'Idle',
     scale: 0.2,
     expressionMap: {
-      neutral: null,
-      curious: null,
-      pleased: null,
-      skeptical: null,
-      concerned: null,
-      proud: null
+      neutral: 'hiyori_neutral',
+      curious: 'hiyori_curious',
+      pleased: 'hiyori_pleased',
+      skeptical: 'hiyori_skeptical',
+      concerned: 'hiyori_concerned',
+      proud: 'hiyori_proud'
     }
   },
 

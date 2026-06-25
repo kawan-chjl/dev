@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     vapid_private_key: str = ""
     vapid_subject: str = "mailto:kawan@example.com"
 
+    # Voice (TTS) — Piper neural TTS (local/demo only; Render free tier returns 204, frontend falls back)
+    # Set KAWAN_PIPER_VOICES_DIR to the directory containing <voice>.onnx + <voice>.onnx.json files.
+    # Default: kawan/backend/voices/ (gitignored). Run scripts/download_voices.sh to populate.
+    piper_voices_dir: str = ""
+
     # Stake + win-back email (Resend HTTP API; falls back to a log-only outbox when unset)
     resend_api_key: str = ""
     email_from: str = "Kawan <kawan@example.com>"
