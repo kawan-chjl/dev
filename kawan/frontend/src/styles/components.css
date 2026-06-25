@@ -29,6 +29,15 @@
   cursor: not-allowed;
 }
 
+/* Primary/accent disabled — override to a legible surface state instead of near-invisible fade */
+.btn-primary:disabled,
+.btn-accent:disabled {
+  opacity: 1;
+  background: var(--surface-sunk);
+  color: var(--ink-faint);
+  box-shadow: none;
+}
+
 /* Primary: accent fill + light text */
 .btn-primary {
   background: var(--accent);
