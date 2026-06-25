@@ -1,8 +1,9 @@
 // AppSidebar — fixed-left hover-expand 64↔200px (desktop) + mobile slide-in drawer.
+// v4: two groups — Dashboard (Home, Commitments, Analytics) and Essentials (History, FAQ, Settings).
 // design-system.md §4 Layer 1. Behavior mirrors SolarSim AppSidebar but uses plain CSS.
 
 import type { LucideIcon } from 'lucide-react'
-import { HelpCircle, History, Home, ListChecks, TrendingUp, X } from 'lucide-react'
+import { BarChart2, HelpCircle, History, Home, ListChecks, Settings, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 
@@ -13,13 +14,32 @@ interface NavItem {
   exact?: boolean
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { to: '/home', label: 'Home', icon: Home, exact: true },
-  { to: '/commitments', label: 'Commitments', icon: ListChecks },
-  { to: '/timeline', label: 'Timeline', icon: TrendingUp },
-  { to: '/faq', label: 'FAQ', icon: HelpCircle },
-  { to: '/history', label: 'History', icon: History }
+interface NavGroup {
+  heading: string
+  items: NavItem[]
+}
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    heading: 'Dashboard',
+    items: [
+      { to: '/home', label: 'Home', icon: Home, exact: true },
+      { to: '/commitments', label: 'Commitments', icon: ListChecks },
+      { to: '/analytics', label: 'Analytics', icon: BarChart2 }
+    ]
+  },
+  {
+    heading: 'Essentials',
+    items: [
+      { to: '/history', label: 'History', icon: History },
+      { to: '/faq', label: 'FAQ', icon: HelpCircle },
+      { to: '/settings', label: 'Settings', icon: Settings }
+    ]
+  }
 ]
+
+// Flat list for mobile drawer (same order, same items)
+const ALL_ITEMS: NavItem[] = NAV_GROUPS.flatMap((g) => g.items)
 
 interface AppSidebarProps {
   mobileOpen: boolean
@@ -33,7 +53,6 @@ export function AppSidebar({ mobileOpen, onMobileClose }: AppSidebarProps) {
   const handleMouseEnter = useCallback(() => setBackdropVisible(true), [])
   const handleMouseLeave = useCallback(() => setBackdropVisible(false), [])
 
-  // Body scroll lock while mobile drawer is open
   useEffect(() => {
     if (!mobileOpen) return
     const original = document.body.style.overflow
@@ -43,14 +62,11 @@ export function AppSidebar({ mobileOpen, onMobileClose }: AppSidebarProps) {
     }
   }, [mobileOpen])
 
-  // Close mobile drawer on route change.
-  // Intentionally only depends on pathname — we want to close on navigate, not on every render.
   // biome-ignore lint/correctness/useExhaustiveDependencies: only fires on pathname change
   useEffect(() => {
     if (mobileOpen) onMobileClose()
   }, [pathname])
 
-  // Escape key closes mobile drawer
   useEffect(() => {
     if (!mobileOpen) return
     function onKeyDown(e: KeyboardEvent) {
@@ -78,21 +94,29 @@ export function AppSidebar({ mobileOpen, onMobileClose }: AppSidebarProps) {
           </Link>
         </div>
 
-        {/* Nav */}
+        {/* Nav — two grouped sections */}
         <nav className="sidebar-nav" aria-label="App navigation">
-          {NAV_ITEMS.map(({ to, label, icon: Icon, exact }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={exact}
-              className={({ isActive }) => `sidebar-link${isActive ? ' sidebar-link-active' : ''}`}
-              aria-label={label}
-            >
-              <span className="sidebar-link-icon" aria-hidden="true">
-                <Icon size={18} />
-              </span>
-              <span className="sidebar-link-label">{label}</span>
-            </NavLink>
+          {NAV_GROUPS.map((group) => (
+            <div key={group.heading} className="sidebar-section">
+              <div className="sidebar-section-heading" aria-hidden="true">
+                <span className="sidebar-section-line" />
+                <span className="sidebar-section-label">{group.heading}</span>
+              </div>
+              {group.items.map(({ to, label, icon: Icon, exact }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  end={exact}
+                  className={({ isActive }) => `sidebar-link${isActive ? ' sidebar-link-active' : ''}`}
+                  aria-label={label}
+                >
+                  <span className="sidebar-link-icon" aria-hidden="true">
+                    <Icon size={18} />
+                  </span>
+                  <span className="sidebar-link-label">{label}</span>
+                </NavLink>
+              ))}
+            </div>
           ))}
         </nav>
       </aside>
@@ -121,7 +145,7 @@ export function AppSidebar({ mobileOpen, onMobileClose }: AppSidebarProps) {
             </button>
           </div>
           <nav className="mobile-drawer-nav" aria-label="App navigation">
-            {NAV_ITEMS.map(({ to, label, icon: Icon, exact }) => (
+            {ALL_ITEMS.map(({ to, label, icon: Icon, exact }) => (
               <NavLink
                 key={to}
                 to={to}

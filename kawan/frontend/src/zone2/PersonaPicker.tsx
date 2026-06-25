@@ -5,14 +5,7 @@
 import { useState } from 'react'
 import { listPersonas } from '../mock/provider'
 import type { Persona } from '../types/api'
-
-// Portrait image paths: Haru/Hiyori use their texture sheets as stand-in portraits.
-// LiveroiD uses the bundled icon (Q-G1: PO GPU portrait would replace this file).
-const PORTRAIT_PATHS: Record<Persona, string> = {
-  kawan: '/models/haru/haru_greeter_t03.2048/texture_00.png',
-  adik: '/models/hiyori/Hiyori.2048/texture_00.png',
-  cik_maid: '/models/liveroid/LiveroiD_A-Y01/ico_LiveroiD_A-Y01.png'
-}
+import { PERSONA_PORTRAITS } from './personaPortraits'
 
 interface PersonaPickerProps {
   selected: Persona
@@ -34,7 +27,7 @@ function PersonaPortrait({ persona, name }: { persona: Persona; name: string }) 
   return (
     <img
       className="persona-portrait-img"
-      src={PORTRAIT_PATHS[persona]}
+      src={PERSONA_PORTRAITS[persona]}
       alt={`Portrait of ${name}`}
       onError={() => setImgFailed(true)}
       loading="lazy"

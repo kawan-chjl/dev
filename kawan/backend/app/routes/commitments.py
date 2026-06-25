@@ -211,6 +211,25 @@ async def timeline(c: Commitment = Depends(_owned), db: AsyncSession = Depends(g
     return {"status": c.status, "escalation": c.escalation, "events": events}
 
 
+@router.delete("/{commitment_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_commitment(c: Commitment = Depends(_owned), db: AsyncSession = Depends(get_session)):
+    """Permanently delete a commitment and all its related rows (cascade order:
+    evidence -> checkins -> proposals -> soft_context -> plan -> success_patterns -> audit_log -> commitment).
+    Current-user scoped via _owned. No undo."""
+    from sqlalchemy import delete as sql_delete
+    from app.models import AuditLog, Checkin, Evidence, Plan, Proposal, SoftContext, SuccessPattern
+    cid = c.id
+    await db.execute(sql_delete(Evidence).where(Evidence.commitment_id == cid))
+    await db.execute(sql_delete(Checkin).where(Checkin.commitment_id == cid))
+    await db.execute(sql_delete(Proposal).where(Proposal.commitment_id == cid))
+    await db.execute(sql_delete(SoftContext).where(SoftContext.commitment_id == cid))
+    await db.execute(sql_delete(Plan).where(Plan.commitment_id == cid))
+    await db.execute(sql_delete(SuccessPattern).where(SuccessPattern.commitment_id == cid))
+    await db.execute(sql_delete(AuditLog).where(AuditLog.commitment_id == cid))
+    await db.delete(c)
+    await db.commit()
+
+
 @router.post("/{commitment_id}/debrief")
 async def debrief(body: DebriefIn, c: Commitment = Depends(_owned), db: AsyncSession = Depends(get_session)):
     """Merge the user's post-outcome reflection into the terminal success_patterns row.

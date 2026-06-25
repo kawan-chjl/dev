@@ -3,14 +3,15 @@ inference bills to the signed-in user). Balance comes from /users/me with the us
 own token."""
 
 import httpx
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
+from sqlalchemy import delete as sql_delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import GUEST_USER_ID, access_token_for
 from app.config import settings
 from app.db import get_session
 from app.deps import current_user
-from app.models import User
+from app.models import AuditLog, Commitment, User
 from app.schemas import MePatch
 
 router = APIRouter()
@@ -22,6 +23,17 @@ async def patch_me(body: MePatch, user: User = Depends(current_user), db: AsyncS
     await db.commit()
     return {"username": user.username, "persona": user.persona,
             "guest": user.id == GUEST_USER_ID, "balance": None}
+
+
+@router.delete("/me/history", status_code=status.HTTP_204_NO_CONTENT)
+async def clear_history(user: User = Depends(current_user), db: AsyncSession = Depends(get_session)):
+    """Delete all audit_log rows for the current user (current-user scoped via their commitments).
+    Permanently removes history. No undo."""
+    from sqlalchemy import select
+    cids = (await db.scalars(select(Commitment.id).where(Commitment.user_id == user.id))).all()
+    if cids:
+        await db.execute(sql_delete(AuditLog).where(AuditLog.commitment_id.in_(cids)))
+        await db.commit()
 
 
 @router.get("/me")

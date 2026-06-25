@@ -83,3 +83,42 @@ export async function startCommitment(id: string): Promise<Commitment> {
   if (res.ok) return (await res.json()) as Commitment
   throw new Error(`POST /api/commitments/${id}/start returned ${res.status}`)
 }
+
+/**
+ * POST /api/commitments/{id}/abandon — closes a commitment via the missed path.
+ * 200 → updated CommitmentOut. Tolerates 409 (already closed).
+ */
+export async function abandonCommitment(id: string): Promise<void> {
+  const res = await fetch(`/api/commitments/${id}/abandon`, {
+    method: 'POST',
+    credentials: 'include'
+  })
+  if (res.ok || res.status === 409) return
+  throw new Error(`POST /api/commitments/${id}/abandon returned ${res.status}`)
+}
+
+/**
+ * DELETE /api/commitments/{id} — permanently deletes a commitment and all its related rows.
+ * 204 on success. Throws on non-204.
+ */
+export async function deleteCommitment(id: string): Promise<void> {
+  const res = await fetch(`/api/commitments/${id}`, {
+    method: 'DELETE',
+    credentials: 'include'
+  })
+  if (res.status === 204) return
+  throw new Error(`DELETE /api/commitments/${id} returned ${res.status}`)
+}
+
+/**
+ * DELETE /api/me/history — permanently deletes the current user's audit log rows.
+ * 204 on success. Throws on non-204.
+ */
+export async function clearHistory(): Promise<void> {
+  const res = await fetch('/api/me/history', {
+    method: 'DELETE',
+    credentials: 'include'
+  })
+  if (res.status === 204) return
+  throw new Error(`DELETE /api/me/history returned ${res.status}`)
+}
