@@ -25,9 +25,11 @@ const MUTE_KEY = 'kawan_voice_muted'
 
 function readMuted(): boolean {
   try {
-    return localStorage.getItem(MUTE_KEY) === 'true'
+    const stored = localStorage.getItem(MUTE_KEY)
+    // Default to muted when no stored preference exists
+    return stored === null ? true : stored === 'true'
   } catch {
-    return false
+    return true
   }
 }
 
@@ -60,23 +62,23 @@ export function StageMode({ turns, currentIndex, onAdvance }: StageModeProps) {
 
   const mic = useSpeechInput()
 
-  // Speak each new Kawan turn automatically (gated on gesture unlock + unmuted).
+  // React to each new Kawan turn: expression fires always; speech is gated on unmuted + gesture unlock.
   useEffect(() => {
-    if (muted) return
-    if (!gestureUnlocked) return
     if (!isKawan) return
     if (currentIndex === lastSpokenIndex.current) return
     if (!current?.text) return
 
     lastSpokenIndex.current = currentIndex
 
-    // Set expression if the turn carries an emotion
+    // Expression fires regardless of mute state (audio-only mute, face always reacts)
     if (current.emotion) {
       stageRef.current?.setExpression(current.emotion)
     }
 
-    // Speak — fire and forget; text is always readable even if voice fails
-    void speakLine(stageRef.current, current.text, persona)
+    // Speak — gated on unmuted + gesture unlock; text is always readable even if voice fails
+    if (!muted && gestureUnlocked) {
+      void speakLine(stageRef.current, current.text, persona)
+    }
   }, [currentIndex, isKawan, muted, gestureUnlocked, current, persona])
 
   function handleAdvance() {
