@@ -31,9 +31,6 @@ class User(Base):
     access_token: Mapped[str]  # encrypted at rest (Fernet) — never the raw token
     refresh_token: Mapped[str]
     token_expiry: Mapped[datetime]
-    # Email/password auth (PO-authorized spec deviation; additive — SIWC/guest use email=None).
-    email: Mapped[str | None] = mapped_column(unique=True, default=None)
-    password_hash: Mapped[str | None] = mapped_column(default=None)  # argon2id; never plaintext
     created_at: Mapped[datetime] = mapped_column(default=now_utc)
 
 

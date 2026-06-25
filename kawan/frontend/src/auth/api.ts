@@ -49,52 +49,6 @@ export async function guestLogin(): Promise<void> {
   if (!res.ok) throw new Error(`POST /api/auth/guest returned ${res.status}`)
 }
 
-/**
- * POST /api/auth/register — create an email/password user and set the session.
- * Throws a typed error so callers can distinguish 409 (duplicate) from other failures.
- */
-export async function register(email: string, password: string): Promise<void> {
-  const res = await fetch('/api/auth/register', {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password })
-  })
-  if (res.ok) return
-  if (res.status === 409) throw new EmailAlreadyRegisteredError()
-  throw new Error(`POST /api/auth/register returned ${res.status}`)
-}
-
-/**
- * POST /api/auth/login — verify email/password and set the session.
- * Throws a typed error so callers can distinguish 401 (bad creds) from other failures.
- */
-export async function login(email: string, password: string): Promise<void> {
-  const res = await fetch('/api/auth/login', {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password })
-  })
-  if (res.ok) return
-  if (res.status === 401) throw new BadCredentialsError()
-  throw new Error(`POST /api/auth/login returned ${res.status}`)
-}
-
-/** Thrown by register() when the email is already taken (HTTP 409). */
-export class EmailAlreadyRegisteredError extends Error {
-  constructor() {
-    super('email already registered')
-  }
-}
-
-/** Thrown by login() when credentials are wrong (HTTP 401). */
-export class BadCredentialsError extends Error {
-  constructor() {
-    super('wrong email or password')
-  }
-}
-
 // ── Persona persistence (Open Q2) ─────────────────────────────────────────────
 // Only the non-sensitive persona preference key lives in localStorage — never tokens.
 

@@ -1,5 +1,5 @@
 // SignIn — /sign-in (public, no shell chrome)
-// Thin Zone-0 wrapper around AuthMethods in sign-in mode.
+// Thin Zone-0 wrapper around AuthMethods (SIWC + guest).
 
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
@@ -24,7 +24,7 @@ export function SignIn() {
           ◉
         </div>
         <h1 className="auth-page-heading">Welcome back.</h1>
-        <AuthMethods mode="sign-in" />
+        <AuthMethods />
       </main>
 
       <footer className="landing-footer">

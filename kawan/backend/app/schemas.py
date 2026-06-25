@@ -6,28 +6,9 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from app.util import as_utc, now_utc
-
-
-class RegisterIn(BaseModel):
-    email: EmailStr
-    password: str
-
-    @field_validator("password")
-    @classmethod
-    def _len(cls, v: str) -> str:
-        if len(v) < 8:
-            raise ValueError("password must be at least 8 characters")
-        if len(v) > 128:
-            raise ValueError("password must be 128 characters or fewer")
-        return v
-
-
-class LoginIn(BaseModel):
-    email: EmailStr
-    password: str
 
 
 class CommitmentCreate(BaseModel):

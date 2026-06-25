@@ -129,7 +129,3 @@ _Avoid_: character, mode, avatar, profile
 > **Domain expert:** Then it's the `deadline` job, not a Check-in. Final verify
 > runs; `fail` with a Skip-day left → Grace for six hours; no Skip-day → Miss,
 > and the Stake fires. Contact doesn't save a deadline — only Evidence does.
-
-## Spec deviations
-
-**Email/password auth (PO-authorized, 24 Jun 2026):** The spec limits auth to SIWC + guest only. Email/password (`POST /api/auth/register`, `POST /api/auth/login`) was added as a PO-authorized deviation. Password hashing uses argon2id (argon2-cffi). Known security gaps deferred post-hackathon: email verification, login rate-limiting.
