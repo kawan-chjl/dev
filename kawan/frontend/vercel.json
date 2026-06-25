@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://<RENDER_URL>/api/:path*"
+      "destination": "https://kawan-backend-hig2.onrender.com/api/:path*"
     }
   ]
 }
