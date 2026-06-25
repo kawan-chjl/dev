@@ -1,12 +1,15 @@
 // CommitmentDetail - /commitments/:id
-// Shows hard-field summary; fields are visibly locked/read-only (design.md §7, iron rule).
-// Reads real data via useActiveCommitment() with mock fallback.
+// Calm overview: read-only locked fields + primary actions (Open workspace, Check now).
+// Both actions navigate to /workspace/:id (locked decision #1).
 
-import { Lock } from 'lucide-react'
-import { useParams } from 'react-router-dom'
+import { ExternalLink, Lock } from 'lucide-react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useActiveCommitment } from '../../commitments/useActiveCommitment'
 import { Badge } from '../../ui/Badge'
+import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
+import { Chip } from '../../ui/Chip'
+import { PageHeader } from '../PageHeader'
 
 function LockIcon() {
   return <Lock size={13} color="var(--ink-faint)" aria-hidden="true" />
@@ -24,16 +27,24 @@ function ReadOnlyField({ label, value }: { label: string; value: string | null }
   )
 }
 
+const escalationLabels: Record<0 | 1 | 2, string> = {
+  0: 'Gentle',
+  1: 'Direct',
+  2: 'Blunt'
+}
+
 export function CommitmentDetail() {
   const { id } = useParams<{ id: string }>()
   const { commitment } = useActiveCommitment()
+  const navigate = useNavigate()
 
-  // A2: single active commitment - show it if id matches, else not found.
+  // Single active commitment: show it if id matches, else not found.
   const match = commitment?.id === id ? commitment : null
 
   if (match === null) {
     return (
       <div className="shell-page">
+        <PageHeader title="Commitment" subtitle="Details and settings." />
         <p className="page-not-found">Commitment not found.</p>
       </div>
     )
@@ -41,9 +52,22 @@ export function CommitmentDetail() {
 
   return (
     <div className="shell-page">
-      <div className="page-header">
-        <h2>Commitment detail</h2>
+      <PageHeader title="Commitment" subtitle="Read-only summary of your current commitment." />
+
+      <div className="detail-status-header">
+        <span className="detail-status-label">Status</span>
+        <Chip variant={match.status === 'active' ? 'sage' : 'default'}>{match.status}</Chip>
         <Badge variant="muted">{match.id}</Badge>
+      </div>
+
+      <div className="detail-actions">
+        <Button variant="accent" onClick={() => navigate(`/workspace/${match.id}`)}>
+          <ExternalLink size={16} aria-hidden="true" />
+          Open workspace
+        </Button>
+        <Button variant="primary" onClick={() => navigate(`/workspace/${match.id}`)}>
+          Check now
+        </Button>
       </div>
 
       <Card className="detail-card">
@@ -60,8 +84,7 @@ export function CommitmentDetail() {
             value={match.stake_enabled ? `Contact: ${match.stake_contact_name ?? 'None yet'}` : 'Not enabled'}
           />
           <ReadOnlyField label="Rest days" value={`${match.skip_days_used} used of ${match.skip_days_total}`} />
-          <ReadOnlyField label="Status" value={match.status} />
-          <ReadOnlyField label="How firm Kawan is" value={String(match.escalation)} />
+          <ReadOnlyField label="How firm Kawan is" value={escalationLabels[match.escalation]} />
         </div>
       </Card>
     </div>

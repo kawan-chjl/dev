@@ -8,6 +8,8 @@ import { useNavigate } from 'react-router-dom'
 import { MOCK_AUTH } from '../../auth/api'
 import { createCommitment } from '../../commitments/api'
 import { useActiveCommitment } from '../../commitments/useActiveCommitment'
+import { useNotifications } from '../../notifications/NotificationProvider'
+import { AnalyticsPanel } from '../../timeline/AnalyticsPanel'
 import type { WsServerMessage } from '../../timeline/api'
 import { postDebrief, triggerCheckNow } from '../../timeline/api'
 import { useTimeline } from '../../timeline/useTimeline'
@@ -245,6 +247,7 @@ export function Timeline() {
   const navigate = useNavigate()
   const { commitment } = useActiveCommitment()
   const { state, timeline, refresh } = useTimeline(commitment?.id ?? null)
+  const { notify } = useNotifications()
 
   // Transient beat banner state (from WS pushes)
   const [beat, setBeat] = useState<BeatState | null>(null)
@@ -274,6 +277,7 @@ export function Timeline() {
       // Non-row moments also surface a transient beat banner.
       if (msg.type === 'winback') {
         setBeat({ message: msg.say, tone: 'neutral' })
+        notify(msg.say, { kind: 'info' })
       } else if (msg.type === 'verdict') {
         // verdict beat is neutral — unclear/fail never punishing (TR-64)
         const verdictCopy =
@@ -283,17 +287,20 @@ export function Timeline() {
               ? (msg.reasoning ?? 'Not sure yet. Give it a moment.')
               : (msg.reasoning ?? 'No pass this time.')
         setBeat({ message: verdictCopy, tone: 'neutral' })
+        notify(verdictCopy, { kind: msg.verdict === 'pass' ? 'success' : 'info' })
       } else if (msg.type === 'celebration') {
         setBeat({ message: msg.say, tone: 'celebrate' })
+        notify(msg.say, { kind: 'success' })
         // Stash the last-known commitment for the habit-loop close (Q9).
         if (commitment !== null) setClosedCommitment({ ...commitment, status: 'completed' })
       } else if (msg.type === 'reckoning') {
         setBeat({ message: msg.say, tone: 'neutral' })
+        notify(msg.say, { kind: 'info' })
         if (commitment !== null) setClosedCommitment({ ...commitment, status: 'missed' })
       }
       // workspace/error are A3 scope — ignored here.
     },
-    [refresh, commitment]
+    [refresh, commitment, notify]
   )
 
   const { connected } = useWorkspaceSocket(onEvent)
@@ -337,7 +344,7 @@ export function Timeline() {
         })
       }
       // Navigate into the Compose/stepper so the user can tweak the new draft (Open Q3).
-      navigate('/new')
+      navigate('/commitments/new')
     } catch (err) {
       // Surface inline, non-fatal.
       setCheckError(err instanceof Error ? err.message : 'Could not repeat commitment')
@@ -396,6 +403,7 @@ export function Timeline() {
 
       {state === 'ready' && timeline !== null && (
         <>
+          <AnalyticsPanel events={timeline.events} />
           <MomentumDots events={timeline.events} />
           <div className="timeline-container">
             {timeline.events.map((event) => {

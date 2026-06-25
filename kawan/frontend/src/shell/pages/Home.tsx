@@ -1,13 +1,14 @@
-// Home — V4 "Warm Witness bento"
-// Active state: bento layout with commitment hero card + status strip cards + roadmap card.
-// Idle state (TR-13): warm inviting hero + how-it-works strip.
-// Reads real commitment data via useActiveCommitment() with mock fallback + dev toggle.
+// Home — bento dashboard.
+// Active: hero stat card + quick-access + recent activity (design-system.md §6 "1.png" aesthetic).
+// Idle: warm inviting hero + how-it-works strip.
+// No streaks (spec). No SHOUTY uppercase labels.
 
-import { Clock, Lock, ShieldCheck, Sparkles } from 'lucide-react'
+import { BarChart2, Clock, ExternalLink, ShieldCheck, Sparkles, TrendingUp } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useActiveCommitment } from '../../commitments/useActiveCommitment'
 import { getMockActive, setMockActive } from '../../mock/provider'
+import { useTimeline } from '../../timeline/useTimeline'
 import type { Commitment } from '../../types/api'
 import { Badge } from '../../ui/Badge'
 import { Button } from '../../ui/Button'
@@ -24,54 +25,6 @@ function formatDeadline(iso: string): string {
   if (diffDays === 0) return 'Due today'
   if (diffDays === 1) return '1 day left'
   return `${diffDays} days left`
-}
-
-const checkInToneLabels: Record<0 | 1 | 2, string> = {
-  0: 'Gentle',
-  1: 'Direct',
-  2: 'Blunt'
-}
-
-export function Home() {
-  const navigate = useNavigate()
-  // Dev toggle - drives the mock getter in mock/fallback mode (preserved per plan).
-  const [mockActive, setLocalMockActive] = useState(getMockActive())
-  const { state, commitment, refresh } = useActiveCommitment()
-
-  function toggleMockState() {
-    const next = !mockActive
-    setMockActive(next)
-    setLocalMockActive(next)
-    // Re-run the hook's load so it picks up the toggled mock state.
-    refresh()
-  }
-
-  return (
-    <div className="shell-page">
-      <PageHeader title="Good to have you back." subtitle="Kawan is watching, with your permission." />
-
-      {/* Dev toggle - local dev only, never in production */}
-      {import.meta.env.DEV && (
-        <div className="dev-toggle">
-          <button type="button" className="dev-toggle-btn" onClick={toggleMockState}>
-            [dev] {mockActive ? 'Active to Idle' : 'Idle to Active'}
-          </button>
-        </div>
-      )}
-
-      {state === 'loading' ? (
-        <div className="home-loading">
-          <p className="home-loading-text">Loading...</p>
-        </div>
-      ) : commitment == null ? (
-        /* Idle state - TR-13 */
-        <IdleState onCompose={() => navigate('/new')} />
-      ) : (
-        /* Active state */
-        <ActiveState commitment={commitment} />
-      )}
-    </div>
-  )
 }
 
 function IdleState({ onCompose }: { onCompose: () => void }) {
@@ -127,60 +80,176 @@ function IdleState({ onCompose }: { onCompose: () => void }) {
   )
 }
 
-function ActiveState({ commitment }: { commitment: Commitment }) {
+interface ActiveStateProps {
+  commitment: Commitment
+}
+
+function ActiveState({ commitment }: ActiveStateProps) {
+  const navigate = useNavigate()
+  const { timeline } = useTimeline(commitment.id)
+
+  const verifiedCount = timeline?.events.filter((e) => e.type === 'evidence' && e.verdict === 'pass').length ?? 0
+  const recentEvents = (timeline?.events ?? []).slice(-3).reverse()
+
   return (
-    <div className="home-active-v2">
-      {/* Hero: commitment sentence card */}
-      <Card className="home-commitment-card">
-        <p className="home-commitment-label">Your commitment</p>
-        <p className="home-commitment-sentence">
-          I will <strong>{commitment.action}</strong>{' '}
-          <span className="home-commitment-deliverable">{commitment.deliverable}</span>
-        </p>
-        <div className="home-commitment-meta">
-          <Chip variant="default">
-            <Clock size={12} aria-hidden="true" />
-            {formatDeadline(commitment.deadline)}
-          </Chip>
-          <Badge variant="muted">{commitment.evidence_type}</Badge>
-          <span className="home-tee-pill" title="Verified inside a Trusted Execution Environment">
-            <Lock size={11} aria-hidden="true" />
-            TEE verified
-          </span>
+    <div className="home-bento">
+      {/* Hero stat card */}
+      <Card className="home-hero-card">
+        <div className="home-hero-body">
+          <div className="home-hero-text">
+            <p className="home-hero-label">Your commitment</p>
+            <p className="home-hero-sentence">
+              I will <strong>{commitment.action}</strong>{' '}
+              <span className="home-hero-deliverable">{commitment.deliverable}</span>
+            </p>
+            <div className="home-hero-meta">
+              <Chip variant="default">
+                <Clock size={12} aria-hidden="true" />
+                {formatDeadline(commitment.deadline)}
+              </Chip>
+              <Badge variant="muted">{commitment.evidence_type}</Badge>
+            </div>
+          </div>
+          <div className="home-hero-stat">
+            <span className="home-hero-stat-number">{verifiedCount}</span>
+            <span className="home-hero-stat-label">verified</span>
+          </div>
+        </div>
+
+        <div className="home-hero-actions">
+          <Button variant="accent" onClick={() => navigate(`/workspace/${commitment.id}`)}>
+            Open workspace
+          </Button>
+          <Button variant="secondary" onClick={() => navigate(`/workspace/${commitment.id}`)}>
+            Check now
+          </Button>
         </div>
       </Card>
 
-      {/* Status bento: 2-col at lg */}
-      <div className="home-status-bento">
-        <Card className="home-status-card">
-          <p className="home-status-label">How Kawan checks in</p>
-          <Chip variant="default">{checkInToneLabels[commitment.escalation]}</Chip>
+      {/* Quick access row */}
+      <div className="home-quick-access">
+        <Card
+          className="home-quick-card"
+          role="button"
+          tabIndex={0}
+          onClick={() => navigate('/timeline')}
+          onKeyDown={(e) => e.key === 'Enter' && navigate('/timeline')}
+        >
+          <TrendingUp size={20} color="var(--accent)" aria-hidden="true" />
+          <p className="home-quick-label">Timeline</p>
+          <p className="home-quick-sub">Every check-in</p>
         </Card>
-        <Card className="home-status-card">
-          <p className="home-status-label">Rest days left</p>
-          <Chip variant={commitment.skip_days_used < commitment.skip_days_total ? 'sage' : 'default'}>
-            {commitment.skip_days_total - commitment.skip_days_used}
-          </Chip>
+        <Card
+          className="home-quick-card"
+          role="button"
+          tabIndex={0}
+          onClick={() => navigate(`/commitments/${commitment.id}`)}
+          onKeyDown={(e) => e.key === 'Enter' && navigate(`/commitments/${commitment.id}`)}
+        >
+          <ShieldCheck size={20} color="var(--sage-deep)" aria-hidden="true" />
+          <p className="home-quick-label">Commitment</p>
+          <p className="home-quick-sub">Details and settings</p>
         </Card>
-        <Card className="home-status-card">
-          <p className="home-status-label">Status</p>
-          <Chip variant={commitment.status === 'active' ? 'sage' : 'default'}>{commitment.status}</Chip>
+        <Card
+          className="home-quick-card"
+          role="button"
+          tabIndex={0}
+          onClick={() => navigate(`/workspace/${commitment.id}`)}
+          onKeyDown={(e) => e.key === 'Enter' && navigate(`/workspace/${commitment.id}`)}
+        >
+          <ExternalLink size={20} color="var(--clay)" aria-hidden="true" />
+          <p className="home-quick-label">Workspace</p>
+          <p className="home-quick-sub">Talk to Kawan</p>
+        </Card>
+        <Card
+          className="home-quick-card"
+          role="button"
+          tabIndex={0}
+          onClick={() => navigate('/timeline')}
+          onKeyDown={(e) => e.key === 'Enter' && navigate('/timeline')}
+        >
+          <BarChart2 size={20} color="var(--ink-faint)" aria-hidden="true" />
+          <p className="home-quick-label">Analytics</p>
+          <p className="home-quick-sub">See your progress</p>
         </Card>
       </div>
 
-      {/* Roadmap card */}
-      <Card className="home-roadmap-card">
-        <p className="home-roadmap-label">Your plan</p>
-        <p className="home-roadmap-placeholder">
-          Your plan shows up here after we talk it through. Start your first check-in to begin.
-        </p>
-      </Card>
+      {/* Recent activity */}
+      {recentEvents.length > 0 && (
+        <Card className="home-activity-card">
+          <p className="home-activity-label">Recent activity</p>
+          <ul className="home-activity-list">
+            {recentEvents.map((event, i) => {
+              const timeStr = new Date(event.at).toLocaleString('en-MY', {
+                day: 'numeric',
+                month: 'short',
+                hour: '2-digit',
+                minute: '2-digit'
+              })
+              if (event.type === 'checkin') {
+                return (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: stable reverse-slice from sorted timeline
+                  <li key={i} className="home-activity-item">
+                    <span className="home-activity-dot home-activity-dot-checkin" aria-hidden="true" />
+                    <span className="home-activity-text">Check-in</span>
+                    <span className="home-activity-time">{timeStr}</span>
+                  </li>
+                )
+              }
+              if (event.type === 'evidence') {
+                const label =
+                  event.verdict === 'pass' ? 'Verified' : event.verdict === 'unclear' ? 'Not sure yet' : 'No pass'
+                return (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: stable reverse-slice from sorted timeline
+                  <li key={i} className="home-activity-item">
+                    <span className="home-activity-dot home-activity-dot-evidence" aria-hidden="true" />
+                    <span className="home-activity-text">{label}</span>
+                    <span className="home-activity-time">{timeStr}</span>
+                  </li>
+                )
+              }
+              return null
+            })}
+          </ul>
+        </Card>
+      )}
+    </div>
+  )
+}
 
-      {/* CTAs */}
-      <div className="home-actions">
-        <Button variant="primary">Check now</Button>
-        <Button variant="secondary">Upload evidence</Button>
-      </div>
+export function Home() {
+  const navigate = useNavigate()
+  const [mockActive, setLocalMockActive] = useState(getMockActive())
+  const { state, commitment, refresh } = useActiveCommitment()
+
+  function toggleMockState() {
+    const next = !mockActive
+    setMockActive(next)
+    setLocalMockActive(next)
+    refresh()
+  }
+
+  return (
+    <div className="shell-page">
+      <PageHeader title="Good to have you back." subtitle="Kawan is watching, with your permission." />
+
+      {import.meta.env.DEV && (
+        <div className="dev-toggle">
+          <button type="button" className="dev-toggle-btn" onClick={toggleMockState}>
+            [dev] {mockActive ? 'Active to Idle' : 'Idle to Active'}
+          </button>
+        </div>
+      )}
+
+      {state === 'loading' ? (
+        <div className="home-loading">
+          <p className="home-loading-text">Loading...</p>
+        </div>
+      ) : commitment == null ? (
+        <IdleState onCompose={() => navigate('/commitments/new')} />
+      ) : (
+        <ActiveState commitment={commitment} />
+      )}
     </div>
   )
 }
