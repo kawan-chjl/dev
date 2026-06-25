@@ -1,8 +1,12 @@
-// Topbar — app header: logo, context title, account affordance, menu button.
-// design.md §6 Zone 1, layer 2.
+// Topbar — glass fixed bar (Layer 2). design-system.md §4.
+// Left: hamburger (mobile) + page title. Right: ThemeToggle + balance pill + account menu.
 
+import { LogOut, Menu, Settings } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { useTheme } from '../hooks/useTheme'
+import { ThemeToggle } from '../ui/ThemeToggle'
 
 interface TopbarProps {
   onMenuOpen: () => void
@@ -13,38 +17,97 @@ const ROUTE_TITLES: Record<string, string> = {
   '/commitments': 'Commitments',
   '/timeline': 'Timeline',
   '/settings': 'Settings',
-  '/settings/audit': 'Audit Log'
+  '/settings/audit': 'History'
 }
 
-function useRouteTitle(): string {
+function usePageTitle(): string {
   const { pathname } = useLocation()
-  // Match /commitments/:id as well
   if (pathname.startsWith('/commitments/')) return 'Commitment'
   return ROUTE_TITLES[pathname] ?? 'Kawan'
 }
 
 export function Topbar({ onMenuOpen }: TopbarProps) {
-  const title = useRouteTitle()
-  const { me } = useAuth()
-  const balanceDisplay = me?.balance != null ? `$${me.balance.toFixed(2)}` : '—'
+  const title = usePageTitle()
+  const { me, signOut } = useAuth()
+  const { theme, toggle } = useTheme()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  const balanceDisplay = me?.balance != null ? `$${me.balance.toFixed(2)}` : null
+  const avatarLetter = me?.username ? me.username.charAt(0).toUpperCase() : 'K'
+
+  useEffect(() => {
+    if (!menuOpen) return
+    function onPointerDown(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onPointerDown)
+    return () => document.removeEventListener('mousedown', onPointerDown)
+  }, [menuOpen])
+
+  async function handleSignOut() {
+    setMenuOpen(false)
+    await signOut()
+  }
 
   return (
     <header className="topbar">
+      {/* Left */}
       <div className="topbar-left">
         <button type="button" className="topbar-menu-btn" aria-label="Open navigation menu" onClick={onMenuOpen}>
-          <span aria-hidden="true">☰</span>
+          <Menu size={20} />
         </button>
-        <Link to="/home" className="topbar-logo" aria-label="Kawan home">
-          <img src="/kawan-logo.png" alt="" width={28} height={28} />
-          <span className="topbar-logo-text">Kawan</span>
-        </Link>
+        <h1 className="topbar-title">{title}</h1>
       </div>
-      <h1 className="topbar-title">{title}</h1>
-      <div className="topbar-account">
-        <span className="topbar-balance" title="Chutes balance">
-          {balanceDisplay}
-        </span>
-        <span className="topbar-username">{me?.username ?? ''}</span>
+
+      {/* Right */}
+      <div className="topbar-right">
+        <ThemeToggle theme={theme} onToggle={toggle} />
+
+        {balanceDisplay != null && (
+          <span className="topbar-balance" title="Chutes balance">
+            {balanceDisplay}
+          </span>
+        )}
+
+        <div className="topbar-popover-wrap" ref={menuRef}>
+          <button
+            type="button"
+            className="topbar-account-btn"
+            aria-label="Account menu"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((prev) => !prev)}
+          >
+            {avatarLetter}
+          </button>
+
+          {menuOpen && (
+            <div className="topbar-popover" role="menu">
+              <div className="topbar-popover-header">
+                <p className="topbar-popover-username">{me?.username ?? 'Guest'}</p>
+                {me?.persona && <p className="topbar-popover-role">{me.persona}</p>}
+              </div>
+              <div className="topbar-popover-body">
+                <Link to="/settings" className="topbar-popover-item" role="menuitem" onClick={() => setMenuOpen(false)}>
+                  <Settings size={16} aria-hidden="true" />
+                  Settings
+                </Link>
+                <div className="topbar-popover-divider" />
+                <button
+                  type="button"
+                  className="topbar-popover-item topbar-popover-item-danger"
+                  role="menuitem"
+                  onClick={handleSignOut}
+                >
+                  <LogOut size={16} aria-hidden="true" />
+                  Sign out
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   )

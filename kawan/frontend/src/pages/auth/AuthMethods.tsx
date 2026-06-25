@@ -1,5 +1,5 @@
-// AuthMethods — shared block rendered by /sign-in.
-// Offers two auth entries: SIWC and guest.
+// AuthMethods — sign-in buttons: SIWC (primary) + guest (secondary).
+// Preserves loginRedirect() and guestLogin() wiring unchanged.
 
 import { useState } from 'react'
 import { useAuth } from '../../auth/AuthProvider'
@@ -28,21 +28,16 @@ export function AuthMethods() {
 
   return (
     <div className="auth-methods">
-      {/* 1. Sign in with Chutes */}
+      {/* Primary: Sign in with Chutes */}
       <Button variant="accent" className="auth-methods-btn" onClick={() => loginRedirect()}>
         Sign in with Chutes
       </Button>
-      <p className="landing-cta-note">Billed to your Chutes account · TEE-verified inference</p>
 
-      <div className="auth-methods-divider" aria-hidden="true">
-        <span>or</span>
-      </div>
-
-      {/* 2. Guest */}
+      {/* Secondary: Guest */}
       <Button variant="secondary" className="auth-methods-btn" onClick={handleGuest} disabled={guestBusy}>
-        {guestBusy ? 'Signing in…' : 'Continue as guest'}
+        {guestBusy ? 'Signing in...' : 'Continue as guest'}
       </Button>
-      <p className="landing-cta-note">No Chutes account? Try it with a guest session.</p>
+
       {guestError && (
         <p className="auth-methods-error" role="alert">
           {guestError}

@@ -46,12 +46,14 @@ export function Home() {
 
   return (
     <div className="shell-page">
-      {/* Dev toggle — not a real feature */}
-      <div className="dev-toggle">
-        <button type="button" className="dev-toggle-btn" onClick={toggleMockState}>
-          [dev] {mockActive ? 'Active → Idle' : 'Idle → Active'}
-        </button>
-      </div>
+      {/* Dev toggle — local dev only, never in production */}
+      {import.meta.env.DEV && (
+        <div className="dev-toggle">
+          <button type="button" className="dev-toggle-btn" onClick={toggleMockState}>
+            [dev] {mockActive ? 'Active to Idle' : 'Idle to Active'}
+          </button>
+        </div>
+      )}
 
       {state === 'loading' ? (
         <div className="home-loading">

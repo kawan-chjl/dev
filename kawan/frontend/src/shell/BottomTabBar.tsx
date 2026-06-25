@@ -1,28 +1,34 @@
-// BottomTabBar — mobile-only bottom navigation (≤ --bp-mobile).
-// design.md §6 Zone 1, layer 1 (mobile variant).
-// Hidden on desktop via CSS media query.
+// BottomTabBar — mobile-only bottom navigation (≤768px). design-system.md §4.
 
+import type { LucideIcon } from 'lucide-react'
+import { Clock, Home, ListChecks, Settings } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 
-const TAB_ITEMS = [
-  { to: '/home', label: 'Home', icon: '⌂' },
-  { to: '/commitments', label: 'Commitments', icon: '◎' },
-  { to: '/timeline', label: 'Timeline', icon: '~' },
-  { to: '/settings', label: 'Settings', icon: '⚙' }
+interface TabItem {
+  to: string
+  label: string
+  icon: LucideIcon
+}
+
+const TAB_ITEMS: TabItem[] = [
+  { to: '/home', label: 'Home', icon: Home },
+  { to: '/commitments', label: 'Commitments', icon: ListChecks },
+  { to: '/timeline', label: 'Timeline', icon: Clock },
+  { to: '/settings', label: 'Settings', icon: Settings }
 ]
 
 export function BottomTabBar() {
   return (
     <nav className="bottom-tab-bar" aria-label="Main navigation">
       <ul className="bottom-tab-list">
-        {TAB_ITEMS.map(({ to, label, icon }) => (
+        {TAB_ITEMS.map(({ to, label, icon: Icon }) => (
           <li key={to} className="bottom-tab-item">
             <NavLink
               to={to}
-              className={({ isActive }) => `bottom-tab-link ${isActive ? 'bottom-tab-link-active' : ''}`}
+              className={({ isActive }) => `bottom-tab-link${isActive ? ' bottom-tab-link-active' : ''}`}
             >
               <span className="bottom-tab-icon" aria-hidden="true">
-                {icon}
+                <Icon size={20} />
               </span>
               <span className="bottom-tab-label">{label}</span>
             </NavLink>

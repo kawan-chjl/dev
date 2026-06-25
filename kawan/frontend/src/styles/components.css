@@ -1,6 +1,6 @@
-/* Shared component classes — used by src/ui/* primitives */
+/* Shared component classes — used by src/ui/* primitives — design-system.md §6 */
 
-/* Buttons — design.md §7 */
+/* ── Buttons ── */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -29,23 +29,23 @@
   cursor: not-allowed;
 }
 
-/* Primary: espresso fill + cream text */
+/* Primary: accent fill + light text */
 .btn-primary {
-  background: var(--ink);
-  color: var(--surface);
+  background: var(--accent);
+  color: var(--surface-2);
 }
 .btn-primary:hover:not(:disabled) {
-  background: #1a1511;
+  background: var(--accent-press);
   box-shadow: var(--shadow-sm);
 }
 .btn-primary:active:not(:disabled) {
-  background: var(--ink);
+  background: var(--accent-press);
   box-shadow: none;
 }
 
-/* Secondary: outline pill */
+/* Secondary: surface + border */
 .btn-secondary {
-  background: transparent;
+  background: var(--surface);
   color: var(--ink);
   border: 1.5px solid var(--line);
 }
@@ -53,10 +53,20 @@
   background: var(--surface-sunk);
 }
 
-/* Accent: terracotta — single most important CTA per surface */
+/* Ghost: transparent */
+.btn-ghost {
+  background: transparent;
+  color: var(--ink-soft);
+}
+.btn-ghost:hover:not(:disabled) {
+  background: var(--surface-sunk);
+  color: var(--ink);
+}
+
+/* Accent: burnt orange CTA — keep as alias of primary for backward compat */
 .btn-accent {
   background: var(--accent);
-  color: var(--surface);
+  color: var(--surface-2);
 }
 .btn-accent:hover:not(:disabled) {
   background: var(--accent-press);
@@ -66,29 +76,37 @@
   background: var(--accent-press);
 }
 
-/* Cards — design.md §7: --surface, xl radius, hairline border, soft warm shadow */
+/* ── Cards (bento) ── */
 .card {
   background: var(--surface);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-card);
   border: 1.5px solid var(--line);
   box-shadow: var(--shadow-sm);
   padding: var(--space-6);
+  transition:
+    box-shadow var(--duration-ui) var(--ease-smooth),
+    transform var(--duration-ui) var(--ease-smooth);
 }
 
-/* Selected card: filled --ink, inverted text — design.md §7 */
+.card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+/* Selected card — accent ring + tint */
 .card-selected {
-  background: var(--ink);
-  color: var(--surface);
-  border-color: var(--ink);
+  background: var(--accent-tint);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent);
 }
 .card-selected h1,
 .card-selected h2,
 .card-selected h3,
 .card-selected p {
-  color: var(--surface);
+  color: var(--ink);
 }
 
-/* Chips — design.md §5 */
+/* ── Chips / badges ── */
 .chip {
   display: inline-flex;
   align-items: center;
@@ -103,32 +121,29 @@
   background: var(--surface-sunk);
   color: var(--ink-soft);
 }
-/* pass = sage — neutral positive, not celebratory green */
 .chip-pass {
-  background: var(--sage);
+  background: var(--sage-tint);
   color: var(--sage-deep);
 }
-/* fail = muted — honest, not accusatory red (TR-64) */
 .chip-fail {
   background: var(--surface-sunk);
   color: var(--ink-soft);
 }
-/* unclear = curious, never punishing (design.md §9, TR-40) */
 .chip-unclear {
   background: var(--surface-sunk);
   color: var(--ink-soft);
   font-style: italic;
 }
 .chip-accent {
-  background: var(--accent);
-  color: var(--surface);
+  background: var(--accent-tint);
+  color: var(--accent-press);
 }
 .chip-sage {
-  background: var(--sage);
+  background: var(--sage-tint);
   color: var(--sage-deep);
 }
 
-/* Badges */
+/* ── Badges ── */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -143,14 +158,60 @@
   color: var(--ink-soft);
 }
 .badge-accent {
-  background: var(--accent);
-  color: var(--surface);
+  background: var(--accent-tint);
+  color: var(--accent-press);
 }
 .badge-sage {
-  background: var(--sage);
+  background: var(--sage-tint);
   color: var(--sage-deep);
 }
 .badge-muted {
   background: var(--surface-sunk);
-  color: var(--muted);
+  color: var(--ink-faint);
+}
+
+/* ── Pill (status / balance) ── */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 4px var(--space-3);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-body);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.pill-default {
+  background: var(--surface-sunk);
+  color: var(--ink-soft);
+}
+.pill-accent {
+  background: var(--accent-tint);
+  color: var(--accent-press);
+}
+.pill-sage {
+  background: var(--sage-tint);
+  color: var(--sage-deep);
+}
+
+/* ── Theme toggle button ── */
+.theme-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: none;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition:
+    background var(--duration-ui) var(--ease-out),
+    color var(--duration-ui) var(--ease-out);
+}
+.theme-toggle-btn:hover {
+  background: var(--surface-sunk);
+  color: var(--ink);
 }
