@@ -614,16 +614,8 @@
   text-align: center;
 }
 
-/* Desktop: vertically center the empty-state card when it is the sole content of the shell page */
-@media (min-width: 769px) {
-  .shell-page:has(> .empty-state-card) {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: calc(100svh - var(--topbar-h) - var(--space-8) * 2);
-  }
-}
+/* empty-state-card: horizontally centered within normal top-aligned page flow.
+   No vertical centering (justify-content: center) - matches /home, /commitments, /faq layout. */
 
 .empty-state-icon-wrap {
   display: flex;
@@ -3494,129 +3486,6 @@
 .kawan-dp-done-btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-}
-
-/* ── New Commitment: vertical-center layout ── */
-/* The step inner div uses min-height so short steps fill the viewport height
-   between the fixed topbar and the fixed footer action bar. Long steps scroll naturally. */
-.new-commitment-step-center {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-height: calc(100svh - 52px - 72px); /* topbar 52px + footer ~72px */
-}
-
-/* ── Stepper redesign ── */
-/* Replaces the old dot-only stepper with a connected progress track */
-.stepper-v2 {
-  display: flex;
-  align-items: center;
-  gap: 0;
-}
-
-.stepper-v2-step {
-  display: flex;
-  align-items: center;
-}
-
-.stepper-v2-node {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  position: relative;
-}
-
-.stepper-v2-circle {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid var(--line-strong);
-  background: var(--surface);
-  color: var(--ink-faint);
-  font-size: 10px;
-  font-weight: 700;
-  font-family: var(--font-body);
-  flex-shrink: 0;
-  transition:
-    background var(--duration-ui) var(--ease-out),
-    border-color var(--duration-ui) var(--ease-out);
-}
-
-/* Done: filled accent */
-.stepper-v2-done .stepper-v2-circle {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-}
-
-/* Current: accent ring, white fill */
-.stepper-v2-current .stepper-v2-circle {
-  background: var(--surface-2);
-  border-color: var(--accent);
-  border-width: 2.5px;
-  color: var(--accent);
-}
-
-/* Upcoming: muted (still meets 4.5:1 on --surface via --ink-soft) */
-.stepper-v2-upcoming .stepper-v2-circle {
-  background: var(--surface-sunk);
-  border-color: var(--line);
-  color: var(--ink-soft);
-}
-
-.stepper-v2-label {
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--ink-faint);
-  white-space: nowrap;
-  position: absolute;
-  top: 100%;
-  margin-top: 4px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-.stepper-v2-current .stepper-v2-label {
-  color: var(--ink);
-  font-weight: 700;
-}
-.stepper-v2-done .stepper-v2-label {
-  color: var(--ink-soft);
-}
-
-/* Track line between nodes */
-.stepper-v2-track {
-  flex: 1;
-  height: 2px;
-  background: var(--line);
-  min-width: var(--space-6);
-  transition: background var(--duration-ui) var(--ease-out);
-}
-.stepper-v2-track-done {
-  background: var(--accent);
-}
-
-/* "Step X of Y" badge */
-.stepper-v2-counter {
-  font-size: var(--text-caption);
-  color: var(--ink-faint);
-  white-space: nowrap;
-  margin-left: var(--space-4);
-  flex-shrink: 0;
-}
-
-/* Stepper wrapper in workspace topbar — with breathing room for labels below */
-.new-commitment-stepper-wrap {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding-bottom: 18px; /* space for absolute label text */
-  flex: 1;
-  justify-content: center;
 }
 
 /* ── Compose step: commitment card with breathing room ── */

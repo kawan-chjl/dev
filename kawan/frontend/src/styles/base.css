@@ -102,6 +102,19 @@ img {
   font-family: var(--font-display);
 }
 
+/* Screen-reader only: visually hidden but readable by assistive tech */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* Fraunces italic "voice" — emotional emphasis, used word-level only */
 .italic-voice {
   font-family: var(--font-display);
