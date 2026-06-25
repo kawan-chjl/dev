@@ -28,6 +28,7 @@
   /* ── Typography ── */
   --font-display: "Fraunces", Georgia, serif;
   --font-body: "Inter", system-ui, sans-serif;
+  --font-wordmark: "Fredoka", system-ui, sans-serif;
 
   /* Type scale */
   --text-display-lg: 3.5rem;
