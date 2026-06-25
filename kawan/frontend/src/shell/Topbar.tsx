@@ -17,7 +17,8 @@ interface TopbarProps {
 const ROUTE_TITLES: Record<string, string> = {
   '/home': 'Home',
   '/commitments': 'Commitments',
-  '/timeline': 'Timeline',
+  '/analytics': 'Analytics',
+  '/timeline': 'Analytics',
   '/settings': 'Settings',
   '/history': 'History',
   '/faq': 'FAQ'

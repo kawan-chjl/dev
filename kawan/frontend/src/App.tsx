@@ -8,13 +8,13 @@ import { NotFound } from './pages/NotFound'
 import { SignIn } from './pages/SignIn'
 import { SignUp } from './pages/SignUp'
 import { Welcome } from './pages/Welcome'
+import { Analytics } from './shell/pages/Analytics'
 import { CommitmentDetail } from './shell/pages/CommitmentDetail'
 import { Commitments } from './shell/pages/Commitments'
 import { Faq } from './shell/pages/Faq'
 import { Home } from './shell/pages/Home'
 import { Settings } from './shell/pages/Settings'
 import { SettingsAudit } from './shell/pages/SettingsAudit'
-import { Timeline } from './shell/pages/Timeline'
 import { ShellLayout } from './shell/ShellLayout'
 import { NewCommitment } from './zone2/NewCommitment'
 import { WorkspaceLayout } from './zone2/WorkspaceLayout'
@@ -41,7 +41,9 @@ export default function App() {
         <Route path="/home" element={<Home />} />
         <Route path="/commitments" element={<Commitments />} />
         <Route path="/commitments/:id" element={<CommitmentDetail />} />
-        <Route path="/timeline" element={<Timeline />} />
+        {/* /timeline redirects to /analytics (v4 rename) */}
+        <Route path="/timeline" element={<Navigate to="/analytics" replace />} />
+        <Route path="/analytics" element={<Analytics />} />
         <Route path="/settings" element={<Settings />} />
         {/* /history is the canonical route; /settings/audit redirects to it */}
         <Route path="/history" element={<SettingsAudit />} />

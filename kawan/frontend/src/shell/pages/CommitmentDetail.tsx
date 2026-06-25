@@ -1,14 +1,24 @@
 // CommitmentDetail - /commitments/:id
-// Calm overview: read-only locked fields + primary actions (Open workspace, Check now).
-// Both actions navigate to /workspace/:id (locked decision #1).
+// Two-column layout: content sections + sticky OnThisPage island.
+// Overview: honest derived summary from timeline events (Lane C AI not built).
+// Timeline section: event log using shared eventRows.tsx.
+// recordRecentCommitment called on mount so Home Recent Activity is updated.
 
 import { ExternalLink, Lock } from 'lucide-react'
+import { useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { recordRecentCommitment } from '../../commitments/recent'
 import { useActiveCommitment } from '../../commitments/useActiveCommitment'
+import { CheckinEventRow, EvidenceEventRow, ProposalEventRow } from '../../timeline/eventRows'
+import { verifiedCount } from '../../timeline/metrics'
+import { useTimeline } from '../../timeline/useTimeline'
+import type { Commitment } from '../../types/api'
 import { Badge } from '../../ui/Badge'
 import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
 import { Chip } from '../../ui/Chip'
+import type { PageSection } from '../OnThisPage'
+import { OnThisPage } from '../OnThisPage'
 import { PageHeader } from '../PageHeader'
 
 function LockIcon() {
@@ -33,13 +43,99 @@ const escalationLabels: Record<0 | 1 | 2, string> = {
   2: 'Blunt'
 }
 
+const DETAIL_SECTIONS: PageSection[] = [
+  { id: 'section-overview', label: 'Overview' },
+  { id: 'section-action', label: 'Action' },
+  { id: 'section-deliverables', label: 'Deliverables' },
+  { id: 'section-deadline', label: 'Deadline' },
+  { id: 'section-evidence', label: 'Evidence' },
+  { id: 'section-accountability', label: 'Accountability' },
+  { id: 'section-rest-days', label: 'Rest days' },
+  { id: 'section-how-firm', label: 'How firm' },
+  { id: 'section-timeline', label: 'Timeline' }
+]
+
+function OverviewSection({ commitment }: { commitment: Commitment }) {
+  const { timeline } = useTimeline(commitment.id)
+  const events = timeline?.events ?? []
+  const verified = verifiedCount(events)
+  const totalCheckins = events.filter((e) => e.type === 'evidence').length
+  const lastEvidence = [...events].reverse().find((e) => e.type === 'evidence') as
+    | Extract<(typeof events)[number], { type: 'evidence' }>
+    | undefined
+
+  const verdictLabel = lastEvidence
+    ? lastEvidence.verdict === 'pass'
+      ? 'pass'
+      : lastEvidence.verdict === 'unclear'
+        ? 'not sure yet'
+        : 'no pass'
+    : null
+
+  return (
+    <section id="section-overview" className="detail-section">
+      <h2 className="detail-section-heading">Overview</h2>
+      <Card className="detail-overview-card">
+        <p className="detail-overview-note">
+          This is a summary of your activity so far. A full Kawan AI conversation summary will appear here once the AI
+          layer is ready.
+        </p>
+        <div className="detail-overview-stats">
+          <div className="detail-overview-stat">
+            <span className="detail-overview-stat-number">{verified}</span>
+            <span className="detail-overview-stat-label">Verified</span>
+          </div>
+          <div className="detail-overview-stat">
+            <span className="detail-overview-stat-number">{totalCheckins}</span>
+            <span className="detail-overview-stat-label">Check-ins</span>
+          </div>
+        </div>
+        {verdictLabel !== null && (
+          <p className="detail-overview-last-verdict">
+            Latest verdict: <strong>{verdictLabel}</strong>
+          </p>
+        )}
+        {events.length === 0 && <p className="detail-overview-empty">No check-ins yet. Open the workspace to start.</p>}
+      </Card>
+    </section>
+  )
+}
+
+function TimelineSection({ commitmentId }: { commitmentId: string }) {
+  const { state, timeline } = useTimeline(commitmentId)
+  const events = timeline?.events ?? []
+
+  return (
+    <section id="section-timeline" className="detail-section">
+      <h2 className="detail-section-heading">Timeline</h2>
+      {state === 'loading' && <p className="timeline-loading">Loading...</p>}
+      {(state === 'empty' || (state === 'ready' && events.length === 0)) && (
+        <p className="detail-timeline-empty">No check-ins yet.</p>
+      )}
+      {state === 'ready' && events.length > 0 && (
+        <div className="timeline-container">
+          {events.map((event) => {
+            if (event.type === 'checkin') return <CheckinEventRow key={`checkin-${event.at}`} event={event} />
+            if (event.type === 'evidence') return <EvidenceEventRow key={`evidence-${event.at}`} event={event} />
+            if (event.type === 'proposal') return <ProposalEventRow key={`proposal-${event.at}`} event={event} />
+            return null
+          })}
+        </div>
+      )}
+    </section>
+  )
+}
+
 export function CommitmentDetail() {
   const { id } = useParams<{ id: string }>()
   const { commitment } = useActiveCommitment()
   const navigate = useNavigate()
 
-  // Single active commitment: show it if id matches, else not found.
   const match = commitment?.id === id ? commitment : null
+
+  useEffect(() => {
+    if (match?.id) recordRecentCommitment(match.id)
+  }, [match?.id])
 
   if (match === null) {
     return (
@@ -50,43 +146,100 @@ export function CommitmentDetail() {
     )
   }
 
+  const headerActions = (
+    <>
+      <Button variant="accent" onClick={() => navigate(`/workspace/${match.id}`)}>
+        <ExternalLink size={16} aria-hidden="true" />
+        Open workspace
+      </Button>
+      <Button variant="primary" onClick={() => navigate(`/workspace/${match.id}`)}>
+        Check now
+      </Button>
+    </>
+  )
+
   return (
     <div className="shell-page">
-      <PageHeader title="Commitment" subtitle="Read-only summary of your current commitment." />
+      <PageHeader title="Commitment" subtitle="Details and your activity so far." actions={headerActions} />
 
-      <div className="detail-status-header">
-        <span className="detail-status-label">Status</span>
-        <Chip variant={match.status === 'active' ? 'sage' : 'default'}>{match.status}</Chip>
-        <Badge variant="muted">{match.id}</Badge>
-      </div>
+      <div className="detail-two-col">
+        {/* Left: content sections */}
+        <div className="detail-content">
+          <div className="detail-status-header">
+            <span className="detail-status-label">Status</span>
+            <Chip variant={match.status === 'active' ? 'sage' : 'default'}>{match.status}</Chip>
+            <Badge variant="muted">{match.id}</Badge>
+          </div>
 
-      <div className="detail-actions">
-        <Button variant="accent" onClick={() => navigate(`/workspace/${match.id}`)}>
-          <ExternalLink size={16} aria-hidden="true" />
-          Open workspace
-        </Button>
-        <Button variant="primary" onClick={() => navigate(`/workspace/${match.id}`)}>
-          Check now
-        </Button>
-      </div>
+          <OverviewSection commitment={match} />
 
-      <Card className="detail-card">
-        <p className="detail-card-note">Only you can change these fields. Kawan reads them but never edits them.</p>
+          <p className="detail-fields-note">Only you can change these fields. Kawan reads them but never edits them.</p>
 
-        <div className="detail-fields">
-          <ReadOnlyField label="Action" value={match.action} />
-          <ReadOnlyField label="Deliverable" value={match.deliverable} />
-          <ReadOnlyField label="Deadline" value={new Date(match.deadline).toLocaleString('en-MY')} />
-          <ReadOnlyField label="Cadence" value={match.cadence} />
-          <ReadOnlyField label="Evidence type" value={match.evidence_type} />
-          <ReadOnlyField
-            label="Accountability contact"
-            value={match.stake_enabled ? `Contact: ${match.stake_contact_name ?? 'None yet'}` : 'Not enabled'}
-          />
-          <ReadOnlyField label="Rest days" value={`${match.skip_days_used} used of ${match.skip_days_total}`} />
-          <ReadOnlyField label="How firm Kawan is" value={escalationLabels[match.escalation]} />
+          <section id="section-action" className="detail-section">
+            <h2 className="detail-section-heading">Action</h2>
+            <Card className="detail-card">
+              <ReadOnlyField label="Action" value={match.action} />
+            </Card>
+          </section>
+
+          <section id="section-deliverables" className="detail-section">
+            <h2 className="detail-section-heading">Deliverables</h2>
+            <Card className="detail-card">
+              <ReadOnlyField label="Deliverable" value={match.deliverable} />
+              <ReadOnlyField label="Cadence" value={match.cadence} />
+              <ReadOnlyField label="Evidence type" value={match.evidence_type} />
+            </Card>
+          </section>
+
+          <section id="section-deadline" className="detail-section">
+            <h2 className="detail-section-heading">Deadline</h2>
+            <Card className="detail-card">
+              <ReadOnlyField label="Deadline" value={new Date(match.deadline).toLocaleString('en-MY')} />
+            </Card>
+          </section>
+
+          <section id="section-evidence" className="detail-section">
+            <h2 className="detail-section-heading">Evidence</h2>
+            <Card className="detail-card">
+              <ReadOnlyField label="Evidence type" value={match.evidence_type} />
+            </Card>
+          </section>
+
+          <section id="section-accountability" className="detail-section">
+            <h2 className="detail-section-heading">Accountability</h2>
+            <Card className="detail-card">
+              <ReadOnlyField
+                label="Accountability contact"
+                value={match.stake_enabled ? `${match.stake_contact_name ?? 'Not set'}` : 'Not enabled'}
+              />
+            </Card>
+          </section>
+
+          <section id="section-rest-days" className="detail-section">
+            <h2 className="detail-section-heading">Rest days</h2>
+            <Card className="detail-card">
+              <ReadOnlyField
+                label="Rest days left"
+                value={`${match.skip_days_used} used of ${match.skip_days_total}`}
+              />
+            </Card>
+          </section>
+
+          <section id="section-how-firm" className="detail-section">
+            <h2 className="detail-section-heading">How firm</h2>
+            <Card className="detail-card">
+              <ReadOnlyField label="How Kawan checks in" value={escalationLabels[match.escalation]} />
+            </Card>
+          </section>
+
+          <TimelineSection commitmentId={match.id} />
         </div>
-      </Card>
+
+        {/* Right: sticky spy-scroll index */}
+        <div className="detail-index-col">
+          <OnThisPage sections={DETAIL_SECTIONS} />
+        </div>
+      </div>
     </div>
   )
 }

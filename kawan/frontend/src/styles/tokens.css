@@ -89,6 +89,9 @@
   --sidebar-w: 64px;
   --sidebar-w-exp: 200px;
   --topbar-h: 56px;
+
+  /* ── Content width (v4: +20% wider content column) ── */
+  --content-max: 1320px;
 }
 
 /* ── Dark theme ── */

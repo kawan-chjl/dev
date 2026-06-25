@@ -7,9 +7,31 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthProvider'
 import { listPersonas } from '../../mock/provider'
+import type { Persona } from '../../types/api'
 import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
+import { PERSONA_PORTRAITS } from '../../zone2/personaPortraits'
 import { PageHeader } from '../PageHeader'
+
+function PersonaPortraitImg({ persona, name }: { persona: Persona; name: string }) {
+  const [failed, setFailed] = useState(false)
+  if (failed) {
+    return (
+      <div className="persona-card-portrait-fallback" aria-hidden="true">
+        {name.charAt(0).toUpperCase()}
+      </div>
+    )
+  }
+  return (
+    <img
+      className="persona-card-portrait"
+      src={PERSONA_PORTRAITS[persona]}
+      alt={`Portrait of ${name}`}
+      onError={() => setFailed(true)}
+      loading="lazy"
+    />
+  )
+}
 
 export function Settings() {
   const { me, signOut, setPersona } = useAuth()
@@ -44,6 +66,7 @@ export function Settings() {
               onClick={() => setPersona(p.id)}
               onKeyDown={(e) => e.key === 'Enter' && setPersona(p.id)}
             >
+              <PersonaPortraitImg persona={p.id as Persona} name={p.name} />
               <p className="persona-card-name">{p.name}</p>
               <p className="persona-card-archetype">{p.archetype}</p>
               <p className="persona-card-tone">{p.tone}</p>

@@ -1,8 +1,16 @@
-// SettingsAudit - /settings/audit (TR-28)
+// SettingsAudit - /history
 // "Who changed what" table. Actor in user | system only (AI is unrepresentable - TR-24).
+// "Clear history" button calls DELETE /api/me/history (real backend clear, Gate-1 resolution).
+// Under MOCK_AUTH: clears local view only (no backend available).
 
+import { useState } from 'react'
+import { MOCK_AUTH } from '../../auth/api'
+import { clearHistory } from '../../commitments/api'
 import { getActiveCommitment, getAuditLog } from '../../mock/provider'
+import { useNotifications } from '../../notifications/NotificationProvider'
+import type { AuditRow } from '../../types/api'
 import { Badge } from '../../ui/Badge'
+import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
 import { PageHeader } from '../PageHeader'
 
@@ -15,9 +23,7 @@ function formatAt(iso: string): string {
   })
 }
 
-// Returns a human-readable string if value parses as an ISO datetime; otherwise returns the value as-is.
 function formatValue(value: string): string {
-  // ISO datetime detection: must contain 'T' and be parseable as a non-NaN Date.
   if (value.includes('T')) {
     const d = new Date(value)
     if (!Number.isNaN(d.getTime())) return formatAt(value)
@@ -26,12 +32,62 @@ function formatValue(value: string): string {
 }
 
 export function SettingsAudit() {
+  const { notify } = useNotifications()
   const active = getActiveCommitment()
-  const rows = active != null ? getAuditLog(active.id) : []
+  const initial = active != null ? getAuditLog(active.id) : []
+  const [rows, setRows] = useState<AuditRow[]>(initial)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [clearing, setClearing] = useState(false)
+
+  async function handleClear() {
+    setConfirmOpen(false)
+    setClearing(true)
+    try {
+      if (!MOCK_AUTH) {
+        await clearHistory()
+      }
+      // Clear the on-screen view in both mock and real modes
+      setRows([])
+    } catch {
+      notify('Could not clear history. Please try again.', { kind: 'error' })
+    } finally {
+      setClearing(false)
+    }
+  }
+
+  const headerActions = (
+    <Button variant="secondary" onClick={() => setConfirmOpen(true)} disabled={clearing || rows.length === 0}>
+      {clearing ? 'Clearing...' : 'Clear history'}
+    </Button>
+  )
 
   return (
     <div className="shell-page">
-      <PageHeader title="History" subtitle="Every change you made, and when." />
+      <PageHeader title="History" subtitle="Every change you made, and when." actions={headerActions} />
+
+      {confirmOpen && (
+        <div
+          className="commitments-confirm-overlay"
+          role="alertdialog"
+          aria-modal="true"
+          aria-label="Confirm clear history"
+        >
+          <div className="commitments-confirm-panel">
+            <p className="commitments-confirm-heading">Clear history?</p>
+            <p className="commitments-confirm-body">
+              This permanently removes all change records from your history. This cannot be undone.
+            </p>
+            <div className="commitments-confirm-actions">
+              <Button variant="secondary" onClick={() => setConfirmOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="accent" onClick={handleClear}>
+                Clear history
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {rows.length === 0 ? (
         <Card className="empty-state-card">

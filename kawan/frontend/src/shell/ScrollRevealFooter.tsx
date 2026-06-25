@@ -1,23 +1,34 @@
 // ScrollRevealFooter — Layer 4. Warm-dark band, revealed at end of scroll.
-// Footer text uses no emdash per design-system.md §7.
-
-import { Sparkles } from 'lucide-react'
-import { Link } from 'react-router-dom'
+// v4: right-aligned single line with middot-separated links.
+// Footer copy uses no emdash per design-system.md §7.
 
 export function ScrollRevealFooter() {
   return (
     <footer className="shell-footer" role="contentinfo">
       <div className="shell-footer-inner">
-        <p className="shell-footer-copy">
-          <span className="shell-footer-eye" aria-hidden="true">
-            <Sparkles size={16} />
+        <div className="shell-footer-row">
+          <span className="shell-footer-copy">&copy; 2026 Kawan</span>
+          <span className="shell-footer-sep" aria-hidden="true">
+            {' '}
+            &middot;{' '}
           </span>
-          Kawan is watching, with your permission.
-        </p>
-        <nav className="shell-footer-nav" aria-label="Footer navigation">
-          <Link to="/settings">Settings</Link>
-          <Link to="/history">History</Link>
-        </nav>
+          <span className="shell-footer-link">Contact Us</span>
+          <span className="shell-footer-sep" aria-hidden="true">
+            {' '}
+            &middot;{' '}
+          </span>
+          <span className="shell-footer-link">How it Works</span>
+          <span className="shell-footer-sep" aria-hidden="true">
+            {' '}
+            &middot;{' '}
+          </span>
+          <span className="shell-footer-link">Privacy Policy</span>
+          <span className="shell-footer-sep" aria-hidden="true">
+            {' '}
+            &middot;{' '}
+          </span>
+          <span className="shell-footer-link">Terms &amp; Conditions</span>
+        </div>
       </div>
     </footer>
   )
