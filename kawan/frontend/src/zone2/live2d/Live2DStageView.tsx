@@ -10,12 +10,14 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import type { Emotion, Persona } from '../../types/api'
 import { CharacterStagePlaceholder } from '../CharacterStagePlaceholder'
+import type { WebSpeechPrefs } from '../voice/personaVoices'
 import { Live2DStage } from './Live2DStage'
 import { modelRegistry } from './modelRegistry'
 
 export interface Live2DStageHandle {
   setExpression: (emotion: Emotion) => void
   speak: (source: ArrayBuffer | AudioBuffer) => Promise<void>
+  speakText: (text: string, prefs: WebSpeechPrefs) => Promise<void>
   stopSpeaking: () => void
   playMotion: (group: string, index?: number) => void
 }
@@ -40,6 +42,9 @@ export const Live2DStageView = forwardRef<Live2DStageHandle, Props>(function Liv
       },
       speak(source: ArrayBuffer | AudioBuffer) {
         return stageRef.current?.speak(source) ?? Promise.resolve()
+      },
+      speakText(text: string, prefs: WebSpeechPrefs) {
+        return stageRef.current?.speakText(text, prefs) ?? Promise.resolve()
       },
       stopSpeaking() {
         stageRef.current?.stopSpeaking()
