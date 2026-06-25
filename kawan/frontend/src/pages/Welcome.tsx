@@ -31,7 +31,7 @@ export function Welcome() {
       <main className="welcome-main">
         <h1 className="welcome-heading">Pick your companion</h1>
         <p className="welcome-sub">
-          You can change this anytime in Settings. Their tone shifts — your commitment stays yours.
+          You can change this anytime in Settings. Their tone shifts, but your commitment stays yours.
         </p>
 
         <div className="persona-grid persona-grid-welcome">
@@ -43,7 +43,7 @@ export function Welcome() {
               role="button"
               tabIndex={0}
               aria-pressed={selected === p.id}
-              aria-label={`Choose ${p.name} — ${p.archetype}`}
+              aria-label={`Choose ${p.name}, ${p.archetype}`}
               onClick={() => setSelected(p.id)}
               onKeyDown={(e) => e.key === 'Enter' && setSelected(p.id)}
             >

@@ -1,6 +1,6 @@
-// Settings — V6
-// Persona switcher (3 presets), Chutes balance, push toggle, stake contact book, logout.
-// Persona is sourced from me.persona (single source of truth via AuthContext) — no detached
+// Settings - V7 "Warm bento"
+// Persona switcher (3 presets), Chutes balance, push toggle, accountability contact, logout.
+// Persona is sourced from me.persona (single source of truth via AuthContext) - no detached
 // local state. setPersona from useAuth() persists the choice (local + best-effort backend).
 
 import { useState } from 'react'
@@ -27,10 +27,10 @@ export function Settings() {
         <h2>Settings</h2>
       </div>
 
-      {/* Persona switcher — design.md §7 selected card pattern */}
+      {/* Persona switcher - design.md §7 selected card pattern */}
       <section className="settings-section" aria-labelledby="persona-heading">
         <h3 id="persona-heading" className="settings-section-title">
-          Companion
+          Your companion
         </h3>
         <div className="persona-grid">
           {personas.map((p) => (
@@ -41,7 +41,7 @@ export function Settings() {
               role="button"
               tabIndex={0}
               aria-pressed={selectedPersona === p.id}
-              aria-label={`Select ${p.name} — ${p.archetype}`}
+              aria-label={`Select ${p.name}, ${p.archetype}`}
               onClick={() => setPersona(p.id)}
               onKeyDown={(e) => e.key === 'Enter' && setPersona(p.id)}
             >
@@ -53,21 +53,21 @@ export function Settings() {
         </div>
       </section>
 
-      {/* Chutes balance */}
+      {/* Chutes account */}
       <section className="settings-section" aria-labelledby="balance-heading">
         <h3 id="balance-heading" className="settings-section-title">
-          Chutes balance
+          Your Chutes account
         </h3>
         <Card>
           <div className="balance-row">
-            <span className="balance-label">Available</span>
-            <span className="balance-value">{me?.balance != null ? `$${me.balance.toFixed(2)}` : '—'}</span>
+            <span className="balance-label">Available balance</span>
+            <span className="balance-value">{me?.balance != null ? `$${me.balance.toFixed(2)}` : 'Not set'}</span>
           </div>
-          <p className="balance-note">Inference is billed to your Chutes account via SIWC.</p>
+          <p className="balance-note">Inference is billed to your Chutes account via sign-in with Chutes.</p>
         </Card>
       </section>
 
-      {/* Push notifications */}
+      {/* Check-in notifications */}
       <section className="settings-section" aria-labelledby="push-heading">
         <h3 id="push-heading" className="settings-section-title">
           Check-in notifications
@@ -92,22 +92,20 @@ export function Settings() {
         </Card>
       </section>
 
-      {/* Stake contact book */}
+      {/* Accountability contact */}
       <section className="settings-section" aria-labelledby="stake-heading">
         <h3 id="stake-heading" className="settings-section-title">
-          Stake contacts
+          Accountability contact
         </h3>
         <Card>
-          <p className="settings-placeholder">
-            Add an accountability contact — they'll receive a message if you miss your commitment.
-          </p>
+          <p className="settings-placeholder">Add a contact who gets a message if you miss your commitment.</p>
           <Button variant="secondary" className="settings-add-btn" disabled>
             Add contact
           </Button>
         </Card>
       </section>
 
-      {/* Logout */}
+      {/* Sign out */}
       <section className="settings-section settings-danger">
         <Button
           variant="secondary"

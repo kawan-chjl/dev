@@ -16,6 +16,19 @@
     />
   </head>
   <body>
+    <!-- Theme init: run synchronously before first paint to avoid flash -->
+    <script>
+      ;(() => {
+        try {
+          const stored = localStorage.getItem('kawan-theme')
+          if (stored === 'light' || stored === 'dark') {
+            document.documentElement.dataset.theme = stored
+          } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.dataset.theme = 'dark'
+          }
+        } catch (_e) {}
+      })()
+    </script>
     <div id="root"></div>
     <!-- Cubism core MUST load via <script> before the ES module bundle.
          Bundling live2dcubismcore breaks its global init (spike gotcha 1). -->

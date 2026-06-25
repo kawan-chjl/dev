@@ -10,6 +10,7 @@
 //          AI roadmap stays a labelled placeholder (no POST .../plan call — Open Q1).
 //          "Start commitment" → POST /api/commitments/{id}/start → /home.
 
+import { Clock, Lock, X } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MOCK_AUTH } from '../auth/api'
@@ -88,7 +89,7 @@ function ComposeStep({
         <input
           className="compose-chip compose-chip-deliverable"
           type="text"
-          placeholder="the deliverable ✎"
+          placeholder="the deliverable"
           aria-label="Describe what you will deliver"
           value={deliverable}
           onChange={(e) => setDeliverable(e.target.value)}
@@ -106,7 +107,7 @@ function ComposeStep({
         />
       </div>
       {error && <p className="compose-error">{error}</p>}
-      <p className="compose-hint">Evidence will be verified — self-report is not accepted.</p>
+      <p className="compose-hint">Evidence will be verified. Self-report is not accepted.</p>
     </div>
   )
 }
@@ -121,7 +122,10 @@ function ContextStep() {
       <h2 className="context-heading">Tell Kawan more</h2>
       {/* AI intake chat — STUBBED (Lane C absent, Open Q1). No POST .../context/turn call. */}
       <div className="context-stub-notice">
-        <p className="context-stub-label">⏳ AI context intake — coming with the AI layer (Lane C)</p>
+        <div className="context-stub-icon" aria-hidden="true">
+          <Clock size={24} color="var(--ink-faint)" aria-hidden="true" />
+        </div>
+        <p className="context-stub-label">A few questions about your goal (coming soon)</p>
         <p className="context-stub-sub">
           Kawan will ask up to 3 questions here to understand your context. For now, click Continue to set your plan
           details.
@@ -219,17 +223,24 @@ function PlanStep({ commitment, onCommitmentChange, starting, startError }: Plan
 
       {/* Locked identity fields (hard fields set in Compose — AI-read-only, TR-25/26) */}
       <div className="plan-locked-fields">
-        <p className="plan-locked-note">🔒 Hard fields are locked — only you change them here, never Kawan.</p>
+        <p className="plan-locked-note">
+          <Lock
+            size={13}
+            aria-hidden="true"
+            style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }}
+          />
+          Only you can change these. Kawan reads them but never edits them.
+        </p>
         <div className="plan-locked-row">
-          <span className="plan-locked-label">Action 🔒</span>
+          <span className="plan-locked-label">Action</span>
           <span className="plan-locked-value">{commitment.action}</span>
         </div>
         <div className="plan-locked-row">
-          <span className="plan-locked-label">Deliverable 🔒</span>
+          <span className="plan-locked-label">Deliverable</span>
           <span className="plan-locked-value">{commitment.deliverable}</span>
         </div>
         <div className="plan-locked-row">
-          <span className="plan-locked-label">Deadline 🔒</span>
+          <span className="plan-locked-label">Deadline</span>
           <span className="plan-locked-value">{new Date(commitment.deadline).toLocaleString('en-MY')}</span>
         </div>
       </div>
@@ -239,7 +250,7 @@ function PlanStep({ commitment, onCommitmentChange, starting, startError }: Plan
           POST /api/commitments/{id}/plan and its roadmap schema land. */}
       <div className="plan-roadmap-placeholder">
         <p className="plan-placeholder-text">
-          Roadmap appears here once Kawan reviews your context — coming with the AI layer (Lane C)
+          Your plan shows up here after we talk it through (coming with the AI layer)
         </p>
       </div>
 
@@ -367,7 +378,7 @@ export function NewCommitment() {
     // Warn for <1 h deadlines (Q5 — window.confirm, no new modal)
     const diffMs = deadlineDate.getTime() - now.getTime()
     if (diffMs < 60 * 60 * 1000) {
-      if (!window.confirm("That's under an hour — are you sure?")) return
+      if (!window.confirm("That's under an hour. Are you sure?")) return
     }
 
     const deadlineISO = deadlineDate.toISOString()
@@ -477,7 +488,7 @@ export function NewCommitment() {
           aria-label="Cancel and go back"
           onClick={() => navigate('/home')}
         >
-          ✕ Cancel
+          <X size={14} aria-hidden="true" /> Cancel
         </button>
         {/* Progress indicator */}
         <nav className="stepper" aria-label="Commitment setup steps">

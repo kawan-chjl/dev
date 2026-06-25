@@ -1,4 +1,4 @@
-/* Minimal reset + base styles — design.md §2–§4 */
+/* Reset + base styles — design-system.md §2 */
 *,
 *::before,
 *::after {
@@ -44,9 +44,11 @@ h6 {
 h1 {
   font-size: var(--text-h1);
 }
+
 h2 {
   font-size: var(--text-h2);
 }
+
 h3 {
   font-size: var(--text-h3);
 }
@@ -76,14 +78,14 @@ img {
   display: block;
 }
 
-/* Focus ring — visible on keyboard nav, accent colour */
+/* Focus ring — accent color, visible on keyboard nav only */
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
 }
 
-/* Reduced motion — disable transitions and animations */
+/* Prefers-reduced-motion: kill all transforms and transitions */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -93,4 +95,15 @@ img {
     transition-duration: 0.01ms;
     scroll-behavior: auto;
   }
+}
+
+/* Font helpers */
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* Fraunces italic "voice" — emotional emphasis, used word-level only */
+.italic-voice {
+  font-family: var(--font-display);
+  font-style: italic;
 }
