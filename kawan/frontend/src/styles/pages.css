@@ -1664,7 +1664,7 @@
 /* Left column: Commitment card on top (full width), Analytics + Workspace below */
 .home-left-col {
   display: grid;
-  grid-template-rows: 2fr 1fr;
+  grid-template-rows: 1fr 1fr;
   gap: var(--space-4);
 }
 
