@@ -5,6 +5,25 @@ import { getActiveCommitment, getAuditLog } from '../../mock/provider'
 import { Badge } from '../../ui/Badge'
 import { Card } from '../../ui/Card'
 
+function formatAt(iso: string): string {
+  return new Date(iso).toLocaleString('en-MY', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+// Returns a human-readable string if value parses as an ISO datetime; otherwise returns the value as-is.
+function formatValue(value: string): string {
+  // ISO datetime detection: must contain 'T' and be parseable as a non-NaN Date.
+  if (value.includes('T')) {
+    const d = new Date(value)
+    if (!Number.isNaN(d.getTime())) return formatAt(value)
+  }
+  return value
+}
+
 export function SettingsAudit() {
   const active = getActiveCommitment()
   const rows = active != null ? getAuditLog(active.id) : []
@@ -38,19 +57,14 @@ export function SettingsAudit() {
                 {rows.map((row) => (
                   <tr key={row.id}>
                     <td>{row.field}</td>
-                    <td className="audit-value-old">{row.old_value ?? 'None yet'}</td>
-                    <td>{row.new_value}</td>
+                    <td className="audit-value-old">
+                      {row.old_value != null ? formatValue(row.old_value) : 'None yet'}
+                    </td>
+                    <td>{formatValue(row.new_value)}</td>
                     <td>
                       <Badge variant={row.actor === 'user' ? 'accent' : 'default'}>{row.actor}</Badge>
                     </td>
-                    <td className="audit-time">
-                      {new Date(row.at).toLocaleString('en-MY', {
-                        day: 'numeric',
-                        month: 'short',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </td>
+                    <td className="audit-time">{formatAt(row.at)}</td>
                   </tr>
                 ))}
               </tbody>
