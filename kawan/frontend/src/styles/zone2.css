@@ -731,12 +731,6 @@
   opacity: 0.4;
 }
 
-.plan-settings {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
 .plan-setting-row {
   display: flex;
   justify-content: space-between;
@@ -982,7 +976,7 @@
   margin-left: var(--space-2);
 }
 
-/* ── NewCommitment scrolling redesign ── */
+/* ── NewCommitment discrete-step redesign ── */
 
 /* Root override: bg matches shell (warm) not the dark workspace */
 .nc-root {
@@ -1001,15 +995,13 @@
   text-align: center;
 }
 
-/* Body: grid layout — content col left, island col right.
-   No overflow here. The window is the scroll container (workspace-root has
-   only min-height, so it grows with content and the window scrolls).
-   Any overflow on this element would intercept the window scroll and break
-   position:sticky on the inner island nav. */
+/* Body: grid layout — step content col left, index island col right.
+   Fills the viewport below the topbar (minus bottom-island clearance). */
 .nc-body {
   display: grid;
   grid-template-columns: 1fr;
   flex: 1;
+  overflow: hidden;
 }
 
 @media (min-width: 900px) {
@@ -1018,13 +1010,14 @@
   }
 }
 
-/* Content column (grid col 1) — natural height, no scroll of its own */
-.nc-scroll {
-  padding-bottom: var(--space-16);
+/* Step content column (grid col 1) — fills available height, scrolls if step overflows */
+.nc-steps {
+  overflow-y: auto;
+  /* clearance for the bottom-center nav island */
+  padding-bottom: 88px;
 }
 
-/* Right-rail column (grid col 2) — hidden on narrow, stretches to full grid
-   row height on wide so the sticky inner nav can track the whole scroll */
+/* Right-rail column (grid col 2) — hidden on narrow */
 .nc-island-col {
   display: none;
 }
@@ -1032,13 +1025,11 @@
 @media (min-width: 900px) {
   .nc-island-col {
     display: block;
-    /* no position:sticky here — column must stretch, not shrink */
     padding: var(--space-6) var(--space-4) 0 0;
   }
 }
 
-/* The island nav: sticky within the full-height column.
-   top = topbar (52px) + breathing room so it clears the fixed topbar. */
+/* Top-right index island: fixed position on wide screens */
 .nc-island {
   position: sticky;
   top: calc(52px + var(--space-6));
@@ -1115,34 +1106,36 @@
   flex-shrink: 0;
 }
 
-/* Individual section */
-.nc-section {
-  min-height: 100svh;
+/* Step panel: only the active one is shown. Hidden panels are display:none. */
+.nc-step-panel {
+  display: none;
+}
+.nc-step-panel-active {
   display: flex;
   flex-direction: column;
+  min-height: calc(100svh - 52px - 88px);
   justify-content: center;
-  border-bottom: 1px solid var(--line);
 }
 
-/* Section reveal animation: fade + rise 8px on viewport entry */
-.nc-section-reveal {
-  opacity: 0;
-  transform: translateY(8px);
-  transition:
-    opacity 350ms var(--ease-out),
-    transform 350ms var(--ease-out);
-}
-.nc-section-visible {
-  opacity: 1;
-  transform: translateY(0);
+/* Cross-fade + rise 8px on step entry (motion variant only) */
+.nc-step-panel-motion.nc-step-panel-active {
+  animation: nc-step-in 300ms var(--ease-out) both;
 }
 
-/* No transforms when reduced-motion preferred (class not applied; fallback via CSS) */
-@media (prefers-reduced-motion: reduce) {
-  .nc-section-reveal {
+@keyframes nc-step-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
     opacity: 1;
-    transform: none;
-    transition: none;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nc-step-panel-motion.nc-step-panel-active {
+    animation: none;
   }
 }
 
@@ -1166,33 +1159,106 @@
   line-height: var(--lh-heading);
 }
 
-/* ── Compose section ── */
-
-.nc-compose-card {
+/* ── Bottom-center navigation island ── */
+/* Floating pill pinned at the bottom center of the viewport */
+.nc-bottom-island {
+  position: fixed;
+  bottom: calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
   background: var(--surface);
-  border: 1.5px solid var(--line);
-  border-radius: var(--radius-lg);
-  padding: var(--space-6);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  padding: var(--space-2) var(--space-4);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18);
+  backdrop-filter: var(--blur-backdrop);
+  z-index: 40;
+  white-space: nowrap;
 }
 
-.nc-compose-field-row {
+.nc-bottom-back {
+  background: none;
+  border: none;
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  font-weight: 500;
+  color: var(--ink-soft);
+  cursor: pointer;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  min-height: 36px;
+  min-width: 44px;
+  transition:
+    color var(--duration-ui) var(--ease-out),
+    background var(--duration-ui) var(--ease-out);
+}
+.nc-bottom-back:hover:not(:disabled) {
+  color: var(--ink);
+  background: var(--surface-sunk);
+}
+.nc-bottom-back:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.nc-bottom-back:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.nc-bottom-counter {
+  font-family: var(--font-body);
+  font-size: var(--text-caption);
+  color: var(--ink-faint);
+  min-width: 64px;
+  text-align: center;
+}
+
+/* ── Compose section: inline mad-lib sentence constructor ── */
+
+/* Wraps the whole "I will [verb] [deliverable] by [date]" sentence */
+.nc-madlib {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-2);
+  font-size: var(--text-h3);
+  line-height: 2.2;
 }
 
-.nc-compose-label {
+.nc-madlib-prose {
+  font-family: var(--font-body);
+  color: var(--ink-soft);
+  font-size: var(--text-h3);
+}
+
+/* Each interactive field slot */
+.nc-madlib-field {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Visible label above the deliverable input (others use sr-only) */
+.nc-madlib-field-label {
   font-size: var(--text-caption);
   font-weight: 600;
-  color: var(--ink-soft);
+  color: var(--ink-faint);
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
+  line-height: 1;
 }
 
-.nc-compose-input {
+/* Deliverable input: expands to fill available wrap-row space */
+.nc-madlib-deliverable-wrap {
+  flex: 1;
+  min-width: 200px;
+}
+
+/* Inline deliverable text input styled to match the Select trigger height */
+.nc-madlib-input {
   height: 44px;
   padding: 0 var(--space-3);
   border-radius: var(--radius-md);
@@ -1204,11 +1270,11 @@
   width: 100%;
   transition: border-color var(--duration-ui) var(--ease-out);
 }
-.nc-compose-input:focus {
+.nc-madlib-input:focus {
   outline: none;
   border-color: var(--accent);
 }
-.nc-compose-input::placeholder {
+.nc-madlib-input::placeholder {
   color: var(--ink-faint);
 }
 
@@ -1220,7 +1286,7 @@
   margin-top: var(--space-1);
 }
 
-/* Live sentence preview — Fraunces italic voice (the "I will … by …" moment) */
+/* Live sentence preview — Fraunces italic voice (the "I will ... by ..." moment) */
 .nc-sentence-preview {
   font-family: var(--font-voice);
   font-size: var(--text-small);
@@ -1233,6 +1299,14 @@
 .nc-sentence-preview em {
   color: var(--accent);
   font-style: italic;
+}
+
+/* ── Plan section: un-boxed dropdowns ── */
+/* No surrounding container/card — dropdowns stand alone with spacing only */
+.nc-plan-settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
 /* ── Context section stub ── */
@@ -1402,14 +1476,6 @@
   position: absolute;
   top: var(--space-3);
   right: var(--space-3);
-}
-
-/* CTA row at bottom of companion section */
-.nc-cta-row {
-  display: flex;
-  justify-content: flex-end;
-  padding-top: var(--space-4);
-  border-top: 1.5px solid var(--line);
 }
 
 .nc-cta-hint {

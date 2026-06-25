@@ -1,18 +1,17 @@
 // NewCommitment — /commitments/new (Zone 2, no shell chrome)
-// Single scrolling page with 4 stacked full-ish-height sections + spy-scroll island.
+// Discrete 4-step wizard: Compose -> Context -> Plan -> Companion
 //
-// Section order: Compose -> Context -> Plan -> Companion
-// Companion section holds the primary "Start commitment" CTA.
+// Navigation:
+//   Bottom-center floating island: Back / Continue (Step N of 4)
+//   Top-right index island: clickable step list, highlights active, tick on satisfied steps
+//
+// Companion step holds the primary "Start commitment" CTA (Continue becomes Start commitment).
 // Cancel is always inert (no persona PATCH, no create, no API call) until Start commitment.
 //
-// Spy-scroll island: pinned on the right, shows completion tick when required fields
-// are satisfied, highlights the active section on scroll, smooth-scrolls on click.
-//
-// Motion: each section fades + rises 8px on viewport entry (IntersectionObserver).
-// All motion gated by prefers-reduced-motion: reduce (no transforms when set).
+// Motion: step panels cross-fade + rise 8px on step change, gated by prefers-reduced-motion.
 
 import { Check, Clock, Lock, X } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { MOCK_AUTH } from '../auth/api'
@@ -52,9 +51,9 @@ const EVIDENCE_SELECT_OPTIONS: SelectOption[] = EVIDENCE_OPTIONS_FULL.map((o) =>
 // Skip-days options (0-2).
 const SKIP_DAYS_OPTIONS: SelectOption[] = [0, 1, 2].map((n) => ({ value: String(n), label: String(n) }))
 
-// Section IDs (document order).
-const SECTION_IDS = ['nc-compose', 'nc-context', 'nc-plan', 'nc-companion'] as const
-type SectionId = (typeof SECTION_IDS)[number]
+// Step order: Compose -> Context -> Plan -> Companion
+const STEPS = ['nc-compose', 'nc-context', 'nc-plan', 'nc-companion'] as const
+type StepId = (typeof STEPS)[number]
 
 // Local draft shape for plan-step fields (held locally; NO API writes until handleStart).
 interface DraftPlan {
@@ -71,89 +70,49 @@ const DEFAULT_DRAFT_PLAN: DraftPlan = {
   skip_days_total: 0
 }
 
-// ── SectionReveal: fade+rise animation on viewport entry ─────────────────────
+// ── StepPanel: fade+rise animation on step entry ─────────────────────────────
 
-function SectionReveal({ children, id }: { children: React.ReactNode; id: SectionId }) {
-  const ref = useRef<HTMLElement>(null)
-  const [visible, setVisible] = useState(false)
+function StepPanel({ children, id, active }: { children: React.ReactNode; id: StepId; active: boolean }) {
   const prefersReduced = useRef(window.matchMedia('(prefers-reduced-motion: reduce)').matches)
 
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const obs = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true)
-          obs.disconnect()
-        }
-      },
-      { threshold: 0.05 }
-    )
-    obs.observe(el)
-    return () => obs.disconnect()
-  }, [])
-
   const className = prefersReduced.current
-    ? 'nc-section'
-    : `nc-section nc-section-reveal${visible ? ' nc-section-visible' : ''}`
+    ? `nc-step-panel${active ? ' nc-step-panel-active' : ''}`
+    : `nc-step-panel nc-step-panel-motion${active ? ' nc-step-panel-active' : ''}`
 
   return (
-    <section ref={ref} id={id} className={className}>
+    <section id={id} className={className} aria-hidden={!active}>
       {children}
     </section>
   )
 }
 
-// ── SpyScrollIsland: on-this-page island with completion ticks ───────────────
+// ── IndexIsland: top-right step index, click jumps to step ───────────────────
 
-interface IslandSection {
-  id: SectionId
+interface IslandStep {
+  id: StepId
   label: string
   done: boolean
 }
 
-function SpyScrollIsland({ sections }: { sections: IslandSection[] }) {
-  const [activeId, setActiveId] = useState<SectionId>('nc-compose')
-  const prefersReduced = useRef(window.matchMedia('(prefers-reduced-motion: reduce)').matches)
-
-  useEffect(() => {
-    const obs = new IntersectionObserver(
-      (entries) => {
-        const visible = new Map<string, boolean>()
-        for (const e of entries) visible.set(e.target.id, e.isIntersecting)
-        for (const s of sections) {
-          if (visible.get(s.id) === true) {
-            setActiveId(s.id as SectionId)
-            break
-          }
-        }
-      },
-      { rootMargin: '-10% 0px -70% 0px', threshold: 0 }
-    )
-    for (const s of sections) {
-      const el = document.getElementById(s.id)
-      if (el) obs.observe(el)
-    }
-    return () => obs.disconnect()
-  }, [sections])
-
-  function scrollTo(id: string) {
-    const el = document.getElementById(id)
-    if (!el) return
-    el.scrollIntoView({ behavior: prefersReduced.current ? 'instant' : 'smooth' })
-  }
-
+function IndexIsland({
+  steps,
+  activeStep,
+  onJump
+}: {
+  steps: IslandStep[]
+  activeStep: StepId
+  onJump: (id: StepId) => void
+}) {
   return (
     <nav className="nc-island" aria-label="On this page">
       <p className="nc-island-heading">On this page</p>
       <ul className="nc-island-list">
-        {sections.map((s) => (
+        {steps.map((s) => (
           <li key={s.id}>
             <button
               type="button"
-              className={`nc-island-link${activeId === s.id ? ' nc-island-link-active' : ''}`}
-              onClick={() => scrollTo(s.id)}
+              className={`nc-island-link${activeStep === s.id ? ' nc-island-link-active' : ''}`}
+              onClick={() => onJump(s.id)}
             >
               <span className="nc-island-label">{s.label}</span>
               {s.done && (
@@ -170,7 +129,49 @@ function SpyScrollIsland({ sections }: { sections: IslandSection[] }) {
   )
 }
 
-// ── ComposeSection ────────────────────────────────────────────────────────────
+// ── BottomNavIsland: Back / Continue / step counter ──────────────────────────
+
+interface BottomNavProps {
+  stepIndex: number
+  totalSteps: number
+  onBack: () => void
+  onContinue: () => void
+  isFinalStep: boolean
+  starting: boolean
+  continueDisabled: boolean
+}
+
+function BottomNavIsland({
+  stepIndex,
+  totalSteps,
+  onBack,
+  onContinue,
+  isFinalStep,
+  starting,
+  continueDisabled
+}: BottomNavProps) {
+  return (
+    <nav className="nc-bottom-island" aria-label="Step navigation">
+      <button
+        type="button"
+        className="nc-bottom-back"
+        onClick={onBack}
+        disabled={stepIndex === 0}
+        aria-label="Go to previous step"
+      >
+        Back
+      </button>
+      <span className="nc-bottom-counter" aria-live="polite">
+        Step {stepIndex + 1} of {totalSteps}
+      </span>
+      <Button variant={isFinalStep ? 'accent' : 'primary'} onClick={onContinue} disabled={continueDisabled || starting}>
+        {isFinalStep ? (starting ? 'Starting...' : 'Start commitment') : 'Continue'}
+      </Button>
+    </nav>
+  )
+}
+
+// ── ComposeSection: inline mad-lib sentence constructor ───────────────────────
 
 interface ComposeSectionProps {
   action: Action
@@ -180,6 +181,7 @@ interface ComposeSectionProps {
   deadlineLocal: string
   setDeadlineLocal: (d: string) => void
   composeError: string | null
+  active: boolean
 }
 
 function ComposeSection({
@@ -189,43 +191,56 @@ function ComposeSection({
   setDeliverable,
   deadlineLocal,
   setDeadlineLocal,
-  composeError
+  composeError,
+  active
 }: ComposeSectionProps) {
   return (
-    <SectionReveal id="nc-compose">
+    <StepPanel id="nc-compose" active={active}>
       <div className="nc-section-inner">
         <h2 className="nc-section-heading">Make your commitment</h2>
-        <div className="nc-compose-card">
-          <div className="nc-compose-field-row">
-            <span className="nc-compose-label">Action</span>
+
+        {/* Inline mad-lib sentence: "I will [verb] [the deliverable] by [date]" */}
+        <div className="nc-madlib">
+          <span className="nc-madlib-prose">I will</span>
+          <span className="nc-madlib-field">
+            <label className="sr-only" htmlFor="nc-action-trigger">
+              Action verb
+            </label>
             <Select
               aria-label="Choose action"
               value={action}
               onChange={(v) => setAction(v as Action)}
               options={ACTION_SELECT_OPTIONS}
             />
-          </div>
-          <div className="nc-compose-field-row">
-            <label className="nc-compose-label" htmlFor="nc-deliverable">
-              Deliverable
+          </span>
+          <span className="nc-madlib-field nc-madlib-deliverable-wrap">
+            <label className="nc-madlib-field-label" htmlFor="nc-deliverable">
+              the deliverable
             </label>
             <input
               id="nc-deliverable"
-              className="nc-compose-input"
+              className="nc-madlib-input"
               type="text"
               placeholder="what you will deliver"
               value={deliverable}
               onChange={(e) => setDeliverable(e.target.value)}
               autoComplete="off"
             />
-          </div>
-          <div className="nc-compose-field-row">
-            <span className="nc-compose-label">Deadline</span>
+          </span>
+          <span className="nc-madlib-prose">by</span>
+          <span className="nc-madlib-field">
+            <label className="sr-only" htmlFor="nc-deadline-trigger">
+              Deadline date
+            </label>
             <DatePicker value={deadlineLocal} onChange={setDeadlineLocal} aria-label="Choose deadline" />
-          </div>
-          {composeError && <p className="compose-error">{composeError}</p>}
-          <p className="nc-compose-hint">Evidence will be verified. Self-report is not accepted.</p>
+          </span>
         </div>
+
+        {composeError && <p className="compose-error">{composeError}</p>}
+
+        <p className="nc-compose-hint">Evidence will be verified. Self-report is not accepted.</p>
+
+        {/* Live sentence preview */}
         <p className="nc-sentence-preview">
           I will <em>{action}</em> {deliverable || 'the deliverable'}{' '}
           {deadlineLocal
@@ -233,7 +248,7 @@ function ComposeSection({
             : 'by the deadline'}
         </p>
       </div>
-    </SectionReveal>
+    </StepPanel>
   )
 }
 
@@ -241,9 +256,9 @@ function ComposeSection({
 // LANE C SEAM: replace this component body with the real intake chat when
 // POST /api/commitments/{id}/context/turn and its response schema land.
 
-function ContextSection() {
+function ContextSection({ active }: { active: boolean }) {
   return (
-    <SectionReveal id="nc-context">
+    <StepPanel id="nc-context" active={active}>
       <div className="nc-section-inner">
         <h2 className="nc-section-heading">Tell Kawan more</h2>
         {/* AI intake chat - STUBBED (Lane C absent, Open Q1). No POST .../context/turn call. */}
@@ -258,7 +273,7 @@ function ContextSection() {
           </p>
         </div>
       </div>
-    </SectionReveal>
+    </StepPanel>
   )
 }
 
@@ -272,9 +287,10 @@ interface PlanSectionProps {
   action: string
   deliverable: string
   deadlineLocal: string
+  active: boolean
 }
 
-function PlanSection({ draft, onDraftChange, action, deliverable, deadlineLocal }: PlanSectionProps) {
+function PlanSection({ draft, onDraftChange, action, deliverable, deadlineLocal, active }: PlanSectionProps) {
   const evidenceType = draft.evidence_type
   const repo =
     draft.evidence_config !== null && typeof draft.evidence_config?.repo === 'string'
@@ -285,7 +301,7 @@ function PlanSection({ draft, onDraftChange, action, deliverable, deadlineLocal 
   const deadlineDisplay = deadlineLocal ? new Date(deadlineLocal).toLocaleString('en-MY') : ''
 
   return (
-    <SectionReveal id="nc-plan">
+    <StepPanel id="nc-plan" active={active}>
       <div className="nc-section-inner">
         <h2 className="nc-section-heading">Your plan</h2>
 
@@ -323,7 +339,8 @@ function PlanSection({ draft, onDraftChange, action, deliverable, deadlineLocal 
         </div>
 
         {/* Safe hard-field GUI controls (GUI-set, user session, never AI - TR-25/26) */}
-        <div className="plan-settings">
+        {/* Un-boxed: dropdowns stand alone, no surrounding container */}
+        <div className="nc-plan-settings">
           <div className="plan-setting-row">
             <span className="plan-setting-label">
               Cadence
@@ -392,22 +409,21 @@ function PlanSection({ draft, onDraftChange, action, deliverable, deadlineLocal 
           </div>
         </div>
       </div>
-    </SectionReveal>
+    </StepPanel>
   )
 }
 
 // ── CompanionSection: horizontal cube-card grid ───────────────────────────────
 // Always horizontal at every width - horizontal scroll + scroll-snap on narrow screens.
 // portrait image + name + role + short description per card.
-// "Start commitment" CTA lives here (companion section is LAST per spec).
+// "Start commitment" CTA is surfaced via the bottom-center nav island on this step.
 
 interface CompanionSectionProps {
   selectedPersona: Persona
   onSelect: (p: Persona) => void
-  starting: boolean
   startError: string | null
-  onStart: () => void
   composeValid: boolean
+  active: boolean
 }
 
 function PersonaPortrait({ persona, name }: { persona: Persona; name: string }) {
@@ -433,18 +449,11 @@ function PersonaPortrait({ persona, name }: { persona: Persona; name: string }) 
   )
 }
 
-function CompanionSection({
-  selectedPersona,
-  onSelect,
-  starting,
-  startError,
-  onStart,
-  composeValid
-}: CompanionSectionProps) {
+function CompanionSection({ selectedPersona, onSelect, startError, composeValid, active }: CompanionSectionProps) {
   const personas = listPersonas()
 
   return (
-    <SectionReveal id="nc-companion">
+    <StepPanel id="nc-companion" active={active}>
       <div className="nc-section-inner">
         <h2 className="nc-section-heading">Choose your companion</h2>
         <p className="nc-companion-sub">
@@ -484,15 +493,9 @@ function CompanionSection({
 
         {startError && <p className="compose-error">{startError}</p>}
 
-        {!composeValid && <p className="nc-cta-hint">Fill in the Compose section above before starting.</p>}
-
-        <div className="nc-cta-row">
-          <Button variant="accent" onClick={onStart} disabled={starting || !composeValid}>
-            {starting ? 'Starting...' : 'Start commitment'}
-          </Button>
-        </div>
+        {!composeValid && <p className="nc-cta-hint">Fill in the Compose step before starting.</p>}
       </div>
-    </SectionReveal>
+    </StepPanel>
   )
 }
 
@@ -502,11 +505,15 @@ export function NewCommitment() {
   const navigate = useNavigate()
   const { me, setPersona } = useAuth()
 
+  // Current step index (0 = Compose, 1 = Context, 2 = Plan, 3 = Companion)
+  const [stepIndex, setStepIndex] = useState(0)
+  const activeStep = STEPS[stepIndex]
+
   // Companion selection - seeded from current persona.
   // NO setPersona call here; committed only in handleStart.
   const [selectedPersona, setSelectedPersona] = useState<Persona>(me?.persona ?? 'kawan')
 
-  // Compose state - lifted so it survives scroll and feeds handleStart.
+  // Compose state - lifted so it persists across steps and feeds handleStart.
   // NO API calls until the final "Start commitment" - Cancel at any prior point is inert.
   const [action, setAction] = useState<Action>('complete')
   const [deliverable, setDeliverable] = useState('')
@@ -520,7 +527,7 @@ export function NewCommitment() {
   const [starting, setStarting] = useState(false)
   const [startError, setStartError] = useState<string | null>(null)
 
-  // Compose validity for section tick + CTA guard.
+  // Compose validity for step tick + CTA guard.
   function isComposeValid(): boolean {
     if (!deliverable.trim()) return false
     if (!deadlineLocal) return false
@@ -532,19 +539,33 @@ export function NewCommitment() {
 
   const composeValid = isComposeValid()
 
-  // Island sections with completion state
-  const islandSections: IslandSection[] = [
+  // Island steps with completion state
+  const islandSteps: IslandStep[] = [
     { id: 'nc-compose', label: 'Compose', done: composeValid },
     { id: 'nc-context', label: 'Context', done: false },
     { id: 'nc-plan', label: 'Plan', done: false },
     { id: 'nc-companion', label: 'Companion', done: !!selectedPersona }
   ]
 
+  const isFinalStep = stepIndex === STEPS.length - 1
+
   // ── Cancel - fully inert: NO API calls, NO persona writes ────────────────
   // Because createCommitment is deferred to handleStart, Cancel at any point
   // leaves the server and localStorage byte-for-byte unchanged.
   function handleCancel() {
     navigate('/home')
+  }
+
+  function handleBack() {
+    if (stepIndex > 0) setStepIndex(stepIndex - 1)
+  }
+
+  function handleContinue() {
+    if (isFinalStep) {
+      handleStart()
+    } else {
+      setStepIndex(stepIndex + 1)
+    }
   }
 
   // ── Start commitment - first and only API write in the entire flow ─────────
@@ -554,18 +575,18 @@ export function NewCommitment() {
     // Validate compose before writing anything
     if (!deliverable.trim()) {
       setComposeError('Please describe what you will deliver.')
-      document.getElementById('nc-compose')?.scrollIntoView({ behavior: 'smooth' })
+      setStepIndex(0)
       return
     }
     if (!deadlineLocal) {
       setComposeError('Please pick a deadline.')
-      document.getElementById('nc-compose')?.scrollIntoView({ behavior: 'smooth' })
+      setStepIndex(0)
       return
     }
     const deadlineDate = new Date(deadlineLocal)
     if (deadlineDate <= new Date()) {
       setComposeError('Deadline must be in the future.')
-      document.getElementById('nc-compose')?.scrollIntoView({ behavior: 'smooth' })
+      setStepIndex(0)
       return
     }
     const diffMs = deadlineDate.getTime() - Date.now()
@@ -611,6 +632,9 @@ export function NewCommitment() {
     }
   }
 
+  // The final step's Continue becomes Start commitment, which requires composeValid.
+  const continueDisabled = isFinalStep && !composeValid
+
   return (
     <div className="workspace-root nc-root">
       {/* Fixed topbar with Cancel only */}
@@ -622,10 +646,10 @@ export function NewCommitment() {
         <div className="workspace-spacer" aria-hidden="true" />
       </div>
 
-      {/* Page body: scrollable content + pinned island */}
+      {/* Page body: step content + pinned index island */}
       <div className="nc-body">
-        {/* Scrollable sections column */}
-        <div className="nc-scroll">
+        {/* Step panels — only the active one is shown */}
+        <div className="nc-steps">
           <ComposeSection
             action={action}
             setAction={setAction}
@@ -634,30 +658,42 @@ export function NewCommitment() {
             deadlineLocal={deadlineLocal}
             setDeadlineLocal={setDeadlineLocal}
             composeError={composeError}
+            active={activeStep === 'nc-compose'}
           />
-          <ContextSection />
+          <ContextSection active={activeStep === 'nc-context'} />
           <PlanSection
             draft={draftPlan}
             onDraftChange={setDraftPlan}
             action={action}
             deliverable={deliverable}
             deadlineLocal={deadlineLocal}
+            active={activeStep === 'nc-plan'}
           />
           <CompanionSection
             selectedPersona={selectedPersona}
             onSelect={setSelectedPersona}
-            starting={starting}
             startError={startError}
-            onStart={handleStart}
             composeValid={composeValid}
+            active={activeStep === 'nc-companion'}
           />
         </div>
 
-        {/* Spy-scroll island - pinned right rail (hidden under 900px) */}
+        {/* Top-right index island — clickable step index (hidden under 900px) */}
         <div className="nc-island-col">
-          <SpyScrollIsland sections={islandSections} />
+          <IndexIsland steps={islandSteps} activeStep={activeStep} onJump={(id) => setStepIndex(STEPS.indexOf(id))} />
         </div>
       </div>
+
+      {/* Bottom-center floating navigation island */}
+      <BottomNavIsland
+        stepIndex={stepIndex}
+        totalSteps={STEPS.length}
+        onBack={handleBack}
+        onContinue={handleContinue}
+        isFinalStep={isFinalStep}
+        starting={starting}
+        continueDisabled={continueDisabled}
+      />
     </div>
   )
 }
