@@ -3,6 +3,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://kawan-backend-hig2.onrender.com/api/:path*"
+    },
+    {
+      "source": "/:path*",
+      "destination": "/index.html"
     }
   ]
 }
