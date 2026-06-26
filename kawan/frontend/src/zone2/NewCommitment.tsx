@@ -30,12 +30,10 @@ const ACTION_OPTIONS = ['complete', 'finish', 'ship', 'write', 'build', 'submit'
 type Action = (typeof ACTION_OPTIONS)[number]
 const ACTION_SELECT_OPTIONS: SelectOption[] = ACTION_OPTIONS.map((a) => ({ value: a, label: a }))
 
-// Cadence options (Q6).
+// Cadence options — daily presets only (scheduler collapses non-daily to daily, spec §7.3).
 const CADENCE_OPTIONS: SelectOption[] = [
   { value: 'daily_evening', label: 'Daily (evening)' },
-  { value: 'daily', label: 'Daily' },
-  { value: 'every_2_days', label: 'Every 2 days' },
-  { value: 'weekly', label: 'Weekly' }
+  { value: 'daily', label: 'Daily' }
 ]
 
 // Evidence options (Q7 - include github with repo field).
@@ -61,13 +59,19 @@ interface DraftPlan {
   evidence_type: EvidenceType
   evidence_config: Record<string, unknown> | null
   skip_days_total: number
+  stake_enabled: boolean
+  stake_contact_name: string
+  stake_contact_email: string
 }
 
 const DEFAULT_DRAFT_PLAN: DraftPlan = {
   cadence: 'daily_evening',
   evidence_type: 'screenshot',
   evidence_config: null,
-  skip_days_total: 0
+  skip_days_total: 0,
+  stake_enabled: false,
+  stake_contact_name: '',
+  stake_contact_email: ''
 }
 
 // ── StepPanel: fade+rise animation on step entry ─────────────────────────────
@@ -287,10 +291,19 @@ interface PlanSectionProps {
   action: string
   deliverable: string
   deadlineLocal: string
+  stakeContactValid: boolean
   active: boolean
 }
 
-function PlanSection({ draft, onDraftChange, action, deliverable, deadlineLocal, active }: PlanSectionProps) {
+function PlanSection({
+  draft,
+  onDraftChange,
+  action,
+  deliverable,
+  deadlineLocal,
+  stakeContactValid,
+  active
+}: PlanSectionProps) {
   const evidenceType = draft.evidence_type
   const repo =
     draft.evidence_config !== null && typeof draft.evidence_config?.repo === 'string'
@@ -407,6 +420,54 @@ function PlanSection({ draft, onDraftChange, action, deliverable, deadlineLocal,
               options={SKIP_DAYS_OPTIONS}
             />
           </div>
+
+          {/* Terms — email-witness stake (spec §5.2 step 3b). Monetary stake is [ROADMAP]. */}
+          <div className="plan-setting-row">
+            <div>
+              <span className="plan-setting-label">Add a witness</span>
+              <p className="toggle-sub">If you miss this, we tell someone you name. Email only.</p>
+            </div>
+            <button
+              type="button"
+              aria-pressed={draft.stake_enabled}
+              aria-label="Toggle witness stake"
+              className={`toggle-btn${draft.stake_enabled ? ' toggle-btn-on' : ''}`}
+              onClick={() => onDraftChange({ ...draft, stake_enabled: !draft.stake_enabled })}
+            >
+              <span className="toggle-knob" />
+            </button>
+          </div>
+
+          {draft.stake_enabled && (
+            <div className="plan-setting-row plan-setting-repo">
+              <span className="plan-setting-label">Witness name</span>
+              <input
+                className="plan-setting-input"
+                type="text"
+                placeholder="Full name"
+                aria-label="Witness contact name"
+                value={draft.stake_contact_name}
+                onChange={(e) => onDraftChange({ ...draft, stake_contact_name: e.target.value })}
+              />
+            </div>
+          )}
+
+          {draft.stake_enabled && (
+            <div className="plan-setting-row plan-setting-repo">
+              <span className="plan-setting-label">Witness email</span>
+              <input
+                className="plan-setting-input"
+                type="email"
+                placeholder="email@example.com"
+                aria-label="Witness contact email"
+                value={draft.stake_contact_email}
+                onChange={(e) => onDraftChange({ ...draft, stake_contact_email: e.target.value })}
+              />
+              {!stakeContactValid && (draft.stake_contact_name.trim() || draft.stake_contact_email) && (
+                <p className="compose-error">Enter a witness name and a valid email, or turn off the witness toggle.</p>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </StepPanel>
@@ -539,6 +600,13 @@ export function NewCommitment() {
 
   const composeValid = isComposeValid()
 
+  // Whether the stake witness contact is complete and valid (name + valid email).
+  const stakeContactValid = Boolean(
+    draftPlan.stake_contact_name.trim() && /\S+@\S+\.\S+/.test(draftPlan.stake_contact_email)
+  )
+  // True when the toggle is on but the contact is incomplete — blocks Start.
+  const stakeIncomplete = draftPlan.stake_enabled && !stakeContactValid
+
   // Island steps with completion state
   const islandSteps: IslandStep[] = [
     { id: 'nc-compose', label: 'Compose', done: composeValid },
@@ -606,18 +674,28 @@ export function NewCommitment() {
     try {
       // 1. Create the commitment (first write)
       const created = await createCommitment({ action, deliverable, deadline: deadlineISO })
-      // 2. Apply plan-step settings (cadence / evidence / skip) if they differ from server defaults
+      // 2. Apply plan-step settings (cadence / evidence / skip / stake) if they differ from server defaults
+      // stakeContactValid is pre-checked above; stakeIncomplete blocks reaching here, so if toggle is on,
+      // the contact is guaranteed valid.
+      const stakeValid = Boolean(draftPlan.stake_enabled && stakeContactValid)
       const needsPatch =
         draftPlan.cadence !== created.cadence ||
         draftPlan.evidence_type !== created.evidence_type ||
-        draftPlan.skip_days_total !== created.skip_days_total
+        draftPlan.skip_days_total !== created.skip_days_total ||
+        stakeValid
       if (needsPatch) {
-        await patchCommitment(created.id, {
+        const patchBody: Parameters<typeof patchCommitment>[1] = {
           cadence: draftPlan.cadence,
           evidence_type: draftPlan.evidence_type,
           evidence_config: draftPlan.evidence_config as Record<string, unknown> | undefined,
           skip_days_total: draftPlan.skip_days_total
-        })
+        }
+        if (stakeValid) {
+          patchBody.stake_enabled = true
+          patchBody.stake_contact_name = draftPlan.stake_contact_name.trim()
+          patchBody.stake_contact_email = draftPlan.stake_contact_email.trim()
+        }
+        await patchCommitment(created.id, patchBody)
       }
       // 3. Start the commitment (draft to active)
       await startCommitment(created.id)
@@ -632,8 +710,8 @@ export function NewCommitment() {
     }
   }
 
-  // The final step's Continue becomes Start commitment, which requires composeValid.
-  const continueDisabled = isFinalStep && !composeValid
+  // The final step's Continue becomes Start commitment; requires composeValid + no incomplete stake.
+  const continueDisabled = isFinalStep && (!composeValid || stakeIncomplete)
 
   return (
     <div className="workspace-root nc-root">
@@ -667,6 +745,7 @@ export function NewCommitment() {
             action={action}
             deliverable={deliverable}
             deadlineLocal={deadlineLocal}
+            stakeContactValid={stakeContactValid}
             active={activeStep === 'nc-plan'}
           />
           <CompanionSection
