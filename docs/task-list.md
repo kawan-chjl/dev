@@ -1,132 +1,97 @@
-# Kawan — Team Task List
+# Kawan — Task List (done / not done)
 
-Lane responsibilities and task breakdown for the 4-person team, derived from `kawan-spec.md` §12.1 (lanes), §12.2 (phase gates) and §12.3 (MVP cut).
+**One goal: finish the product and make it demoable by 30 June 2026.**
 
-| Meta            |                                                                                                                                                                                                                                                                                   |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Version         | 0.2                                                                                                                                                                                                                                                                               |
-| Date            | 2026-06-12                                                                                                                                                                                                                                                                        |
-| Source of truth | [`kawan-spec.md`](./kawan-spec.md) — this doc summarizes, the spec decides                                                                                                                                                                                                        |
-| Companion docs  | [`prd.md`](./prd.md) (what & why) · [`trd.md`](./trd.md) (how)                                                                                                                                                                                                                    |
-| Tracking        | **This file is the canonical assignment of responsibility.** No GitHub Issues currently mirror these tasks (the earlier mirror was deleted); teammates may opt into Issues individually — `lane:A`–`lane:D` labels and the 5 milestones still exist on the repo for that purpose. |
+This doc tracks **only status** — what is done (`[x]`) vs not done (`[ ]`), per lane.
+[`kawan-spec.md`](./kawan-spec.md) is the source of truth; this file just tracks where we are.
+`[x]` is only marked where git history **and** the codebase confirm it shipped.
 
-## 1. Calendar & day mapping
+## Lanes & owners
 
-`D1` = 11 Jun 2026 → `D20` = 30 Jun 2026 (submission 23:59 MYT). Two hard external dates:
+| Lane  | Area                     | Owner      |
+| ----- | ------------------------ | ---------- |
+| **A** | Character & frontend     | Tuna (PO)  |
+| **B** | Backend core             | kymil04    |
+| **C** | AI layer                 | agent crew |
+| **D** | Voice, integration, demo | Tuna (PO)  |
 
-- **22 Jun (D12)** — team Pro subscription expires → all LLM-heavy prompt tuning must be finished (Phase 3 gate).
-- **30 Jun (D20)** — Devpost submission deadline.
+> **B5** (workspace-turn endpoint) sits in Lane B but is **executed by the agent crew**, not kymil04.
 
-## 2. Lane ownership
+---
 
-| Lane  | Title                    | Owner | Scope (one line)                                                                               | Est. days |
-| ----- | ------------------------ | ----- | ---------------------------------------------------------------------------------------------- | --------- |
-| **A** | Character & frontend     | _TBD_ | Live2D stage, all GUIs, timeline, polish                                                       | 14        |
-| **B** | Backend core             | _TBD_ | FastAPI/Postgres (Supabase; SQLite tests), SIWC auth+billing, scheduler/WS/push, state machine | 12        |
-| **C** | AI layer                 | _TBD_ | Chutes client, prompt/schema sets, evidence adapters + judge, tone                             | 14        |
-| **D** | Voice, integration, demo | _TBD_ | Piper/Whisper, WebSpeech, Web Push, integration QA, demo/video/Devpost                         | 14        |
+## Lane A — Character & frontend (Tuna)
 
-~6 days/person slack against the 20-day window is intentional (hackathon reality buffer). The two genuinely novel integrations — **SIWC** (lane B) and the **evidence judge** (lane C) — are week-1 items by design.
+- [x] App skeleton: shell, routes, zones, theme [A1]
+- [x] Live2D stage + lip-sync, expression hooks [A1, spec §5.1]
+- [x] Compose / sentence-builder + Plan/Settings GUIs (hard fields GUI-only) [A2, spec §5.2]
+- [x] First-run persona picker (3 presets) [A2]
+- [x] Timeline / momentum view + celebration/identity beats + habit-loop debrief [A4, spec §5.6]
+- [x] SIWC frontend (auth provider, real `/api/me`, sign-out)
+- [x] Continue-as-guest login
+- [x] Frontend polish: responsive PWA shell, dashboard, management, analytics [A5]
+- [x] Warm-witness design system (v2) + app-shell redesign (v3)
+- [x] v4 restructure: dashboard / management / analytics / real delete + clear-data
+- [x] Onboarding rebuilds (discrete steps, bottom-center nav island)
+- [x] Notifications, FAQ, analytics, history, settings pages
+- [x] Multi-commitment list UI (paginated)
+- [x] Fredoka headings + uppercase wordmark branding
+- [x] Numerous layout/contrast/scroll hotfixes
+- [x] Email/password auth removed — SIWC + Guest only (was added, then reverted)
+- [ ] Workspace chat UI rework [A3, spec §5.2] — still renders `getMockConversation()` in `WorkspaceLayout.tsx`; send-to-AI unwired. Needs Lane C (B5 endpoint shipped, PR #62). **Demo-critical.**
 
-## 3. Phase gates (from spec §12.2)
+---
 
-| Phase | Days   | Gate — pass/fail criteria                                                                                                                                           |
-| ----- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1     | D1–2   | All four de-risk spikes green (see §4 below). **Miss → cut order (spec §12.3) begins immediately.**                                                                 |
-| 2     | D3–7   | Compose → Context → Plan wired end-to-end (text); commitments persist; `check now` runs GitHub adapter on this repo. "Demo thread exists (ugly)."                   |
-| 3     | D8–12  | Full loop: scheduler + WS + escalation, screenshot adapter, final verify, miss path + stake email, win-back, voice in workspace. **LLM tuning done before 22 Jun.** |
-| 4     | D13–16 | Depth: habit loop, proposal-apply, audit view, Web Push, tone passes, TEE badge, variant-persona QA. **Feature freeze D17.**                                        |
-| 5     | D17–20 | Daily demo dry-runs; video recorded by D19; Devpost + README + buffer D20.                                                                                          |
+## Lane B — Backend core (kymil04)
 
-## 4. Phase 1 — de-risk spikes (D1–2, all-hands) — ✅ GATE PASSED 12–13 Jun
+- [x] FastAPI + async DB skeleton; commitment CRUD persists [B1, spec §7]
+- [x] SIWC end-to-end auth + billing (PKCE, HttpOnly session, `/users/me` balance) [B2]
+- [x] Scheduler + WS hub + push delivery ladder [B3]
+- [x] State machine + audit log (miss path, stake email, win-back, proposal-apply) [B4]
+- [x] Shipped endpoints:
+  - [x] Commitment CRUD + list (`GET /api/commitments`, paginated)
+  - [x] Timeline (`GET .../timeline`)
+  - [x] Persona update (`PATCH /api/me`)
+  - [x] Debrief (`POST .../debrief`)
+  - [x] Delete commitment (`DELETE .../{id}`)
+  - [x] Clear user data (`DELETE /api/me/data`) + history (`GET /api/me/history`)
+  - [x] Intake + plan turns (`POST .../context/turn`, `POST .../plan`) — call the stub `LLM`
+  - [x] TTS (`POST /api/voice/tts`)
+- [x] **B5 — workspace-turn endpoint** [spec §9.2-D] — _executed by the agent crew._ `POST /api/commitments/{id}/workspace/turn` shipped (PR #62), mirroring the `/ws` handler 1:1 (record contact, persist proposal, return `{response_type, say, proposal, emotion, proposal_id}`). Built against the stub contract, so it works now and keeps working once Lane C swaps in the real client. The chat UI (A3) can call it today; replies become real when Lane C lands.
 
-All four executed before lane assignment; full results in spec §13 (D1–2 block). Key carry-forwards per lane below.
+---
 
-| ID  | Spike                   | Lane | Status                                                                                                                                                                                                                                                                                                                                                                                                            |
-| --- | ----------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| S1  | SIWC round-trip         | B    | ✅ **PASS** — PKCE + refresh OK; OAuth token: `llm.` 200 / **`lm.` 403** (use `llm.` only); `/users/me` works with `chutes:invoke` — no `billing:read`. App `cid_…` registered; secret in team `.env`. Billing attribution confirmed in dashboard logs. **Follow-up (B, before demo):** re-run harness with a personal account to prove user-vs-team billing _separation_ (consent used the shared team account). |
-| S2  | Vision-judge call       | C    | ✅ **PASS** — strict `json_schema` verdict via failover pair; judge correctly returned `unclear` on a static screenshot → judge prompts need commitment context (calibration input for C2/C3).                                                                                                                                                                                                                    |
-| S3  | Live2D + lip-sync       | A    | ✅ **PASS** — Haru + PixiJS 6.5.10 + pixi-live2d-display 0.4.0, hand-rolled AnalyserNode lip-sync (no patch pkg). **Model + engine locked.** Spike page: `kawan/frontend/spike-live2d.html`; A1 gotchas in spec §13.                                                                                                                                                                                              |
-| S4  | Pro-tier model coverage | C    | ✅ **PASS** — all 4 pipeline models 200 under Pro. ⚠️ All but gemma are reasoning models: budget `max_tokens` for thinking tokens in every schema call.                                                                                                                                                                                                                                                           |
+## Lane C — AI layer (agent crew)
 
-### Open questions carried from spec §14 (each ≤1 day)
+**Status: NOT built.** All AI calls run as deterministic stubs (`app/stubs.py`), swapped in one file (`app/wiring.py` → `StubLLMClient`, `StubGitHubAdapter`, `StubScreenshotAdapter`). Lane C's job is to replace these behind the identical `app/contracts.py` signatures.
 
-| Q   | Question (short)                                          | Owner | Due                                  | Status                                             |
-| --- | --------------------------------------------------------- | ----- | ------------------------------------ | -------------------------------------------------- |
-| Q1  | SIWC token works against `llm.` (vs `lm.`)?               | B     | D1                                   | ✅ Resolved by S1 — `llm.` only                    |
-| Q2  | Pro tier covers all judge models?                         | C     | D1                                   | ✅ Resolved by S4                                  |
-| Q3  | Hero persona voice/register (BM/English/Manglish mix?)    | Team  | **D2–3** (taste decision)            | Open — feeds C4                                    |
-| Q4  | `chutes:invoke` enough for `/users/me` balance?           | B     | D1                                   | ✅ Resolved by S1 — yes; `billing:read` privileged |
-| Q5  | _(Optional courtesy)_ LiveroiD creator permission inquiry | A     | Anytime (Haru-R/Hiyori are fallback) | Open                                               |
+- [ ] Chutes client + structured-output harness + SIWC-billed Bearer [C1, spec §3.1, §9.1]
+- [ ] Four prompt/schema sets — intake, plan, check-in, workspace [C2, spec §9.2]
+- [ ] Per-persona layered system prompts + 6-value emotion tagging [C2, spec §11.1]
+- [ ] Evidence adapters + judge (GitHub + screenshot/TEE vision, three-valued verdict) [C3, spec §9.3]
+- [ ] Persona tone tuning + variant-persona QA (×3) [C4, spec §11.2]
 
-## 5. Lane task breakdown
+---
 
-Acceptance = the gate it must satisfy. `Deps` reference task IDs. Day estimates from spec §12.1.
+## Lane D — Voice, integration, demo (Tuna)
 
-### Lane A — Character & frontend (14d)
+- [x] Piper TTS endpoint + per-persona voices [D1] (voices download locally; backend returns 204 when absent)
+- [x] WebSpeech fallback voice path [D2]
+- [x] Real amplitude lip-sync + voice input capture [D2]
+- [x] Emotion → expression wiring (6-value enum) + six Hiyori (Adik) expressions [D2/D4]
+- [x] Deploy: Vercel (frontend) + Render (backend) live, auto-deploy from `main` [D4, half]
+- [ ] **D3 — Web Push** — client shipped (PR #63): service worker (`public/sw.js`) + subscribe flow (`notifications/webPush.ts`) + Settings toggle + `GET /api/push/vapid-public-key`, degrades silently when unconfigured. Backend send-side already existed. **Remaining (human ops): generate a VAPID keypair and set it in Render env** — delivery lights up the moment keys are present.
+- [ ] D4 — integration QA across full demo thread + Python seed/reset script for a clean demo dataset
+- [ ] D5 — demo script + video + Devpost + README (team-owned)
 
-| ID  | Task                         | Est. | Phase | Deps   | Acceptance                                                                                                                                                                                                   |
-| --- | ---------------------------- | ---- | ----- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| A1  | Live2D stage + lip-sync      | 3d   | 2     | S3     | Stage component with expression hooks; lip-sync driven by TTS audio in-app.                                                                                                                                  |
-| A2  | Compose + Plan/Settings GUIs | 3d   | 2     | B1     | Sentence-builder (<30 s to compose); hard fields GUI-set, AI-read-only (trd §5). Includes the **first-run persona picker** (3 presets) — the picker itself is MVP, built week 1–2 (spec §12.2 phase-4 note). |
-| A3  | Workspace chat UI            | 3d   | 3     | A1, C2 | Goal-scoped chat (voice/text), slot-fill display, in-character reactions, proposal card overlay with `[Apply]`/`[Dismiss]` (spec §5.2).                                                                      |
-| A4  | Timeline / momentum view     | 2d   | 4     | B3     | Check-in timeline + momentum dots + celebration/identity beats + habit-loop close (one-question debrief, seeded next commitment / `Repeat this`, spec §5.6); shows scheduler activity without waiting on it. |
-| A5  | Frontend polish pass         | 3d   | 4     | A1–A4  | Responsive PWA, TEE attestation badge, audit-log "who changed what" view (spec §8.2), persona picker refinement. Freeze D17.                                                                                 |
+---
 
-### Lane B — Backend core (12d)
+## What's left to be demoable by 30 June
 
-| ID  | Task                           | Est. | Phase | Deps | Acceptance                                                                                                                                                                                                                      |
-| --- | ------------------------------ | ---- | ----- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| B1  | FastAPI + DB skeleton          | 2d   | 2     | —    | Single-process app, async SQLAlchemy 2; persistence = Supabase Postgres (asyncpg, Supavisor session pooler) for dev+prod, SQLite for tests/local fallback (trd §7.7, TR-78); commitment CRUD persists.                          |
-| B2  | SIWC end-to-end auth + billing | 3d   | 2     | S1   | OAuth2 PKCE, HttpOnly session, user token → inference billed to user; balance display via `/users/me`; labeled guest-mode `cpk_` fallback exists but is never demoed (spec §9.1, §12.4). Week-1 item.                           |
-| B3  | Scheduler + WS + push delivery | 4d   | 3     | B1   | APScheduler jobs (cadence/deadline/win-back) rebuilt from DB at boot; delivery ladder WS → Web Push → timeline; `check now` independent of cron.                                                                                |
-| B4  | State machine + audit log      | 3d   | 3     | B1   | Per-commitment lifecycle, miss path + stake email (SMTP/Resend, spec A5), win-back, proposal-apply endpoint (user session only), `success_patterns` write on outcome, audit log with AI-actor-unrepresentable CHECK constraint. |
+The still-open, demo-critical items, pulled together:
 
-### Lane C — AI layer (14d)
-
-| ID  | Task                                      | Est. | Phase | Deps   | Acceptance                                                                                                                                                                                                            |
-| --- | ----------------------------------------- | ---- | ----- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| C1  | Chutes client + structured-output harness | 2d   | 2     | S1     | json_schema strict harness + inline failover routing between model pairs.                                                                                                                                             |
-| C2  | Four prompt/schema sets                   | 5d   | 2–3   | C1     | Intake Q&A, plan proposal, evidence judging, workspace chat — incl. scope-boundary refusal enum. **Tuned before 22 Jun.**                                                                                             |
-| C3  | Evidence adapters + judge                 | 4d   | 3     | C1, S2 | Pluggable interface; GitHub adapter (trivial-commit filter `stats.total < 3`); screenshot → TEE vision; three-valued verdict, `unclear` never punishes.                                                               |
-| C4  | Persona tone tuning                       | 3d   | 4     | C2     | Skeptical-but-fair register across touchpoints; variant-persona QA (3 presets). Implements the register chosen for Q3 (team taste decision due **D2–3**, not here); hero passes ideally land pre-22 Jun (spec §11.2). |
-
-### Lane D — Voice, integration, demo (14d)
-
-| ID  | Task                          | Est. | Phase | Deps      | Acceptance                                                                                                                                                                                                                                                                                                                    |
-| --- | ----------------------------- | ---- | ----- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D1  | Piper + Whisper Docker stack  | 3d   | 2     | —         | wyoming-piper TTS + wyoming-faster-whisper STT in Docker, wired to backend.                                                                                                                                                                                                                                                   |
-| D2  | WebSpeech fallback path       | 1d   | 2     | —         | Web Speech API as demo-default voice path (no Docker dependency on stage).                                                                                                                                                                                                                                                    |
-| D3  | Web Push                      | 2d   | 3     | B3        | Service-worker push for closed-tab check-ins; falls back to timeline.                                                                                                                                                                                                                                                         |
-| D4  | Integration QA + deploy       | 4d   | 4     | all lanes | Full demo thread tested incl. determinism levers (`?demo_deadline=+5m`, pre-staged 2nd account, pre-seeded momentum history on the demo account — spec §6.4). Owns the **Vercel + Render deploy** (auto-deploy from `main`, trd §7.7/TR-79) and the Python **seed/reset script** for a clean pre-staged demo dataset (TR-78). |
-| D5  | Demo script + video + Devpost | 4d   | 5     | D4        | 5-min script (spec §12.5) with **daily dry-runs D17–20**, incl. deliberately triggering the scope-boundary refusal (spec §12.4); recorded backup footage; video by D19; Devpost + README by D20.                                                                                                                              |
-
-## 6. Cross-lane dependency map
-
-```
-S1 ──► B2 ──► (billing visible in UI)
-S1 ──► C1 ──► C2 ──► C4
-S2 ──────────► C3 ◄── C1
-S3 ──► A1 ──► A3, A5
-B1 ──► A2, B3, B4
-B3 ──► A4, D3
-all ──► D4 ──► D5
-```
-
-Integration choke points (watch weekly): **B3↔A4/D3** (delivery ladder), **C3↔B4** (verdict → state machine), **A1↔D1/D2** (audio → lip-sync).
-
-## 7. MVP cut order (if a gate slips — spec §12.3)
-
-- **MUST (demo thread, cut bottom-up only if forced):** SIWC sign-in **with balance display** → persona pick (3 presets, hero fully tuned) → Compose → Context chat (text; voice if stable) → Plan+Settings → Start → `check now` GitHub verify with in-character reaction → screenshot TEE judge → deadline verify (demo clock `?demo_deadline=+5m`) → celebration + identity + momentum → staged miss (pre-staged 2nd account) → stake email + win-back. Live2D + lip-synced TTS throughout; **real scheduler exists** (shown via timeline, not waited on).
-- **SHOULD (post-freeze, in priority order):** ① share card · ② trust meter · ③ public-URL adapter · ④ variant-persona tone QA · ⑤ server-Whisper · ⑥ closed-tab push · ⑦ guard classifier · ⑧ Kokoro TTS · expression variety · mobile polish · calibration suggestions.
-- **OUT (roadmap):** monetary stakes · more adapters · GitHub OAuth/private repos · multi-commitment · auto-recurring · crew/leaderboards · native mobile · true barge-in · retention features.
-
-## 8. Working agreements
-
-- **Conventional commits** enforced by commitlint (pre-commit hooks install via `bun install`).
-- **Attribute adapted OSS** in README + commit messages from day 1 (judges review git history).
-- **No SDK/engine migration after S3 locks** the Live2D stack.
-- **Demo determinism:** every demo beat fires from a deterministic trigger; nothing waits on a cron.
-- **Feature freeze D17** — after that, only SHOULD-list items and polish.
-- **Live2D assets `[REVISED — PO-approved, spec §4.4 / TR-12]`:** runtime model files are **committed via Git LFS in the private repo** (served same-origin under `/models/...`); `kawan/scripts/download_models.sh` is the local-bootstrap convenience; Live2D copyright notice + #LiveroiD credit lines stay in README.
-- **Shared Chutes account discipline:** quotas are per account with 4-h rolling-window smoothing — batch bulk eval loops off-hours; never architect features around subscription quotas (spec §3.2).
+- [ ] **Lane C AI layer** — replace all stubs with the real Chutes client, schema sets, judge, and persona tone (C1–C4). Nothing AI is real yet.
+- [x] **B5 workspace-turn endpoint** (agent crew) — shipped (PR #62). The REST seam the chat UI calls now exists.
+- [ ] **Workspace chat / AI-workflow view rework** [A3] — wire the chat UI off mocks onto B5 (shipped) + Lane C; drive the reactive Live2D face from real `{say, emotion}`.
+- [~] **D3 Web Push** — client shipped (PR #63); only remaining piece is the VAPID keypair in Render env (human ops). Independent of Lane C.
+- [ ] **D4 integration QA + seed/reset script** — full demo thread tested with determinism levers; clean pre-staged demo data.
+- [ ] **D5 demo video + Devpost + README** (team-owned).

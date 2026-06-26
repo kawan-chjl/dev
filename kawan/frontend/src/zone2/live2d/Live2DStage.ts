@@ -10,6 +10,7 @@
  */
 
 import * as PIXI from 'pixi.js'
+import type { WebSpeechPrefs } from '../voice/personaVoices'
 
 // Expose PIXI globally before pixi-live2d-display resolves (spike gotcha 2).
 // pixi-live2d-display reads window.PIXI at import time to patch the display object prototype.
@@ -183,7 +184,101 @@ export class Live2DStage {
       void this.audioCtx.close()
       this.audioCtx = null
     }
+    // Also cancel any in-progress WebSpeech fallback
+    this._stopSpeakText()
     this._setMouthParam(0)
+  }
+
+  /**
+   * WebSpeech fallback TTS — used when Piper audio is unavailable (204 / network down).
+   * SEPARATE from speak(ArrayBuffer | AudioBuffer) — does NOT touch the analyser path.
+   * Drives an approximated mouth envelope:
+   *   - Per-word boundary pulses (desktop Chrome `onboundary` with charIndex ≥ 0)
+   *   - Timed oscillation fallback (250 ms cycle) for browsers without boundary events
+   * Resolves on end/error; always no-throws.
+   */
+  async speakText(text: string, prefs: WebSpeechPrefs): Promise<void> {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return
+
+    // Cancel any previous utterance
+    this._stopSpeakText()
+
+    return new Promise<void>((resolve) => {
+      const utter = new SpeechSynthesisUtterance(text)
+      utter.lang = prefs.lang
+      utter.pitch = prefs.pitch
+      utter.rate = prefs.rate
+
+      // Try to pick a matching voice (best-effort; browser may have none)
+      const voices = window.speechSynthesis.getVoices()
+      for (const pref of prefs.voiceNamePref) {
+        const match = voices.find((v) => v.name.toLowerCase().includes(pref.toLowerCase()) || v.lang.startsWith(pref))
+        if (match) {
+          utter.voice = match
+          break
+        }
+      }
+
+      this._speechUtter = utter
+
+      // Timed oscillation fallback (runs unless onboundary fires quickly enough)
+      let boundaryFired = false
+      const CYCLE_MS = 250
+      const mouthLoop = setInterval(() => {
+        const v = (Math.sin(Date.now() / CYCLE_MS) + 1) / 2 // 0..1 sinusoid
+        this._setMouthParam(v * 0.6) // cap at 0.6 so it looks approximated, not full-open
+      }, 50)
+      this._speechRafId = mouthLoop as unknown as number // store as id for cleanup
+
+      utter.onboundary = (ev: SpeechSynthesisEvent) => {
+        if (ev.name !== 'word') return
+        boundaryFired = true
+        // Pulse mouth open on each word boundary, then close after 120 ms
+        this._setMouthParam(0.7)
+        setTimeout(() => this._setMouthParam(0.1), 120)
+        if (mouthLoop !== undefined) {
+          clearInterval(mouthLoop)
+          this._speechRafId = null
+        }
+      }
+
+      utter.onstart = () => {
+        this._setMouthParam(0.4) // open on start in case onboundary never fires
+        void boundaryFired // suppress unused warning
+      }
+
+      const done = () => {
+        clearInterval(mouthLoop)
+        this._speechRafId = null
+        this._speechUtter = null
+        this._setMouthParam(0)
+        resolve()
+      }
+      utter.onend = done
+      utter.onerror = done
+
+      try {
+        window.speechSynthesis.speak(utter)
+      } catch {
+        done()
+      }
+    })
+  }
+
+  /** Cancel any in-progress speakText() utterance. */
+  private _stopSpeakText(): void {
+    if (this._speechUtter != null) {
+      try {
+        window.speechSynthesis?.cancel()
+      } catch {
+        // ignore
+      }
+      this._speechUtter = null
+    }
+    if (this._speechRafId != null) {
+      clearInterval(this._speechRafId)
+      this._speechRafId = null
+    }
   }
 
   /**
@@ -205,7 +300,7 @@ export class Live2DStage {
    */
   destroy(): void {
     this._destroyed = true
-    this.stopSpeaking()
+    this.stopSpeaking() // covers both speak() and speakText() via _stopSpeakText inside
     if (this.app != null) {
       // v6 positional signature: destroy(removeView, stageOptions).
       // removeView=true discards the canvas element → next mount creates a brand-new one.
@@ -219,6 +314,8 @@ export class Live2DStage {
 
   // ── private helpers ──────────────────────────────────────────────────────────
 
+  private _speechUtter: SpeechSynthesisUtterance | null = null
+  private _speechRafId: number | null = null
   private _lastScale: number | null = null
   // Per-persona base scale from mount options — sourced from modelRegistry so resize()
   // never falls back to a hardcoded Haru-specific literal (QA fix).

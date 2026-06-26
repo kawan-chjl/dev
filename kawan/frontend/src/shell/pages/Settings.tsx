@@ -1,77 +1,89 @@
-// Settings - V7 "Warm bento"
-// Persona switcher (3 presets), Chutes balance, push toggle, accountability contact, logout.
-// Persona is sourced from me.persona (single source of truth via AuthContext) - no detached
-// local state. setPersona from useAuth() persists the choice (local + best-effort backend).
+// Settings - V7 "Warm bento" + v4 hotfix
+// Persona switcher (portrait-free themed selector), Chutes balance, push toggle, accountability contact,
+// "Delete all data" (data-only, keeps login), logout.
+// Persona is sourced from me.persona (single source of truth via AuthContext).
 
+import { Check } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthProvider'
+import { MOCK_AUTH } from '../../auth/api'
+import { deleteMyData } from '../../commitments/api'
 import { listPersonas } from '../../mock/provider'
-import type { Persona } from '../../types/api'
+import { useNotifications } from '../../notifications/NotificationProvider'
+import type { PushStatus } from '../../notifications/webPush'
+import { subscribeToPush, unsubscribeFromPush } from '../../notifications/webPush'
 import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
-import { PERSONA_PORTRAITS } from '../../zone2/personaPortraits'
+import { Modal } from '../../ui/Modal'
 import { PageHeader } from '../PageHeader'
-
-function PersonaPortraitImg({ persona, name }: { persona: Persona; name: string }) {
-  const [failed, setFailed] = useState(false)
-  if (failed) {
-    return (
-      <div className="persona-card-portrait-fallback" aria-hidden="true">
-        {name.charAt(0).toUpperCase()}
-      </div>
-    )
-  }
-  return (
-    <img
-      className="persona-card-portrait"
-      src={PERSONA_PORTRAITS[persona]}
-      alt={`Portrait of ${name}`}
-      onError={() => setFailed(true)}
-      loading="lazy"
-    />
-  )
-}
 
 export function Settings() {
   const { me, signOut, setPersona } = useAuth()
   const navigate = useNavigate()
+  const { notify } = useNotifications()
   const personas = listPersonas()
   const [pushEnabled, setPushEnabled] = useState(false)
+  const [pushStatus, setPushStatus] = useState<PushStatus | null>(null)
+  const [pushBusy, setPushBusy] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
-  // Source of truth for the selected persona is me.persona (Q8 recommendation).
-  // setPersona does an optimistic update so the card re-renders immediately.
+  // Source of truth for the selected persona is me.persona.
+  // setPersona does an optimistic update so the selector re-renders immediately.
   const selectedPersona = me?.persona ?? 'kawan'
+
+  async function handleDeleteData() {
+    setDeleteConfirmOpen(false)
+    setDeleting(true)
+    try {
+      if (!MOCK_AUTH) {
+        await deleteMyData()
+      }
+      // Refresh to empty/idle state (no sign-out; account stays)
+      navigate('/home')
+      window.location.reload()
+    } catch {
+      notify('Could not delete your data. Please try again.', { kind: 'error' })
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   return (
     <div className="shell-page">
-      <PageHeader title="Settings" />
+      <PageHeader title="Settings" subtitle="Choose your companion, manage your account, and control your data." />
 
-      {/* Persona switcher - design.md §7 selected card pattern */}
+      {/* Companion selector - horizontal cube-card grid (matches onboarding companion cards) */}
       <section className="settings-section" aria-labelledby="persona-heading">
         <h3 id="persona-heading" className="settings-section-title">
           Your companion
         </h3>
-        <div className="persona-grid">
-          {personas.map((p) => (
-            <Card
-              key={p.id}
-              selected={selectedPersona === p.id}
-              className="persona-card"
-              role="button"
-              tabIndex={0}
-              aria-pressed={selectedPersona === p.id}
-              aria-label={`Select ${p.name}, ${p.archetype}`}
-              onClick={() => setPersona(p.id)}
-              onKeyDown={(e) => e.key === 'Enter' && setPersona(p.id)}
-            >
-              <PersonaPortraitImg persona={p.id as Persona} name={p.name} />
-              <p className="persona-card-name">{p.name}</p>
-              <p className="persona-card-archetype">{p.archetype}</p>
-              <p className="persona-card-tone">{p.tone}</p>
-            </Card>
-          ))}
+        <div className="nc-companion-grid">
+          {personas.map((p) => {
+            const isSelected = selectedPersona === p.id
+            return (
+              <button
+                key={p.id}
+                type="button"
+                aria-pressed={isSelected}
+                className={`nc-companion-card${isSelected ? ' nc-companion-card-selected' : ''}`}
+                onClick={() => setPersona(p.id)}
+              >
+                <div className="nc-companion-card-body">
+                  <p className="nc-companion-name">{p.name}</p>
+                  <p className="nc-companion-archetype">{p.archetype}</p>
+                  <p className="nc-companion-tone">{p.tone}</p>
+                </div>
+                {isSelected && (
+                  <div className="nc-companion-check" aria-hidden="true">
+                    <Check size={12} />
+                  </div>
+                )}
+              </button>
+            )
+          })}
         </div>
       </section>
 
@@ -98,7 +110,15 @@ export function Settings() {
           <div className="toggle-row">
             <div>
               <p className="toggle-label">Push notifications</p>
-              <p className="toggle-sub">Allow Kawan to deliver check-ins to this device.</p>
+              <p className="toggle-sub push-status-copy">
+                {pushStatus === 'subscribed' || pushEnabled
+                  ? 'Notifications are on.'
+                  : pushStatus === 'denied'
+                    ? 'Notifications are blocked in your browser settings.'
+                    : pushStatus === 'unsupported'
+                      ? 'This browser does not support notifications.'
+                      : 'Turn on notifications to get nudged when the tab is closed.'}
+              </p>
             </div>
             <button
               type="button"
@@ -106,7 +126,26 @@ export function Settings() {
               role="switch"
               aria-checked={pushEnabled}
               aria-label="Toggle push notifications"
-              onClick={() => setPushEnabled((v) => !v)}
+              disabled={pushBusy || pushStatus === 'unsupported' || pushStatus === 'denied'}
+              onClick={async () => {
+                if (MOCK_AUTH) {
+                  setPushEnabled((v) => !v)
+                  return
+                }
+                if (pushEnabled) {
+                  setPushBusy(true)
+                  await unsubscribeFromPush()
+                  setPushEnabled(false)
+                  setPushStatus(null)
+                  setPushBusy(false)
+                  return
+                }
+                setPushBusy(true)
+                const status = await subscribeToPush()
+                setPushStatus(status)
+                setPushEnabled(status === 'subscribed')
+                setPushBusy(false)
+              }}
             >
               <span className="toggle-knob" />
             </button>
@@ -126,6 +165,35 @@ export function Settings() {
           </Button>
         </Card>
       </section>
+
+      {/* Delete all data — above sign out */}
+      <section className="settings-section settings-danger">
+        <Button variant="secondary" disabled={deleting} onClick={() => setDeleteConfirmOpen(true)}>
+          {deleting ? 'Deleting...' : 'Delete all data'}
+        </Button>
+      </section>
+
+      {/* Delete confirm dialog — portaled above all shell layers via Modal */}
+      <Modal
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        label="Confirm delete all data"
+        panelClassName="modal-panel-confirm"
+      >
+        <p className="commitments-confirm-heading">Delete all your data?</p>
+        <p className="commitments-confirm-body">
+          This permanently deletes all your commitments, check-ins, history, and reflections. Your account stays, but
+          this cannot be undone.
+        </p>
+        <div className="commitments-confirm-actions">
+          <Button variant="secondary" onClick={() => setDeleteConfirmOpen(false)}>
+            Cancel
+          </Button>
+          <Button variant="accent" onClick={handleDeleteData}>
+            Delete everything
+          </Button>
+        </div>
+      </Modal>
 
       {/* Sign out */}
       <section className="settings-section settings-danger">

@@ -43,6 +43,10 @@ class ContextTurnIn(BaseModel):
     say: str = ""
 
 
+class WorkspaceTurnIn(BaseModel):
+    say: str = ""
+
+
 class PushSubscribeIn(BaseModel):
     subscription: dict[str, Any]
 
@@ -93,3 +97,12 @@ class CommitmentOut(BaseModel):
     status: str
     escalation: int
     created_at: datetime
+
+
+class CommitmentListOut(BaseModel):
+    """Paginated envelope for GET /api/commitments."""
+
+    items: list[CommitmentOut]
+    total: int
+    limit: int
+    offset: int

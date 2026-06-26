@@ -140,7 +140,7 @@
 }
 
 .char-stage-label {
-  font-family: var(--font-display);
+  font-family: var(--font-voice);
   font-style: italic;
   font-size: var(--text-small);
   color: rgba(244, 236, 225, 0.45);
@@ -290,7 +290,7 @@
   border: 1.5px solid rgba(244, 236, 225, 0.1);
   border-radius: var(--radius-card);
   backdrop-filter: blur(16px) saturate(160%);
-  padding: var(--space-4) 56px var(--space-4) var(--space-5);
+  padding: var(--space-4) 92px var(--space-4) var(--space-5); /* 92px = advance(36) + mic(32) + gaps */
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
   animation: stage-fade-in var(--duration-panel) var(--ease-smooth) both;
 }
@@ -554,50 +554,6 @@
   padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0));
 }
 
-/* Stepper */
-.stepper {
-  display: flex;
-  gap: var(--space-6);
-  align-items: center;
-}
-
-.stepper-step {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  opacity: 0.4;
-}
-.stepper-step-active {
-  opacity: 1;
-}
-.stepper-step-done {
-  opacity: 0.7;
-}
-
-.stepper-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: var(--radius-pill);
-  background: var(--muted);
-}
-.stepper-step-active .stepper-dot {
-  background: var(--accent);
-}
-.stepper-step-done .stepper-dot {
-  background: var(--sage-deep);
-}
-
-.stepper-label {
-  font-size: var(--text-caption);
-  font-weight: 500;
-  color: var(--muted);
-  white-space: nowrap;
-}
-.stepper-step-active .stepper-label {
-  color: var(--ink);
-}
-
 /* Compose step */
 .compose-step {
   display: flex;
@@ -775,12 +731,6 @@
   opacity: 0.4;
 }
 
-.plan-settings {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
 .plan-setting-row {
   display: flex;
   justify-content: space-between;
@@ -790,6 +740,9 @@
 }
 
 .plan-setting-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
   font-size: var(--text-small);
   font-weight: 500;
   color: var(--ink-soft);
@@ -1021,4 +974,670 @@
   color: var(--sage-deep);
   font-weight: 600;
   margin-left: var(--space-2);
+}
+
+/* ── NewCommitment discrete-step redesign ── */
+
+/* Root override: bg matches shell (warm) not the dark workspace */
+.nc-root {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* Topbar title - centered between Cancel and spacer */
+.nc-topbar-title {
+  font-family: var(--font-display);
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: rgba(244, 236, 225, 0.7);
+  letter-spacing: 0.02em;
+  flex: 1;
+  text-align: center;
+}
+
+/* Body: single-column flex; index island overlays via fixed positioning so it
+   does not consume centering space — step content stays full-width and centered. */
+.nc-body {
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Step content column — fills available height, scrolls if step overflows */
+.nc-steps {
+  overflow-y: auto;
+  height: 100%;
+  /* clearance for the bottom-center nav island */
+  padding-bottom: 88px;
+}
+
+/* Right-rail column — hidden on narrow; fixed overlay on wide so it does not
+   shift the centering of nc-section-inner */
+.nc-island-col {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .nc-island-col {
+    display: block;
+    position: fixed;
+    top: calc(52px + var(--space-6));
+    right: var(--space-6);
+  }
+}
+
+/* Top-right index island: positioned via fixed parent (.nc-island-col) on wide screens */
+.nc-island {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+
+.nc-island-heading {
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--ink-faint);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  margin-bottom: var(--space-1);
+}
+
+.nc-island-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Inactive link: --ink-soft gives >=4.5:1 on --surface in both themes */
+.nc-island-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  text-align: left;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  border: none;
+  background: none;
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  color: var(--ink-soft);
+  cursor: pointer;
+  gap: var(--space-2);
+  transition:
+    background var(--duration-ui) var(--ease-out),
+    color var(--duration-ui) var(--ease-out);
+}
+.nc-island-link:hover {
+  background: var(--surface-sunk);
+  color: var(--ink);
+}
+.nc-island-link-active {
+  color: var(--accent-press);
+  background: var(--accent-tint);
+  font-weight: 600;
+}
+
+.nc-island-label {
+  flex: 1;
+}
+
+.nc-island-tick {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--sage-deep);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+/* Step panel: only the active one is shown. Hidden panels are display:none. */
+.nc-step-panel {
+  display: none;
+}
+.nc-step-panel-active {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100svh - 52px - 88px);
+  justify-content: center;
+}
+
+/* Cross-fade + rise 8px on step entry (motion variant only) */
+.nc-step-panel-motion.nc-step-panel-active {
+  animation: nc-step-in 300ms var(--ease-out) both;
+}
+
+@keyframes nc-step-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nc-step-panel-motion.nc-step-panel-active {
+    animation: none;
+  }
+}
+
+.nc-section-inner {
+  max-width: 620px;
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--space-12) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.nc-section-heading {
+  font-family: var(--font-display);
+  font-size: var(--text-h2);
+  font-weight: 600;
+  color: var(--ink);
+  line-height: var(--lh-heading);
+}
+
+/* ── Bottom-center navigation island ── */
+/* Floating pill pinned at the bottom center of the viewport */
+.nc-bottom-island {
+  position: fixed;
+  bottom: var(--space-6);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  padding: var(--space-2) var(--space-4);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18);
+  backdrop-filter: var(--blur-backdrop);
+  z-index: 40;
+  white-space: nowrap;
+}
+
+.nc-bottom-back {
+  background: none;
+  border: none;
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  font-weight: 500;
+  color: var(--ink-soft);
+  cursor: pointer;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  min-height: 36px;
+  min-width: 44px;
+  transition:
+    color var(--duration-ui) var(--ease-out),
+    background var(--duration-ui) var(--ease-out);
+}
+.nc-bottom-back:hover:not(:disabled) {
+  color: var(--ink);
+  background: var(--surface-sunk);
+}
+.nc-bottom-back:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.nc-bottom-back:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.nc-bottom-counter {
+  font-family: var(--font-body);
+  font-size: var(--text-caption);
+  color: var(--ink-faint);
+  min-width: 64px;
+  text-align: center;
+}
+
+/* ── Compose section: inline mad-lib sentence constructor ── */
+
+/* Wraps the whole "I will [verb] [deliverable] by [date]" sentence */
+.nc-madlib {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-h3);
+  line-height: 2.2;
+}
+
+.nc-madlib-prose {
+  font-family: var(--font-body);
+  color: var(--ink-soft);
+  font-size: var(--text-h3);
+}
+
+/* Each interactive field slot */
+.nc-madlib-field {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Visible label above the deliverable input (others use sr-only) */
+.nc-madlib-field-label {
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--ink-faint);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+/* Deliverable input: expands to fill available wrap-row space */
+.nc-madlib-deliverable-wrap {
+  flex: 1;
+  min-width: 200px;
+}
+
+/* Inline deliverable text input styled to match the Select trigger height */
+.nc-madlib-input {
+  height: 44px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--line);
+  background: var(--surface-2);
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  color: var(--ink);
+  width: 100%;
+  transition: border-color var(--duration-ui) var(--ease-out);
+}
+.nc-madlib-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.nc-madlib-input::placeholder {
+  color: var(--ink-faint);
+}
+
+.nc-compose-hint {
+  font-size: var(--text-small);
+  color: var(--ink-soft);
+  padding-top: var(--space-1);
+  border-top: 1px solid var(--line);
+  margin-top: var(--space-1);
+}
+
+/* Live sentence preview — Fraunces italic voice (the "I will ... by ..." moment) */
+.nc-sentence-preview {
+  font-family: var(--font-voice);
+  font-size: var(--text-small);
+  color: var(--ink-soft);
+  font-style: italic;
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--accent-tint);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.nc-sentence-preview em {
+  color: var(--accent);
+  font-style: italic;
+}
+
+/* ── Plan section: un-boxed dropdowns ── */
+/* No surrounding container/card — dropdowns stand alone with spacing only */
+.nc-plan-settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* ── Context section stub ── */
+
+.nc-context-stub {
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  border: 1.5px dashed var(--line);
+  padding: var(--space-8) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
+}
+
+.nc-context-stub-icon {
+  margin-bottom: var(--space-2);
+}
+
+.nc-context-stub-label {
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.nc-context-stub-sub {
+  font-size: var(--text-small);
+  color: var(--ink-faint);
+  line-height: var(--lh-body);
+  max-width: 380px;
+}
+
+/* ── Companion section cube-card grid ── */
+/* Always horizontal: flex row, overflow-x scroll + scroll-snap on narrow */
+
+.nc-companion-sub {
+  font-size: var(--text-small);
+  color: var(--ink-soft);
+  line-height: var(--lh-body);
+}
+
+.nc-companion-grid {
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-4);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: var(--space-2); /* space for scrollbar */
+}
+
+/* Each card: portrait (3:4 aspect ratio) + content below */
+.nc-companion-card {
+  flex: 0 0 180px;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
+  border: 2px solid var(--line);
+  background: var(--surface);
+  cursor: pointer;
+  text-align: left;
+  position: relative;
+  transition:
+    border-color var(--duration-ui) var(--ease-out),
+    box-shadow var(--duration-ui) var(--ease-out),
+    background var(--duration-ui) var(--ease-out);
+}
+.nc-companion-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--line-strong);
+}
+.nc-companion-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.nc-companion-card-selected {
+  border-color: var(--accent);
+  background: var(--accent-tint);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+.nc-companion-card-selected:hover {
+  border-color: var(--accent-press);
+}
+
+@media (min-width: 620px) {
+  .nc-companion-grid {
+    overflow-x: visible;
+    scroll-snap-type: none;
+  }
+  .nc-companion-card {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
+
+/* Portrait - 3:4 ratio */
+.nc-companion-portrait {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--surface-sunk);
+  flex-shrink: 0;
+}
+
+.nc-companion-portrait-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  display: block;
+}
+
+.nc-companion-portrait-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: var(--text-display);
+  font-weight: 700;
+  color: var(--ink-faint);
+  background: var(--surface-sunk);
+}
+
+.nc-companion-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1;
+}
+
+.nc-companion-name {
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.nc-companion-archetype {
+  font-size: var(--text-small);
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.nc-companion-tone {
+  font-size: var(--text-caption);
+  color: var(--ink-faint);
+  line-height: var(--lh-body);
+}
+
+/* Selection check badge */
+.nc-companion-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+}
+
+.nc-cta-hint {
+  font-size: var(--text-small);
+  color: var(--ink-faint);
+  font-style: italic;
+}
+
+/* Visually hidden but accessible (screen readers) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── D2 Voice controls (mute + stop, always visible in workspace) ── */
+/* fieldset reset — Biome requires <fieldset> for role=group groupings */
+fieldset.stage-voice-controls {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.stage-voice-controls {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  display: flex;
+  gap: var(--space-2);
+  z-index: 15;
+}
+
+.stage-voice-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-pill);
+  background: rgba(22, 16, 9, 0.72);
+  border: 1px solid rgba(244, 236, 225, 0.14);
+  color: rgba(244, 236, 225, 0.7);
+  cursor: pointer;
+  backdrop-filter: var(--blur-backdrop);
+  transition:
+    background var(--duration-ui) var(--ease-smooth),
+    color var(--duration-ui) var(--ease-smooth);
+}
+.stage-voice-btn:hover:not(:disabled) {
+  background: rgba(244, 236, 225, 0.12);
+  color: #f4ece1;
+}
+.stage-voice-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.stage-voice-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Mic button inside the dialogue box advance row */
+.stage-mic-bar-btn {
+  position: absolute;
+  right: 52px;
+  bottom: var(--space-3);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-pill);
+  background: rgba(22, 16, 9, 0.6);
+  border: 1px solid rgba(244, 236, 225, 0.1);
+  color: rgba(244, 236, 225, 0.55);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background var(--duration-ui) var(--ease-smooth),
+    color var(--duration-ui) var(--ease-smooth);
+}
+.stage-mic-bar-btn:hover:not(:disabled) {
+  background: rgba(217, 100, 58, 0.2);
+  color: var(--accent);
+}
+.stage-mic-bar-btn[aria-pressed="true"] {
+  background: rgba(217, 100, 58, 0.3);
+  color: var(--accent);
+  border-color: rgba(217, 100, 58, 0.5);
+}
+.stage-mic-bar-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* Wider advance button when mic is present (shift right by 40px) */
+.stage-dialogue-box .stage-advance-btn {
+  right: var(--space-3);
+}
+
+/* Mic transcript display */
+.stage-mic-transcript {
+  position: absolute;
+  bottom: 120px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(22, 16, 9, 0.88);
+  border: 1px solid rgba(244, 236, 225, 0.12);
+  border-radius: var(--radius-card);
+  padding: var(--space-2) var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  backdrop-filter: var(--blur-backdrop);
+  max-width: min(480px, 90vw);
+  z-index: 20;
+}
+
+.stage-mic-label {
+  font-family: var(--font-body);
+  font-size: var(--text-caption);
+  color: var(--accent);
+  font-weight: 500;
+  white-space: nowrap;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.stage-mic-text {
+  font-family: var(--font-display);
+  font-size: var(--text-small);
+  color: rgba(244, 236, 225, 0.85);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Dev-only text input inside harness */
+.stage-dev-text {
+  background: rgba(244, 236, 225, 0.08);
+  border: 1px solid rgba(244, 236, 225, 0.15);
+  border-radius: var(--radius-sm);
+  color: rgba(244, 236, 225, 0.85);
+  font-family: var(--font-body);
+  font-size: var(--text-caption);
+  padding: 2px var(--space-2);
+  min-height: 28px;
+  width: 200px;
+}
+
+/* Mic affordance in action surface */
+.stage-mic-btn {
+  flex-shrink: 0;
+  min-width: 36px;
+  height: 36px;
+  padding: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-voice-btn,
+  .stage-mic-bar-btn {
+    transition: none;
+  }
 }

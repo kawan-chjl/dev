@@ -88,8 +88,8 @@ export function AppSidebar({ mobileOpen, onMobileClose }: AppSidebarProps) {
       >
         {/* Logo strip */}
         <div className="sidebar-logo-strip">
-          <Link to="/" className="sidebar-logo-link" aria-label="Kawan home">
-            <img src="/kawan-logo.png" alt="" className="sidebar-logo-img" width={28} height={28} />
+          <Link to="/?bypass=1" className="sidebar-logo-link" aria-label="Go to landing page">
+            <img src="/kawan-logo.png" alt="" className="sidebar-logo-img" width={36} height={36} />
             <span className="sidebar-logo-name">Kawan</span>
           </Link>
         </div>
@@ -136,8 +136,8 @@ export function AppSidebar({ mobileOpen, onMobileClose }: AppSidebarProps) {
         <div className="mobile-drawer-backdrop" onClick={onMobileClose} aria-hidden="true" />
         <aside className="mobile-drawer">
           <div className="mobile-drawer-header">
-            <Link to="/" className="mobile-drawer-logo" onClick={onMobileClose}>
-              <img src="/kawan-logo.png" alt="" width={28} height={28} />
+            <Link to="/?bypass=1" className="mobile-drawer-logo" onClick={onMobileClose}>
+              <img src="/kawan-logo.png" alt="" width={36} height={36} />
               <span>Kawan</span>
             </Link>
             <button type="button" className="mobile-drawer-close" aria-label="Close navigation" onClick={onMobileClose}>

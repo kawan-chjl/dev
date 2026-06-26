@@ -19,15 +19,17 @@
 }
 
 .landing-logo {
-  width: 36px;
-  height: 36px;
+  width: 47px;
+  height: 47px;
   border-radius: var(--radius-md);
 }
 
 .landing-logo-text {
-  font-family: var(--font-display);
-  font-size: var(--text-h3);
-  font-weight: 600;
+  font-family: var(--font-wordmark);
+  font-size: 1.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   color: var(--ink);
 }
 
@@ -578,6 +580,7 @@
 }
 
 .page-subtitle {
+  font-family: var(--font-display);
   font-size: var(--text-small);
   color: var(--ink-soft);
 }
@@ -612,16 +615,8 @@
   text-align: center;
 }
 
-/* Desktop: vertically center the empty-state card when it is the sole content of the shell page */
-@media (min-width: 769px) {
-  .shell-page:has(> .empty-state-card) {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: calc(100svh - var(--topbar-h) - var(--space-8) * 2);
-  }
-}
+/* empty-state-card: horizontally centered within normal top-aligned page flow.
+   No vertical centering (justify-content: center) - matches /home, /commitments, /faq layout. */
 
 .empty-state-icon-wrap {
   display: flex;
@@ -649,204 +644,6 @@
 }
 
 /* ── Home page v2 (warm bento) ── */
-
-/* Idle state */
-.home-idle-v2 {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
-}
-
-.home-idle-hero {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: var(--space-4);
-  padding: var(--space-8) 0 var(--space-6);
-}
-
-.home-idle-eye-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: var(--accent-tint);
-  margin-bottom: var(--space-2);
-}
-
-.home-idle-heading-v2 {
-  font-family: var(--font-display);
-  font-size: clamp(var(--text-h1), 5vw, var(--text-display));
-  color: var(--ink);
-  line-height: var(--lh-heading);
-  max-width: 520px;
-}
-
-.home-idle-em {
-  font-style: italic;
-  color: var(--accent);
-}
-
-.home-idle-sub-v2 {
-  max-width: 400px;
-  color: var(--ink-soft);
-  font-size: var(--text-body);
-  line-height: var(--lh-body);
-}
-
-.home-idle-cta {
-  min-width: 200px;
-  height: 52px;
-  font-size: var(--text-body);
-}
-
-/* How-it-works strip */
-.home-how-strip {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-4);
-}
-
-@media (min-width: 560px) {
-  .home-how-strip {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-.home-how-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.home-how-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-md);
-  background: var(--surface-sunk);
-  margin-bottom: var(--space-1);
-}
-
-.home-how-title {
-  font-family: var(--font-display);
-  font-size: var(--text-body);
-  font-weight: 600;
-  color: var(--ink);
-}
-
-.home-how-desc {
-  font-size: var(--text-small);
-  color: var(--ink-soft);
-  line-height: var(--lh-body);
-}
-
-/* Active state bento */
-.home-active-v2 {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
-.home-commitment-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.home-commitment-label {
-  font-size: var(--text-caption);
-  font-weight: 600;
-  color: var(--ink-soft);
-  letter-spacing: 0.04em;
-}
-
-.home-commitment-sentence {
-  font-family: var(--font-display);
-  font-size: var(--text-h3);
-  color: var(--ink);
-  line-height: var(--lh-body);
-}
-
-.home-commitment-deliverable {
-  color: var(--accent);
-}
-
-.home-commitment-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  align-items: center;
-}
-
-/* TEE verified pill */
-.home-tee-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: 2px var(--space-2);
-  border-radius: var(--radius-pill);
-  background: var(--sage-tint);
-  color: var(--sage-deep);
-  font-size: var(--text-caption);
-  font-weight: 600;
-}
-
-/* Status bento: 3-up cards at md+, stacked on mobile */
-.home-status-bento {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-3);
-}
-
-@media (min-width: 560px) {
-  .home-status-bento {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-.home-status-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.home-status-label {
-  font-size: var(--text-caption);
-  font-weight: 500;
-  color: var(--ink-soft);
-  letter-spacing: 0.04em;
-}
-
-.home-roadmap-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.home-roadmap-label {
-  font-size: var(--text-caption);
-  font-weight: 600;
-  color: var(--ink-soft);
-  letter-spacing: 0.04em;
-}
-
-.home-roadmap-placeholder {
-  font-size: var(--text-small);
-  color: var(--ink-faint);
-  font-style: italic;
-}
-
-.home-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-}
 
 /* Legacy idle classes (kept so nothing breaks if referenced) */
 .home-idle {
@@ -1032,6 +829,9 @@
 }
 
 .detail-section-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
   font-family: var(--font-display);
   font-size: var(--text-body);
   font-weight: 600;
@@ -1222,7 +1022,7 @@
 }
 
 .timeline-event-message {
-  font-family: var(--font-display);
+  font-family: var(--font-voice);
   font-size: var(--text-small);
   color: var(--ink-soft);
   line-height: var(--lh-body);
@@ -1366,7 +1166,7 @@
 
 .timeline-beat-message {
   flex: 1;
-  font-family: var(--font-display);
+  font-family: var(--font-voice);
   font-size: var(--text-small);
   color: var(--ink);
   font-style: italic;
@@ -1398,7 +1198,7 @@
 }
 
 .habit-loop-beat {
-  font-family: var(--font-display);
+  font-family: var(--font-voice);
   font-size: var(--text-body);
   color: var(--ink);
   font-style: italic;
@@ -1622,11 +1422,11 @@
   color: var(--muted);
 }
 
-/* ── PageHeader card (reusable shell page header) — v4: taller/thicker ── */
+/* ── PageHeader card (reusable shell page header) — v4 hotfix: +20% taller again ── */
 .page-header-card {
   margin-bottom: var(--space-6);
-  padding: var(--space-8) var(--space-8);
-  min-height: 100px;
+  padding: var(--space-12) var(--space-8);
+  min-height: 120px;
   border-radius: var(--radius-card);
   background: linear-gradient(135deg, var(--surface) 0%, var(--accent-tint) 100%);
   border: 1px solid var(--line);
@@ -1674,6 +1474,7 @@
 }
 
 .page-header-card-sub {
+  font-family: var(--font-display);
   font-size: var(--text-small);
   color: var(--ink-soft);
   line-height: var(--lh-body);
@@ -1840,48 +1641,119 @@
   max-width: 640px;
 }
 
-/* ── Home v4 bento (four widgets + right rail) ── */
+/* ── Home v5 bento (quick-actions + right rail) ── */
 
-.home-bento-v4 {
+/* Mobile: single column, natural height */
+.home-bento-v5 {
   display: grid;
   grid-template-columns: 1fr;
   gap: var(--space-4);
 }
 
+/* Desktop: left content col + fixed-width right rail; fill viewport-minus-chrome */
 @media (min-width: 900px) {
-  .home-bento-v4 {
+  .home-bento-v5 {
     grid-template-columns: 1fr 280px;
-    align-items: start;
+    grid-template-rows: 1fr;
+    /* min-height fills the content area so no deadspace appears below on tall monitors. */
+    min-height: calc(100svh - var(--topbar-h) - 2 * var(--space-8) - 200px);
+    align-items: stretch;
   }
 }
 
-/* Four quick-access widgets: 2x2 on tablet, 2x2 on desktop (left column) */
-.home-widgets-grid {
+/* Left column: Commitment card on top (full width), Analytics + Workspace below */
+.home-left-col {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+/* Bottom row: Analytics and Workspace side by side */
+.home-left-bottom-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-4);
 }
 
-@media (min-width: 560px) {
-  .home-widgets-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-.home-widget-card {
+/* Commitment card — top slot, full left-column width */
+.home-card-commitment {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
   cursor: pointer;
-  min-height: 140px;
+  height: 100%;
   transition: box-shadow var(--duration-ui) var(--ease-out);
 }
-.home-widget-card:hover {
+.home-card-commitment:hover {
   box-shadow: var(--shadow-md);
 }
-.home-widget-card:focus-visible {
+.home-card-commitment:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* Quick-action cards — side by side */
+.home-small-cards-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  height: 100%;
+}
+
+.home-card-small {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  cursor: pointer;
+  min-height: 120px;
+  height: 100%;
+  transition: box-shadow var(--duration-ui) var(--ease-out);
+}
+.home-card-small:hover {
+  box-shadow: var(--shadow-md);
+}
+.home-card-small:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Right rail — tall, full height */
+.home-right-rail-v5 {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.home-rail-card-v5 {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  height: 100%;
+  min-height: 240px;
+}
+
+.home-rail-heading-v5 {
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.home-recent-list-v5 {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.home-recent-empty {
+  font-size: var(--text-small);
+  color: var(--ink-faint);
+  line-height: var(--lh-body);
 }
 
 .home-widget-icon {
@@ -1991,60 +1863,6 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-/* Right rail */
-.home-right-rail {
-  display: flex;
-  flex-direction: column;
-}
-
-.home-rail-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.home-rail-heading {
-  font-family: var(--font-display);
-  font-size: var(--text-body);
-  font-weight: 600;
-  color: var(--ink);
-}
-
-.home-rail-sub {
-  font-size: var(--text-small);
-  color: var(--ink-soft);
-  line-height: var(--lh-body);
-}
-
-.home-rail-divider {
-  height: 1px;
-  background: var(--line);
-  margin: var(--space-1) 0;
-}
-
-.home-rail-stat-label {
-  font-size: var(--text-caption);
-  font-weight: 600;
-  color: var(--ink-soft);
-  letter-spacing: var(--tracking-label);
-}
-
-.home-rail-stat-number {
-  font-family: var(--font-display);
-  font-size: var(--text-display);
-  font-weight: 700;
-  color: var(--accent);
-  line-height: 1;
-}
-
-.home-rail-deadline {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  font-size: var(--text-caption);
-  color: var(--ink-soft);
 }
 
 /* ── WorkspacePickerModal ── */
@@ -2600,7 +2418,7 @@
 
 @media (min-width: 900px) {
   .commitments-dashboard-body {
-    grid-template-columns: 1fr 220px;
+    grid-template-columns: 1fr 286px;
     align-items: start;
   }
 }
@@ -2609,6 +2427,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  padding: var(--space-6);
 }
 
 /* Pipeline rail */
@@ -2756,6 +2575,232 @@
   justify-content: flex-end;
 }
 
+/* ── Themed Checkbox (kawan-checkbox) ── */
+.kawan-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  min-height: 44px;
+  min-width: 44px;
+  justify-content: center;
+}
+
+/* Hide the native checkbox visually but keep it accessible */
+.kawan-checkbox {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Custom box */
+.kawan-checkbox-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--line-strong);
+  background: var(--surface-2);
+  flex-shrink: 0;
+  transition:
+    border-color var(--duration-ui) var(--ease-out),
+    background var(--duration-ui) var(--ease-out);
+  position: relative;
+}
+
+/* Checked state: accent fill + SVG checkmark */
+.kawan-checkbox:checked + .kawan-checkbox-box {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+.kawan-checkbox:checked + .kawan-checkbox-box::after {
+  content: "";
+  display: block;
+  width: 9px;
+  height: 5px;
+  border-left: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  transform: rotate(-45deg) translateY(-1px);
+}
+
+/* Focus ring */
+.kawan-checkbox:focus-visible + .kawan-checkbox-box {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.kawan-checkbox-text {
+  font-size: var(--text-small);
+  color: var(--ink);
+  user-select: none;
+}
+
+/* ── Themed Select (kawan-select) ── */
+.kawan-select {
+  position: relative;
+  display: inline-block;
+}
+
+.kawan-select-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.kawan-select-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 36px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  cursor: pointer;
+  min-width: 120px;
+  justify-content: space-between;
+  transition:
+    border-color var(--duration-ui) var(--ease-out),
+    box-shadow var(--duration-ui) var(--ease-out);
+}
+.kawan-select-trigger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.kawan-select-open .kawan-select-trigger {
+  border-color: var(--accent);
+}
+
+.kawan-select-value {
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kawan-select-chevron {
+  color: var(--ink-faint);
+  flex-shrink: 0;
+  transition: transform var(--duration-ui) var(--ease-out);
+}
+.kawan-select-open .kawan-select-chevron {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kawan-select-chevron {
+    transition: none;
+  }
+}
+
+.kawan-select-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 100%;
+  max-height: 240px;
+  overflow-y: auto;
+  list-style: none;
+  padding: var(--space-1) 0;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--line);
+  background: var(--surface-2);
+  box-shadow: var(--shadow-lg);
+  z-index: 200;
+}
+
+.kawan-select-option {
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  color: var(--ink);
+  cursor: pointer;
+  transition: background var(--duration-ui) var(--ease-out);
+}
+.kawan-select-option:hover,
+.kawan-select-option-active {
+  background: var(--surface-sunk);
+}
+.kawan-select-option-selected {
+  color: var(--accent);
+  font-weight: 600;
+}
+.kawan-select-option-selected.kawan-select-option-active {
+  background: var(--accent-tint);
+}
+
+/* ── Companion selector (Settings) ── */
+.companion-selector {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.companion-selector-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  cursor: pointer;
+  transition:
+    border-color var(--duration-ui) var(--ease-out),
+    background var(--duration-ui) var(--ease-out);
+}
+.companion-selector-row:hover {
+  border-color: var(--line-strong);
+  background: var(--surface-2);
+}
+.companion-selector-row-selected {
+  border-color: var(--accent);
+  background: var(--accent-tint);
+}
+.companion-selector-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.companion-selector-name {
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.companion-selector-archetype {
+  font-size: var(--text-small);
+  color: var(--ink-soft);
+}
+
+.companion-selector-tone {
+  font-size: var(--text-caption);
+  color: var(--ink-faint);
+  font-style: italic;
+}
+
+/* Panel cards wrapping the table and pipeline rail */
+.commitments-main-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.pipeline-rail-card {
+  padding: var(--space-6);
+}
+
 /* Management table */
 .commitments-table-wrapper {
   overflow-x: auto;
@@ -2790,11 +2835,11 @@
   width: 40px;
 }
 
-.commitments-table-check-col input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-  accent-color: var(--accent);
+/* Checkbox column uses .kawan-checkbox-label; the min-height/width handles hit area */
+.commitments-table-check-col .kawan-checkbox-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .commitments-table-action {
@@ -2996,16 +3041,6 @@
   flex-shrink: 0;
 }
 
-/* ── Analytics: no-records card ── */
-.analytics-no-records-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-12) var(--space-8);
-  text-align: center;
-}
-
 /* Placeholder body text for stub pages */
 .page-placeholder-body {
   font-size: var(--text-body);
@@ -3013,35 +3048,360 @@
   padding: var(--space-6) 0;
 }
 
-/* ── Settings: persona card portraits ── */
-.persona-card-portrait {
-  width: 100%;
-  aspect-ratio: 2 / 3;
-  object-fit: cover;
-  object-position: top center;
+/* ── DatePicker (ui/DatePicker.tsx) ── */
+.kawan-datepicker {
+  position: relative;
+  display: inline-block;
+}
+
+.kawan-datepicker-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.kawan-datepicker-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 44px;
+  padding: 0 var(--space-4);
   border-radius: var(--radius-md);
-  display: block;
+  border: 2px dashed var(--line);
+  background: var(--surface-2);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  cursor: pointer;
+  min-width: 200px;
+  justify-content: space-between;
+  transition:
+    border-color var(--duration-ui) var(--ease-out),
+    box-shadow var(--duration-ui) var(--ease-out);
+}
+.kawan-datepicker-trigger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.kawan-datepicker-open .kawan-datepicker-trigger {
+  border-color: var(--accent);
+  border-style: solid;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .persona-card-portrait {
-    transition: transform var(--duration-ui) var(--ease-out);
-  }
-  .persona-card:hover .persona-card-portrait {
-    transform: scale(1.02);
-  }
+.kawan-datepicker-value {
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ink);
+}
+.kawan-datepicker-trigger:not(.kawan-datepicker-open) .kawan-datepicker-value:empty::before,
+.kawan-datepicker-value[data-empty="true"] {
+  color: var(--muted);
 }
 
-.persona-card-portrait-fallback {
-  width: 100%;
-  aspect-ratio: 2 / 3;
+.kawan-datepicker-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 200;
+  background: var(--surface-2);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-4);
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Month navigation row */
+.kawan-dp-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.kawan-dp-nav-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-display);
-  font-size: var(--text-display);
-  font-weight: 700;
-  color: var(--ink-faint);
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background var(--duration-ui) var(--ease-out);
+}
+.kawan-dp-nav-btn:hover {
   background: var(--surface-sunk);
-  border-radius: var(--radius-md);
+  color: var(--ink);
+}
+.kawan-dp-nav-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.kawan-dp-month-label {
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* Calendar grid */
+.kawan-dp-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.kawan-dp-dow {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ink-faint);
+  text-align: center;
+  letter-spacing: 0.04em;
+  padding-bottom: var(--space-1);
+}
+
+.kawan-dp-cell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-caption);
+}
+
+.kawan-dp-cell-empty {
+  background: none;
+}
+
+.kawan-dp-day {
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--text-caption);
+  width: 100%;
+  height: 100%;
+  transition: background var(--duration-ui) var(--ease-out);
+}
+.kawan-dp-day:hover {
+  background: var(--surface-sunk);
+}
+.kawan-dp-day:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.kawan-dp-day-today {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.kawan-dp-grid .kawan-dp-day-selected {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+}
+
+/* Time row */
+.kawan-dp-time {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--line);
+}
+
+.kawan-dp-time-label {
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--ink-soft);
+  flex-shrink: 0;
+}
+
+.kawan-dp-time-inputs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.kawan-dp-time-input {
+  width: 48px;
+  height: 32px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--line);
+  background: var(--surface-sunk);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  text-align: center;
+}
+.kawan-dp-time-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-color: var(--accent);
+}
+/* Hide number spin buttons */
+.kawan-dp-time-input::-webkit-outer-spin-button,
+.kawan-dp-time-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
+.kawan-dp-time-input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.kawan-dp-time-sep {
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+/* Done button footer */
+.kawan-dp-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.kawan-dp-done-btn {
+  height: 32px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-pill);
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--duration-ui) var(--ease-out);
+}
+.kawan-dp-done-btn:hover {
+  background: var(--accent-press);
+}
+.kawan-dp-done-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Compose step: commitment card with breathing room ── */
+.compose-commitment-card {
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Input labels */
+.compose-field-label {
+  display: block;
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--ink-soft);
+  letter-spacing: var(--tracking-label);
+  margin-bottom: var(--space-1);
+}
+
+/* ── PersonaPicker: check badge on selected card ── */
+.persona-picker-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+
+.persona-picker-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+/* ── Commitments: pagination controls ── */
+.commitments-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-4) 0 var(--space-2);
+  border-top: 1px solid var(--line);
+  margin-top: var(--space-2);
+}
+
+.commitments-pagination-indicator {
+  font-size: var(--text-small);
+  color: var(--ink-soft);
+  white-space: nowrap;
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .commitments-pagination * {
+    transition: none;
+  }
+}
+
+/* ── Home: active commitment cards grid ── */
+.home-active-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.home-active-card {
+  cursor: pointer;
+  transition:
+    box-shadow var(--duration-ui) var(--ease-out),
+    transform var(--duration-ui) var(--ease-out);
+}
+
+.home-active-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-active-card {
+    transition: none;
+  }
+  .home-active-card:hover {
+    transform: none;
+  }
+}
+
+.home-active-cards-more {
+  margin: 0;
+}
+
+.home-active-cards-viewall {
+  font-size: var(--text-small);
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.home-active-cards-viewall:hover {
+  text-decoration: underline;
+}
+
+[data-theme="dark"] .home-active-cards-viewall {
+  color: var(--accent);
 }

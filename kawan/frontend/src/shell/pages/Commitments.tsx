@@ -1,12 +1,14 @@
 // Commitments dashboard — /commitments
 // Management dashboard: stat row, filter chips, management table with multiselect + multi-delete, pipeline rail.
 // Multi-delete calls DELETE /api/commitments/{id} (real permanent delete, per Gate-1 resolution).
+// Pagination: 10 per page; prev/next controls shown only when total > 10.
 
-import { CheckCircle, Eye, Plus, Trash2 } from 'lucide-react'
+import { CheckCircle, ChevronLeft, ChevronRight, Eye, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MOCK_AUTH } from '../../auth/api'
 import { deleteCommitment } from '../../commitments/api'
+import { useActiveCommitment } from '../../commitments/useActiveCommitment'
 import { useCommitments } from '../../commitments/useCommitments'
 import { useNotifications } from '../../notifications/NotificationProvider'
 import { useTimeline } from '../../timeline/useTimeline'
@@ -14,7 +16,9 @@ import type { Commitment, CommitmentStatus } from '../../types/api'
 import { Badge } from '../../ui/Badge'
 import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
+import { Checkbox } from '../../ui/Checkbox'
 import { Chip } from '../../ui/Chip'
+import { Modal } from '../../ui/Modal'
 import { PageHeader } from '../PageHeader'
 
 type Filter = 'All' | 'Ongoing' | 'Completed'
@@ -79,17 +83,22 @@ function PipelineRail() {
 export function Commitments() {
   const navigate = useNavigate()
   const { notify } = useNotifications()
-  const { commitments, refresh } = useCommitments()
+  const { commitments, refresh, total, page, pageSize, setPage, hasPrev, hasNext } = useCommitments()
   const [filter, setFilter] = useState<Filter>('All')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [deleting, setDeleting] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
 
-  const commitment = commitments[0] ?? null
-  const stats = useActiveStats(commitment)
+  // Stat row uses the most-recent active commitment ("light current" per the selection model),
+  // not commitments[0] from the current page, so figures do not shift as the user pages.
+  const { commitment: activeCommitment } = useActiveCommitment()
+  const stats = useActiveStats(activeCommitment)
+
+  const totalPages = Math.ceil(total / pageSize)
 
   const filtered = commitments.filter((c) => matchesFilter(c, filter))
   const allSelected = filtered.length > 0 && filtered.every((c) => selected.has(c.id))
+  const showPagination = total > pageSize
 
   function toggleRow(id: string) {
     setSelected((prev) => {
@@ -127,16 +136,9 @@ export function Commitments() {
     }
   }
 
-  const headerActions = (
-    <Button variant="accent" onClick={() => navigate('/commitments/new')}>
-      <Plus size={16} aria-hidden="true" />
-      Make a commitment
-    </Button>
-  )
-
   return (
     <div className="shell-page">
-      <PageHeader title="Commitments" subtitle="One active commitment at a time." actions={headerActions} />
+      <PageHeader title="Commitments" subtitle="All your commitments, active and finished." />
 
       {/* Stats row */}
       <div className="commitments-stats-row">
@@ -158,151 +160,177 @@ export function Commitments() {
         </Card>
       </div>
 
-      {/* Dashboard body: table + pipeline rail */}
+      {/* Dashboard body: table panel + pipeline rail panel */}
       <div className="commitments-dashboard-body">
-        <div className="commitments-main">
-          {/* Filter row */}
-          <fieldset className="commitments-filter-row">
-            <legend className="commitments-filter-legend">Filter commitments</legend>
-            {(['All', 'Ongoing', 'Completed'] as Filter[]).map((f) => (
-              <button
-                key={f}
-                type="button"
-                className={`commitments-filter-chip${filter === f ? ' commitments-filter-chip-active' : ''}`}
-                onClick={() => {
-                  setFilter(f)
-                  setSelected(new Set())
-                }}
-                aria-pressed={filter === f}
-              >
-                {f}
-              </button>
-            ))}
-          </fieldset>
+        <Card className="commitments-main-card">
+          <div className="commitments-main">
+            {/* Filter row */}
+            <fieldset className="commitments-filter-row">
+              <legend className="commitments-filter-legend">Filter commitments</legend>
+              {(['All', 'Ongoing', 'Completed'] as Filter[]).map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  className={`commitments-filter-chip${filter === f ? ' commitments-filter-chip-active' : ''}`}
+                  onClick={() => {
+                    setFilter(f)
+                    setSelected(new Set())
+                  }}
+                  aria-pressed={filter === f}
+                >
+                  {f}
+                </button>
+              ))}
+            </fieldset>
 
-          {/* Selection toolbar */}
-          {selected.size > 0 && (
-            <div className="commitments-selection-toolbar">
-              <span className="commitments-selection-count">{selected.size} selected</span>
-              <Button variant="secondary" onClick={() => setConfirmOpen(true)} disabled={deleting}>
-                <Trash2 size={14} aria-hidden="true" />
-                {deleting ? 'Removing...' : 'Remove selected'}
-              </Button>
-              <button type="button" className="commitments-selection-clear" onClick={() => setSelected(new Set())}>
-                Clear
-              </button>
-            </div>
-          )}
+            {/* Selection toolbar */}
+            {selected.size > 0 && (
+              <div className="commitments-selection-toolbar">
+                <span className="commitments-selection-count">{selected.size} selected</span>
+                <Button variant="secondary" onClick={() => setConfirmOpen(true)} disabled={deleting}>
+                  <Trash2 size={14} aria-hidden="true" />
+                  {deleting ? 'Removing...' : 'Remove selected'}
+                </Button>
+                <button type="button" className="commitments-selection-clear" onClick={() => setSelected(new Set())}>
+                  Clear
+                </button>
+              </div>
+            )}
 
-          {/* Confirm dialog */}
-          {confirmOpen && (
-            <div
-              className="commitments-confirm-overlay"
-              role="alertdialog"
-              aria-modal="true"
-              aria-label="Confirm deletion"
+            {/* Confirm dialog — portaled above all shell layers via Modal */}
+            <Modal
+              open={confirmOpen}
+              onClose={() => setConfirmOpen(false)}
+              label="Confirm deletion"
+              panelClassName="modal-panel-confirm"
             >
-              <div className="commitments-confirm-panel">
-                <p className="commitments-confirm-heading">Remove selected commitments?</p>
-                <p className="commitments-confirm-body">
-                  This permanently deletes the selected commitments and all their check-in history. This cannot be
-                  undone.
-                </p>
-                <div className="commitments-confirm-actions">
-                  <Button variant="secondary" onClick={() => setConfirmOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button variant="accent" onClick={handleDelete}>
-                    Remove permanently
-                  </Button>
+              <p className="commitments-confirm-heading">Remove selected commitments?</p>
+              <p className="commitments-confirm-body">
+                This permanently deletes the selected commitments and all their check-in history. This cannot be undone.
+              </p>
+              <div className="commitments-confirm-actions">
+                <Button variant="secondary" onClick={() => setConfirmOpen(false)}>
+                  Cancel
+                </Button>
+                <Button variant="accent" onClick={handleDelete}>
+                  Remove permanently
+                </Button>
+              </div>
+            </Modal>
+
+            {/* Table or empty state */}
+            {filtered.length === 0 ? (
+              <Card className="empty-state-card">
+                <div className="empty-state-icon-wrap" aria-hidden="true">
+                  <CheckCircle size={40} color="var(--ink-faint)" aria-hidden="true" />
                 </div>
-              </div>
-            </div>
-          )}
-
-          {/* Table or empty state */}
-          {filtered.length === 0 ? (
-            <Card className="empty-state-card">
-              <div className="empty-state-icon-wrap" aria-hidden="true">
-                <CheckCircle size={40} color="var(--ink-faint)" aria-hidden="true" />
-              </div>
-              <p className="empty-state-heading">
-                {filter === 'All'
-                  ? 'Nothing here yet'
-                  : filter === 'Completed'
-                    ? 'Finished commitments will show here.'
-                    : 'No ongoing commitments.'}
-              </p>
-              <p className="empty-state-body">
-                {filter === 'All'
-                  ? 'When you make a commitment, it shows up here. One at a time, for real.'
-                  : filter === 'Completed'
-                    ? 'Complete your first commitment and it will appear here.'
-                    : 'Make a commitment to get started.'}
-              </p>
-              <Button variant="accent" onClick={() => navigate('/commitments/new')}>
-                Make a commitment
-              </Button>
-            </Card>
-          ) : (
-            <div className="commitments-table-wrapper">
-              <table className="commitments-table">
-                <thead>
-                  <tr>
-                    <th scope="col" className="commitments-table-check-col">
-                      <input
-                        type="checkbox"
-                        aria-label="Select all visible"
-                        checked={allSelected}
-                        onChange={toggleAll}
-                      />
-                    </th>
-                    <th scope="col">Action</th>
-                    <th scope="col">Deliverable</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">Deadline</th>
-                    <th scope="col" aria-label="Row actions" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((c) => (
-                    <tr key={c.id} className={selected.has(c.id) ? 'commitments-table-row-selected' : ''}>
-                      <td className="commitments-table-check-col">
-                        <input
-                          type="checkbox"
-                          aria-label={`Select commitment: ${c.action}`}
-                          checked={selected.has(c.id)}
-                          onChange={() => toggleRow(c.id)}
-                        />
-                      </td>
-                      <td className="commitments-table-action">{c.action}</td>
-                      <td className="commitments-table-deliverable">{c.deliverable}</td>
-                      <td>
-                        <Chip variant={c.status === 'active' ? 'sage' : 'default'}>{c.status}</Chip>
-                      </td>
-                      <td>
-                        <Badge variant="muted">{formatDate(c.deadline)}</Badge>
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          className="commitments-table-view-btn"
-                          aria-label={`View commitment: ${c.action}`}
-                          onClick={() => navigate(`/commitments/${c.id}`)}
-                        >
-                          <Eye size={14} aria-hidden="true" />
-                          View
-                        </button>
-                      </td>
+                <p className="empty-state-heading">
+                  {filter === 'All'
+                    ? 'Nothing here yet'
+                    : filter === 'Completed'
+                      ? 'Finished commitments will show here.'
+                      : 'No ongoing commitments.'}
+                </p>
+                <p className="empty-state-body">
+                  {filter === 'All'
+                    ? 'When you make a commitment, it shows up here.'
+                    : filter === 'Completed'
+                      ? 'Complete a commitment and it will appear here.'
+                      : 'Make a commitment to get started.'}
+                </p>
+                <Button variant="accent" onClick={() => navigate('/commitments/new')}>
+                  Make a commitment
+                </Button>
+              </Card>
+            ) : (
+              <div className="commitments-table-wrapper">
+                <table className="commitments-table">
+                  <thead>
+                    <tr>
+                      <th scope="col" className="commitments-table-check-col">
+                        <Checkbox aria-label="Select all visible" checked={allSelected} onChange={toggleAll} />
+                      </th>
+                      <th scope="col">Action</th>
+                      <th scope="col">Deliverable</th>
+                      <th scope="col">Status</th>
+                      <th scope="col">Deadline</th>
+                      <th scope="col" aria-label="Row actions" />
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                  </thead>
+                  <tbody>
+                    {filtered.map((c) => (
+                      <tr key={c.id} className={selected.has(c.id) ? 'commitments-table-row-selected' : ''}>
+                        <td className="commitments-table-check-col">
+                          <Checkbox
+                            aria-label={`Select commitment: ${c.action}`}
+                            checked={selected.has(c.id)}
+                            onChange={() => toggleRow(c.id)}
+                          />
+                        </td>
+                        <td className="commitments-table-action">{c.action}</td>
+                        <td className="commitments-table-deliverable">{c.deliverable}</td>
+                        <td>
+                          <Chip variant={c.status === 'active' ? 'sage' : 'default'}>{c.status}</Chip>
+                        </td>
+                        <td>
+                          <Badge variant="muted">{formatDate(c.deadline)}</Badge>
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="commitments-table-view-btn"
+                            aria-label={`View commitment: ${c.action}`}
+                            onClick={() => navigate(`/commitments/${c.id}`)}
+                          >
+                            <Eye size={14} aria-hidden="true" />
+                            View
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
-        <PipelineRail />
+            {/* Pagination — only when total > 10 */}
+            {showPagination && (
+              <nav className="commitments-pagination" aria-label="Page navigation">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setPage(page - 1)
+                    setSelected(new Set())
+                  }}
+                  disabled={!hasPrev}
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft size={14} aria-hidden="true" />
+                  Previous
+                </Button>
+                <p className="commitments-pagination-indicator" aria-live="polite">
+                  Page {page + 1} of {totalPages}
+                </p>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setPage(page + 1)
+                    setSelected(new Set())
+                  }}
+                  disabled={!hasNext}
+                  aria-label="Next page"
+                >
+                  Next
+                  <ChevronRight size={14} aria-hidden="true" />
+                </Button>
+              </nav>
+            )}
+          </div>
+        </Card>
+
+        <Card className="pipeline-rail-card">
+          <PipelineRail />
+        </Card>
       </div>
     </div>
   )

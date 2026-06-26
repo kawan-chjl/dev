@@ -26,8 +26,10 @@
   --evening: #2e2722;
 
   /* ── Typography ── */
-  --font-display: "Fraunces", Georgia, serif;
+  --font-display: "Fredoka", system-ui, sans-serif;
+  --font-voice: "Fraunces", Georgia, serif;
   --font-body: "Inter", system-ui, sans-serif;
+  --font-wordmark: "Fredoka", system-ui, sans-serif;
 
   /* Type scale */
   --text-display-lg: 3.5rem;
@@ -84,6 +86,10 @@
 
   /* ── Breakpoints ── */
   --bp-mobile: 768px;
+
+  /* ── Z-index scale ── */
+  /* --z-modal sits above sidebar (60) and topbar (50) so backdrop covers all shell layers */
+  --z-modal: 400;
 
   /* ── Shell dims ── */
   --sidebar-w: 64px;

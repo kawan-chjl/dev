@@ -3,14 +3,17 @@
 // Auth logic (SIWC, email/password, guest) lives on those dedicated pages.
 
 import { CheckCircle, ShieldCheck, Sparkles } from 'lucide-react'
-import { Link, Navigate } from 'react-router-dom'
+import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 
 export function Landing() {
   const { status } = useAuth()
+  const [params] = useSearchParams()
+  const bypass = params.get('bypass') === '1'
 
-  // Authenticated users visiting / (e.g. after the IdP redirect) go straight to the app.
-  if (status === 'authenticated') return <Navigate to="/home" replace />
+  // Authenticated users visiting / go straight to the app UNLESS ?bypass=1 is set.
+  // The sidebar logo uses /?bypass=1 so clicking it always shows the landing page.
+  if (status === 'authenticated' && !bypass) return <Navigate to="/home" replace />
 
   return (
     <div className="landing-root">

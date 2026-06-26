@@ -116,15 +116,17 @@
   text-decoration: none;
 }
 .sidebar-logo-img {
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-sm);
   flex-shrink: 0;
 }
 .sidebar-logo-name {
-  font-family: var(--font-display);
-  font-size: var(--text-small);
-  font-weight: 600;
+  font-family: var(--font-wordmark);
+  font-size: 1.14rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   white-space: nowrap;
   opacity: 0;
   transition: opacity 150ms var(--ease-smooth);
@@ -329,14 +331,16 @@
   text-decoration: none;
 }
 .mobile-drawer-logo img {
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-sm);
 }
 .mobile-drawer-logo span {
-  font-family: var(--font-display);
-  font-size: var(--text-small);
-  font-weight: 600;
+  font-family: var(--font-wordmark);
+  font-size: 1.14rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 .mobile-drawer-close {
   display: flex;
@@ -629,12 +633,12 @@
 
 /* .page-scroll — proofrank foldover mechanic.
    Sits z-index:1 with an opaque bg on top of the fixed footer (z-index:0).
-   margin-bottom matches the footer height so scrolling to the bottom reveals it. */
+   margin-bottom MUST equal footer height so scrolling to the bottom reveals it exactly. */
 .page-scroll {
   position: relative;
   z-index: 1;
   min-height: 100vh;
-  margin-bottom: 80px;
+  margin-bottom: 120px;
   background: var(--bg);
 }
 
@@ -652,14 +656,14 @@
 }
 
 /* ── Footer (Layer 4 — fixed behind content, warm dark band) ── */
-/* v4: explicit light AND dark colors with transition; right-aligned content. */
+/* v4 hotfix: thicker (120px), two-row right-aligned; light+dark themed. */
 .shell-footer {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   z-index: 0;
-  height: 80px;
+  height: 120px;
   background: #1a140f;
   color: #f4ece1;
   border-top: 1px solid rgba(58, 42, 30, 0.3);
@@ -698,28 +702,75 @@
 }
 
 .shell-footer-inner {
-  padding: 0 var(--space-6);
+  padding: var(--space-3) var(--space-6);
   max-width: var(--content-max);
   margin: 0 auto;
   height: 100%;
   display: flex;
-  align-items: center;
-  justify-content: flex-end;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: var(--space-2);
 }
 
 @media (min-width: 769px) {
   .shell-footer-inner {
-    padding: 0 var(--space-8);
+    padding: var(--space-3) var(--space-8);
   }
 }
 
-/* Right-aligned footer row */
+/* Right-aligned footer rows */
 .shell-footer-row {
   display: flex;
   align-items: center;
   gap: 0;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+/* Logo lockup row */
+.shell-footer-row-logo {
+  gap: 0;
+}
+
+/* Logo link in footer */
+.shell-footer-logo-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-decoration: none;
+}
+.shell-footer-logo-link:hover {
+  text-decoration: none;
+}
+
+.shell-footer-logo-img {
+  border-radius: var(--radius-sm);
+  display: block;
+}
+
+.shell-footer-logo-name {
+  font-family: var(--font-wordmark);
+  font-size: 1.14rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  transition: color var(--duration-ui) var(--ease-out);
+}
+[data-theme="light"] .shell-footer-logo-name,
+:root:not([data-theme="dark"]) .shell-footer-logo-name {
+  color: #3a2a1e;
+}
+[data-theme="dark"] .shell-footer-logo-name {
+  color: #f4ece1;
+}
+.shell-footer-logo-link:hover .shell-footer-logo-name {
+  color: var(--accent);
+}
+
+/* Links row */
+.shell-footer-row-links {
+  gap: var(--space-2);
 }
 
 .shell-footer-copy {
@@ -749,7 +800,8 @@
 
 .shell-footer-link {
   font-size: var(--text-small);
-  cursor: default;
+  cursor: pointer;
+  text-decoration: none;
   transition: color var(--duration-ui) var(--ease-out);
 }
 [data-theme="light"] .shell-footer-link,
@@ -761,6 +813,7 @@
 }
 .shell-footer-link:hover {
   color: var(--accent);
+  text-decoration: none;
 }
 
 /* ── Bottom tab bar (mobile-only) ── */
