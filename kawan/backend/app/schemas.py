@@ -43,6 +43,10 @@ class ContextTurnIn(BaseModel):
     say: str = ""
 
 
+class WorkspaceTurnIn(BaseModel):
+    say: str = ""
+
+
 class PushSubscribeIn(BaseModel):
     subscription: dict[str, Any]
 
