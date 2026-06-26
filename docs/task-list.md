@@ -113,6 +113,7 @@ Status lists only — design lives in [`plan.md`](./plan.md). Each piece is also
 - [ ] A8 productivity meter UI — **NICE** `[deviation: "trust meter" renamed → "productivity meter"]`
 - [ ] A9 win-receipt share card — **NICE** (client PNG, user-triggered)
 - [ ] A10 achievements UI + B6 achievements table/award logic — **STRETCH** `[deviation: not in spec]`
+- [ ] **Streak — verified-win streak** (PO 26 Jun) — current run of consecutive **completed** commitments; a **miss resets it to 0**. Derived from outcome history (no schema change, like titles/meter): extend `/api/me/stats` with `current_streak` + a small UI element on the momentum view. **NICE.** _Agent crew._ Spec-compatible: counts verified wins, not raw activity/days (§11 rejects activity streaks).
 
 ### X-MEM — Session-scoped AI memory — NICE (PO chose session-scoped; persisted = `[ROADMAP]`)
 
