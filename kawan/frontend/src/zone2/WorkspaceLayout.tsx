@@ -77,7 +77,12 @@ export function WorkspaceLayout() {
       }
 
       try {
-        const reply = await workspaceTurn(commitmentId, trimmed)
+        // C6: send the recent transcript (prior turns; the current message rides as `say`).
+        const recentTurns = messages.map((m) => ({
+          role: m.from === 'user' ? ('user' as const) : ('assistant' as const),
+          content: m.text
+        }))
+        const reply = await workspaceTurn(commitmentId, trimmed, recentTurns)
         const kawanMsg: WorkspaceMessage = {
           id: crypto.randomUUID(),
           from: 'kawan',
@@ -98,7 +103,7 @@ export function WorkspaceLayout() {
         setSending(false)
       }
     },
-    [commitmentId, sending]
+    [commitmentId, sending, messages]
   )
 
   function handleProposalApplied(messageId: string) {
