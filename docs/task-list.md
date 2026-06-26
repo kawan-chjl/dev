@@ -119,24 +119,25 @@ Status lists only — design lives in [`plan.md`](./plan.md). Each piece is also
 
 ### X-NOTIF — Multi-channel check-in notifications + user preferences (PO, 26 Jun) `[deviation: replaces the spec's laddered WS→Push→timeline with a user-selectable PARALLEL fan-out; email-for-check-ins is new — spec reserved email for stake/win-back]`
 
-**For check-in reminders only.** Four channels, mandatory/optional, user-controlled; all ENABLED channels fire in parallel per check-in (daily cadence = one check-in event/day):
+**For check-in reminders only.** Mandatory baseline = **in-app + email**; **Web Push + Telegram** are optional opt-ins added later. All ENABLED channels fire in parallel per check-in (daily cadence = one check-in event/day).
 
-- **In-app** (WS + timeline) = mandatory floor (universal, no data/permission). Built.
-- **Email** = default-on WHERE we have an address — but `User` has no email today (only `stake_contact_email` = the witness); Guest has none → in-app only. Needs an email-capture step.
-- **Web Push** = optional opt-in. Client built; needs VAPID keys.
-- **Telegram** = optional opt-in. Net-new (below).
+**Why per-commitment email (PO, 26 Jun):** Kawan accounts are email-less (SIWC) or shared (Guest) — no account email exists to use. So the user provides their **own reminder email per commitment at creation** (sits beside the A6 stake field; no account-level storage; works for Guest). No SIWC email-claim dependency.
 
-**Heaviest remaining feature. Sequence AFTER C5; ideally a teammate off the critical path. Needs a planner breakdown + Gate 1.** Ops deps: VAPID keys + a Telegram bot token (both human).
+**Baseline — in-app + per-commitment email (small; build-ready, NOT blocked by C5):**
 
-- [ ] Backend: **capture the user's own email** — from a SIWC `email` claim if userinfo returns one, else a Settings field. `[schema: add User.email]` `[open Q: does SIWC userinfo return email?]` — _agent crew._
-- [ ] Backend: **email check-in sender** — reuse the existing email infra (today stake/win-back only) for a "time to check in" message — _agent crew._
-- [ ] Backend: **notification-preferences store** (which optional channels each user enabled) + a **delivery fan-out** that reads prefs and sends in parallel to every enabled channel — _agent crew._
+- [ ] Backend: add `notify_email` to `Commitment` `[schema: additive]` — the user's own reminder address, distinct from `stake_contact_email` (the witness) — _agent crew._
+- [ ] Backend: **email check-in sender** — reuse the existing email infra (today stake/win-back only) to email a "time to check in" to `notify_email` on each check-in — _agent crew._ `[ops: needs the SMTP/email provider configured in Render — the stake email already requires this]`
+- [ ] Frontend: a **required reminder-email input** in the create wizard's Terms step (beside the A6 stake fields), validated like the witness email — _Lane A, agent crew._
+
+**Optional layer — Web Push + Telegram opt-ins (heavier; sequence AFTER C5; a teammate off the critical path). Needs a planner breakdown + Gate 1.** Ops deps: VAPID keys + a Telegram bot token (both human).
+
+- [ ] Backend: **notification-preferences store** (which optional channels each user enabled, account-level) + a **delivery fan-out** that sends in parallel to every enabled channel — _agent crew._
 
 - [ ] **Ops (human, like VAPID):** create a Telegram bot via BotFather → set `KAWAN_TELEGRAM_BOT_TOKEN` in Render. _Tuna/team._ **Blocks the rest.**
 - [ ] Backend: `telegram_chat_id` on `User` `[schema change]` + a Telegram sender (Bot API) — _agent crew._
 - [ ] Backend: account-linking flow — deep-link token + webhook (or long-poll) to capture the chat*id on `/start` — \_agent crew.*
 - [ ] Backend: wire Telegram into the check-in delivery ladder (alongside Web Push) — _agent crew._
-- [ ] Frontend: a **"Notifications" section in Settings** — in-app + email shown as always-on (email prompts to add an address if missing); Web Push + Telegram (+ future) as optional toggles/connect with status. The user-facing "reach me" hub — concrete channels, NOT a generalized gateway abstraction. — _Lane A, agent crew._
+- [ ] Frontend: a **"Notifications" section in Settings** — in-app shown as always-on; Web Push + Telegram (+ future) as optional toggles/connect with status. (Email is configured per-commitment in the wizard, not here.) Concrete channels, NOT a generalized gateway abstraction. — _Lane A, agent crew._
 - [ ] Demo shortcut: pre-link a demo `chat_id` in the seed script so the stage demo shows a real Telegram ping without live linking — _agent crew._
 - Open Qs (Gate 1): webhook vs long-poll on Render; Telegram parallel-to vs after Web Push in the ladder.
 
