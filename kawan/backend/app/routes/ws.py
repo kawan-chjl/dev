@@ -9,7 +9,7 @@ from sqlalchemy import select
 
 from app.db import SessionLocal
 from app.models import Commitment, Proposal, SoftContext
-from app.pipeline import record_contact
+from app.pipeline import assemble_progress, clamp_turns, record_contact
 from app.wiring import LLM
 from app.ws import hub
 
@@ -30,6 +30,7 @@ async def workspace(ws: WebSocket):
         while True:
             data = await ws.receive_json()
             text = (data or {}).get("say", "")
+            recent = (data or {}).get("recent_turns")
             async with SessionLocal() as db:
                 c = await db.scalar(
                     select(Commitment).where(Commitment.user_id == uid, Commitment.status.in_(_OPEN_STATUSES))
@@ -41,7 +42,9 @@ async def workspace(ws: WebSocket):
                 await record_contact(db, c)
                 sc = await db.get(SoftContext, c.id)
                 soft = {k: getattr(sc, k) for k in _SOFT_SLOTS} if sc else {}
-                result = await LLM.workspace_turn(c, soft, text)
+                progress = await assemble_progress(db, c)
+                result = await LLM.workspace_turn(c, soft, text,
+                                                  recent_turns=clamp_turns(recent), progress=progress)
                 if result.get("response_type") == "proposal" and result.get("proposal"):
                     pr = result["proposal"]
                     prop = Proposal(commitment_id=c.id, field=pr["field"],

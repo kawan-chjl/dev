@@ -117,7 +117,7 @@ Single-page app. The **character stage is persistent**; the context panel swaps.
 
 ### 4.2 Scheduler & delivery (spec §7.3)
 
-- **TR-14** Per active commitment there MUST be exactly **3 scheduler jobs**: `cadence` (cron), `deadline` (one-shot → final verify), `winback` (re-armed after each silent check-in; fires after the 2nd). No per-step scheduler — the roadmap is data, not state.
+- **TR-14** Per active commitment there MUST be **2–3 scheduler jobs**: `cadence`, `deadline` (one-shot → final verify), `winback` (re-armed after each silent check-in; fires after the 2nd). **Cadence is window-derived (ADR-0003):** ≥1 day → daily cron; <1 day → one midpoint nudge; ultra-short window → deadline-only (no `cadence` job). **Win-back timing is window-aware:** ~25% of time-to-deadline after the silent tick, clamped 30 min–6 h, never past the deadline. No per-step scheduler — the roadmap is data, not state.
 - **TR-15** On boot, jobs MUST be rebuilt from the DB (`status='active'`); restart resilience is a requirement, not best-effort (spec §6.3, §7.3). Because APScheduler runs **in-process**, the Render backend MUST run as a **single instance with exactly 1 worker** — scaling to >1 worker/instance would duplicate every job (TR-80).
 - **TR-16** `POST /commitments/{id}/check` MUST run the _identical_ cadence pipeline (`fetch evidence → status snapshot → LLM check-in line → deliver`) — one code path for cron tick and on-demand check (spec §5.2, §7.3).
 - **TR-17** Delivery ladder MUST be: WS if connected → else Web Push → else in-app timeline on next open. Push payloads MUST carry the headline only (privacy + iOS limits) (spec §7.3).

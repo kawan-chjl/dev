@@ -80,6 +80,8 @@ async def apply_final_verdict(db: AsyncSession, c: Commitment, verdict: str) -> 
     if verdict == "pass":
         await _set_status(db, c, "completed")
         await _record_outcome(db, c, "completed")
+        from app import achievements  # local import avoids a module load-order cycle
+        await achievements.award(db, c)  # behavioral badges on the verified win (B6, ADR-0004)
         await db.commit()
         return "completed"
 

@@ -25,6 +25,14 @@ The four AI-writable slots — `why`, `obstacles`, `time_constraints`, `skill`.
 The **only** data any LLM output may write (via the intake UPSERT).
 _Avoid_: memory, profile, notes
 
+**Progress state**:
+A compact, **read-only** snapshot the server assembles from existing rows —
+status, time-to-deadline, Escalation, Skip-days, recent Check-ins, latest
+Verdict — and feeds into the workspace prompt so Kawan can reference real
+progress. Derived on demand, never stored; the AI reads it but can never write
+it (the read-only counterpart to Soft context).
+_Avoid_: memory, history, profile (when loose)
+
 **Proposal**:
 An AI-suggested change to a Hard Field that only the **user** can apply. The sole
 channel by which the AI influences Hard Fields; applying is audit-logged as
@@ -99,6 +107,18 @@ _Avoid_: penalty, bet, punishment, wager
 The **single** relational nudge sent after a Lapse (a second lapse leaves the
 door open quietly).
 _Avoid_: retention nudge, re-engagement, dunning
+
+**Identity title**:
+A derived rank on the momentum view — `Starter → Finisher → Shipper → Serial
+Shipper` at 1/3/5/10 verified wins. A pure function of verified-win count.
+_Avoid_: badge, achievement, level
+
+**Achievement**:
+A discrete **behavioral** badge (comeback, clean win, early-bird, …) earned the
+first time a verified win meets its condition. Unlike an Identity title (which
+counts _how many_ wins), an Achievement marks _how_ you won, and is recorded
+when earned rather than recomputed from a count.
+_Avoid_: title, trophy, points
 
 **Persona**:
 A stateless preset the messenger wears — tone fragment + Live2D model + Piper

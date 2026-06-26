@@ -117,7 +117,9 @@ async def workspace_turn(body: WorkspaceTurnIn, c: Commitment = Depends(_owned),
     await record_contact(db, c)
     sc = await db.get(SoftContext, c.id)
     soft = {k: getattr(sc, k) for k in _SOFT_SLOTS} if sc else {}
-    result = await LLM.workspace_turn(c, soft, body.say)
+    progress = await pipeline.assemble_progress(db, c)
+    result = await LLM.workspace_turn(c, soft, body.say,
+                                      recent_turns=pipeline.clamp_turns(body.recent_turns), progress=progress)
     if result.get("response_type") == "proposal" and result.get("proposal"):
         pr = result["proposal"]
         prop = Proposal(commitment_id=c.id, field=pr["field"],

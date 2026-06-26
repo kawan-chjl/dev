@@ -168,8 +168,10 @@ def workspace_system(p: Persona) -> str:
         "response_type='refusal' and redirect, in character, to the user's next concrete move. "
         "You may propose a change to ONE hard field (deadline|deliverable|cadence|"
         "evidence_type|stake) via response_type='proposal' and the `proposal` object — the user "
-        "alone applies it. Otherwise response_type='coaching' and proposal=null. Return JSON "
-        "matching the schema."
+        "alone applies it. Otherwise response_type='coaching' and proposal=null. You may be "
+        "given the user's real progress (recent check-ins, latest verdict, time left) and the "
+        "recent conversation — ground your reply in them, never restate them verbatim. Return "
+        "JSON matching the schema."
     )
 
 

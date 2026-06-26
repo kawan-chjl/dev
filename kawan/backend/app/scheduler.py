@@ -63,17 +63,39 @@ def _cadence_trigger(cadence: str) -> CronTrigger:
     return CronTrigger(hour=hour, minute=minute, timezone=APP_TZ)
 
 
-def _next_local_morning() -> datetime:
-    local = now_utc().astimezone(APP_TZ)
-    target = local.replace(hour=9, minute=0, second=0, microsecond=0)
-    if target <= local:
-        target += timedelta(days=1)
-    return target
+def _midpoint_nudge_at(c: Commitment) -> datetime | None:
+    """The single check-in for a sub-day window fires at the window midpoint, clamped
+    to land >=2 min from now and >=2 min before the deadline. None when the window is
+    too short to fit the clamp (deadline-only). ADR-0003."""
+    now = now_utc()
+    deadline = as_utc(c.deadline)
+    earliest, latest = now + timedelta(minutes=2), deadline - timedelta(minutes=2)
+    if latest <= earliest:
+        return None
+    midpoint = now + (deadline - now) / 2
+    return min(max(midpoint, earliest), latest)
+
+
+def arm_cadence(c: Commitment) -> None:
+    """Window-derived cadence (ADR-0003): >=1 day -> daily cron; <1 day -> a single
+    midpoint nudge; too short for the clamp -> deadline-only (no cadence job)."""
+    if as_utc(c.deadline) - now_utc() >= timedelta(days=1):
+        scheduler.add_job(run_cadence, _cadence_trigger(c.cadence), args=[c.id],
+                          id=f"cadence:{c.id}", replace_existing=True, misfire_grace_time=3600)
+        return
+    nudge = _midpoint_nudge_at(c)
+    if nudge is not None:
+        scheduler.add_job(run_cadence, DateTrigger(run_date=nudge), args=[c.id],
+                          id=f"cadence:{c.id}", replace_existing=True, misfire_grace_time=3600)
+    else:  # deadline-only — clear any stale cadence job from a prior (longer) window
+        try:
+            scheduler.remove_job(f"cadence:{c.id}")
+        except JobLookupError:
+            pass
 
 
 def register_commitment_jobs(c: Commitment) -> None:
-    scheduler.add_job(run_cadence, _cadence_trigger(c.cadence), args=[c.id],
-                      id=f"cadence:{c.id}", replace_existing=True, misfire_grace_time=3600)
+    arm_cadence(c)
     scheduler.add_job(run_deadline, DateTrigger(run_date=as_utc(c.deadline)), args=[c.id],
                       id=f"deadline:{c.id}", replace_existing=True, misfire_grace_time=None)
 
@@ -86,9 +108,15 @@ def remove_commitment_jobs(commitment_id: str) -> None:
             pass
 
 
-def arm_winback(commitment_id: str) -> None:
-    scheduler.add_job(run_winback, DateTrigger(run_date=_next_local_morning()), args=[commitment_id],
-                      id=f"winback:{commitment_id}", replace_existing=True)
+def arm_winback(c: Commitment) -> None:
+    """Window-aware single win-back (ADR-0003): fire ~25% of the remaining window after
+    the silent tick, clamped 30 min–6 h, never past the deadline. Still one per lapse."""
+    now = now_utc()
+    deadline = as_utc(c.deadline)
+    delay = max(timedelta(minutes=30), min((deadline - now) * 0.25, timedelta(hours=6)))
+    run_date = min(now + delay, deadline - timedelta(minutes=1)) if deadline > now else now
+    scheduler.add_job(run_winback, DateTrigger(run_date=run_date), args=[c.id],
+                      id=f"winback:{c.id}", replace_existing=True)
 
 
 def arm_grace_expire(commitment_id: str, run_date: datetime) -> None:
@@ -123,15 +151,14 @@ async def rebuild_from_db() -> None:
         )).all()
         for c in rows:
             if c.status in ("active", "lapsed"):
-                scheduler.add_job(run_cadence, _cadence_trigger(c.cadence), args=[c.id],
-                                  id=f"cadence:{c.id}", replace_existing=True, misfire_grace_time=3600)
                 if as_utc(c.deadline) <= now_utc():
                     await pipeline.run_final_verify(db, c)  # deadline passed while down
                     continue
+                arm_cadence(c)  # window-derived (ADR-0003)
                 scheduler.add_job(run_deadline, DateTrigger(run_date=as_utc(c.deadline)), args=[c.id],
                                   id=f"deadline:{c.id}", replace_existing=True, misfire_grace_time=None)
             if c.status == "lapsed" and await _winback_pending(db, c):
-                arm_winback(c.id)  # win-back survives a restart
+                arm_winback(c)  # win-back survives a restart
 
 
 # --- job callables: each opens its own session and reloads the commitment fresh ---

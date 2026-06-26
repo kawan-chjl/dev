@@ -72,5 +72,6 @@ class StubLLMClient:
             return {"say": "There it is. Noted.", "emotion": "pleased", "escalate": False}
         return {"say": "Nothing new today. What's the 20-minute version tonight?", "emotion": "concerned", "escalate": True}
 
-    async def workspace_turn(self, commitment: Commitment, soft_context: dict, user_says: str) -> dict:
+    async def workspace_turn(self, commitment: Commitment, soft_context: dict, user_says: str,
+                             recent_turns: list[dict] | None = None, progress: dict | None = None) -> dict:
         return {"response_type": "coaching", "say": "Timebox it, ship it ugly. Deal?", "proposal": None, "emotion": "neutral"}
