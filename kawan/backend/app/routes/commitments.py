@@ -14,7 +14,7 @@ from app.db import get_session
 from app.deps import current_user
 from app.models import Checkin, Commitment, Evidence, Plan, Proposal, SoftContext, SuccessPattern, User
 from app.pipeline import record_contact
-from app.schemas import CommitmentCreate, CommitmentListOut, CommitmentOut, CommitmentPatch, ContextTurnIn, DebriefIn
+from app.schemas import CommitmentCreate, CommitmentListOut, CommitmentOut, CommitmentPatch, ContextTurnIn, DebriefIn, WorkspaceTurnIn
 from app.util import as_utc, now_utc, to_jsonable
 from app.wiring import LLM
 
@@ -109,6 +109,22 @@ async def context_turn(body: ContextTurnIn, c: Commitment = Depends(_owned), db:
     sc.updated_at = now_utc()
     await db.commit()
     await record_contact(db, c)
+    return result
+
+
+@router.post("/{commitment_id}/workspace/turn")
+async def workspace_turn(body: WorkspaceTurnIn, c: Commitment = Depends(_owned), db: AsyncSession = Depends(get_session)):
+    await record_contact(db, c)
+    sc = await db.get(SoftContext, c.id)
+    soft = {k: getattr(sc, k) for k in _SOFT_SLOTS} if sc else {}
+    result = await LLM.workspace_turn(c, soft, body.say)
+    if result.get("response_type") == "proposal" and result.get("proposal"):
+        pr = result["proposal"]
+        prop = Proposal(commitment_id=c.id, field=pr["field"],
+                        proposed_value=pr.get("proposed_value"), reason=pr.get("reason", ""))
+        db.add(prop)
+        await db.commit()
+        result["proposal_id"] = prop.id
     return result
 
 
