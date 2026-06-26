@@ -41,6 +41,17 @@ export async function postDebrief(commitmentId: string, note: string): Promise<v
   if (!res.ok) throw new Error(`POST /api/commitments/${commitmentId}/debrief returned ${res.status}`)
 }
 
+/**
+ * GET /api/me/stats — verified win count for identity titles (spec §11.4, TR-74).
+ * 200 → { verified_wins }, 401 → null, other non-OK → throws.
+ */
+export async function fetchStats(): Promise<{ verified_wins: number } | null> {
+  const res = await fetch('/api/me/stats', { credentials: 'include' })
+  if (res.ok) return (await res.json()) as { verified_wins: number }
+  if (res.status === 401) return null
+  throw new Error(`/api/me/stats returned ${res.status}`)
+}
+
 // ── WS message union (server → client pushes) ──────────────────────────────────────
 // Mirrors pipeline.py:90-201 exactly. NOT the timeline GET shape — never merge these.
 // workspace/error are included so they can be ignored without a type error (A3 scope).

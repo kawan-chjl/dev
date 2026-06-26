@@ -3405,3 +3405,34 @@
 [data-theme="dark"] .home-active-cards-viewall {
   color: var(--accent);
 }
+
+/* ── Identity title (A7, spec §11.4) ── */
+.identity-title-block {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--sage-tint);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-5);
+}
+
+.identity-title-icon {
+  color: var(--sage-deep);
+  flex-shrink: 0;
+}
+
+.identity-title-label {
+  font-family: var(--font-display);
+  font-size: var(--text-h3);
+  font-weight: 600;
+  color: var(--sage-deep);
+  line-height: 1;
+}
+
+.identity-title-hint {
+  font-family: var(--font-body);
+  font-size: var(--text-caption);
+  color: var(--ink-soft);
+  margin-left: auto;
+}
