@@ -5,7 +5,7 @@ import json
 import httpx
 import pytest
 
-from app.chutes import ChutesClient, ChutesError
+from app.chutes import ChutesClient, ChutesError, _extract_json
 
 _SCHEMA = {
     "type": "object",
@@ -58,7 +58,12 @@ async def test_structured_returns_parsed_content_and_sends_bearer():
     assert seen["url"].endswith("/chat/completions")
     assert seen["auth"] == "Bearer cpk_initial"
     assert seen["body"]["model"] == "m1,m2"  # inline failover passed through verbatim
-    assert seen["body"]["response_format"]["json_schema"]["strict"] is True
+    # json_object mode + thinking disabled avoids the sglang xgrammar whitespace explosion
+    assert seen["body"]["response_format"] == {"type": "json_object"}
+    assert seen["body"]["chat_template_kwargs"] == {"enable_thinking": False}
+    # the schema is pinned in an appended system message instead of strict decoding
+    assert seen["body"]["messages"][-1]["role"] == "system"
+    assert "JSON Schema" in seen["body"]["messages"][-1]["content"]
 
 
 async def test_structured_refreshes_once_on_401_then_retries():
@@ -112,6 +117,76 @@ async def test_structured_wraps_malformed_response_in_chutes_error():
             )
     finally:
         await http.aclose()
+
+
+# ---------------------------------------------------------------------------
+# _extract_json unit tests (no HTTP — exercise the helper directly)
+# ---------------------------------------------------------------------------
+
+def test_extract_json_clean_passthrough():
+    """Regression: clean JSON string passes through unchanged."""
+    assert _extract_json('{"ok": true}') == {"ok": True}
+
+
+def test_extract_json_markdown_fenced():
+    """```json-fenced content is unwrapped before parsing."""
+    content = '```json\n{"ok": true}\n```'
+    assert _extract_json(content) == {"ok": True}
+
+
+def test_extract_json_think_prefixed():
+    """<think>...</think> block is stripped; remaining JSON is parsed."""
+    content = "<think>\nI need to think carefully.\n</think>\n\n{\"ok\": true}"
+    assert _extract_json(content) == {"ok": True}
+
+
+def test_extract_json_reasoning_prefixed():
+    """<reasoning>...</reasoning> block is stripped; remaining JSON is parsed."""
+    content = "<reasoning>step by step</reasoning>{\"ok\": false}"
+    assert _extract_json(content) == {"ok": False}
+
+
+def test_extract_json_brace_scan_fallback():
+    """Balanced-brace scan extracts an object embedded in non-JSON prose."""
+    content = 'Here is my answer: {"ok": true} (end)'
+    assert _extract_json(content) == {"ok": True}
+
+
+def test_extract_json_raises_on_genuinely_unparseable():
+    """Totally unparseable content raises ValueError."""
+    with pytest.raises(ValueError, match="no valid JSON object found"):
+        _extract_json("this is not json at all, I give up")
+
+
+# ---------------------------------------------------------------------------
+# ChutesClient integration: unparseable content → diagnostic ChutesError
+# ---------------------------------------------------------------------------
+
+async def test_structured_raises_diagnostic_on_unparseable_content():
+    """Unparseable content → ChutesError containing finish_reason and a raw snippet."""
+    raw_content = "Sorry, I cannot output JSON right now. " + ("x" * 600)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={
+            "choices": [{"finish_reason": "stop", "message": {"content": raw_content}}]
+        })
+
+    client, http = _client(handler, _Tokens())
+    try:
+        with pytest.raises(ChutesError) as exc_info:
+            await client.structured(
+                user_id="u1", model="m1", messages=[{"role": "user", "content": "hi"}],
+                schema=_SCHEMA, schema_name="probe",
+            )
+    finally:
+        await http.aclose()
+
+    msg = str(exc_info.value)
+    assert "finish_reason='stop'" in msg
+    assert "len=" in msg
+    # snippet: first 400 chars present, ellipsis present, last 200 chars present
+    assert raw_content[:20] in msg
+    assert "…" in msg
 
 
 async def test_structured_owns_and_closes_its_client_when_none_injected(monkeypatch):
