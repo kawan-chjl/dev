@@ -138,7 +138,15 @@ export function Commitments() {
 
   return (
     <div className="shell-page">
-      <PageHeader title="Commitments" subtitle="All your commitments, active and finished." />
+      <PageHeader
+        title="Commitments"
+        subtitle="All your commitments, active and finished."
+        actions={
+          <Button variant="accent" onClick={() => navigate('/commitments/new')}>
+            Make a commitment
+          </Button>
+        }
+      />
 
       {/* Stats row */}
       <div className="commitments-stats-row">
@@ -164,38 +172,38 @@ export function Commitments() {
       <div className="commitments-dashboard-body">
         <Card className="commitments-main-card">
           <div className="commitments-main">
-            {/* Filter row */}
-            <fieldset className="commitments-filter-row">
-              <legend className="commitments-filter-legend">Filter commitments</legend>
-              {(['All', 'Ongoing', 'Completed'] as Filter[]).map((f) => (
-                <button
-                  key={f}
-                  type="button"
-                  className={`commitments-filter-chip${filter === f ? ' commitments-filter-chip-active' : ''}`}
-                  onClick={() => {
-                    setFilter(f)
-                    setSelected(new Set())
-                  }}
-                  aria-pressed={filter === f}
-                >
-                  {f}
-                </button>
-              ))}
-            </fieldset>
-
-            {/* Selection toolbar */}
-            {selected.size > 0 && (
-              <div className="commitments-selection-toolbar">
-                <span className="commitments-selection-count">{selected.size} selected</span>
-                <Button variant="secondary" onClick={() => setConfirmOpen(true)} disabled={deleting}>
-                  <Trash2 size={14} aria-hidden="true" />
-                  {deleting ? 'Removing...' : 'Remove selected'}
-                </Button>
-                <button type="button" className="commitments-selection-clear" onClick={() => setSelected(new Set())}>
-                  Clear
-                </button>
-              </div>
-            )}
+            {/* Filter row — tabs left, multiselect controls right */}
+            <div className="commitments-filter-row-wrap">
+              <fieldset className="commitments-filter-row">
+                <legend className="commitments-filter-legend">Filter commitments</legend>
+                {(['All', 'Ongoing', 'Completed'] as Filter[]).map((f) => (
+                  <button
+                    key={f}
+                    type="button"
+                    className={`commitments-filter-chip${filter === f ? ' commitments-filter-chip-active' : ''}`}
+                    onClick={() => {
+                      setFilter(f)
+                      setSelected(new Set())
+                    }}
+                    aria-pressed={filter === f}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </fieldset>
+              {selected.size > 0 && (
+                <div className="commitments-selection-toolbar">
+                  <span className="commitments-selection-count">{selected.size} selected</span>
+                  <Button variant="secondary" onClick={() => setConfirmOpen(true)} disabled={deleting}>
+                    <Trash2 size={14} aria-hidden="true" />
+                    {deleting ? 'Removing...' : 'Remove selected'}
+                  </Button>
+                  <button type="button" className="commitments-selection-clear" onClick={() => setSelected(new Set())}>
+                    Clear
+                  </button>
+                </div>
+              )}
+            </div>
 
             {/* Confirm dialog — portaled above all shell layers via Modal */}
             <Modal
@@ -238,9 +246,6 @@ export function Commitments() {
                       ? 'Complete a commitment and it will appear here.'
                       : 'Make a commitment to get started.'}
                 </p>
-                <Button variant="accent" onClick={() => navigate('/commitments/new')}>
-                  Make a commitment
-                </Button>
               </Card>
             ) : (
               <div className="commitments-table-wrapper">
