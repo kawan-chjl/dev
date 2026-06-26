@@ -37,7 +37,7 @@ This doc tracks **only status** — what is done (`[x]`) vs not done (`[ ]`), pe
 - [x] Fredoka headings + uppercase wordmark branding
 - [x] Numerous layout/contrast/scroll hotfixes
 - [x] Email/password auth removed — SIWC + Guest only (was added, then reverted)
-- [ ] Workspace chat UI rework [A3, spec §5.2] — still renders `getMockConversation()` in `WorkspaceLayout.tsx`; send-to-AI unwired. Needs B5 + Lane C. **Demo-critical.**
+- [ ] Workspace chat UI rework [A3, spec §5.2] — still renders `getMockConversation()` in `WorkspaceLayout.tsx`; send-to-AI unwired. Needs Lane C (B5 endpoint shipped, PR #62). **Demo-critical.**
 
 ---
 
@@ -56,7 +56,7 @@ This doc tracks **only status** — what is done (`[x]`) vs not done (`[ ]`), pe
   - [x] Clear user data (`DELETE /api/me/data`) + history (`GET /api/me/history`)
   - [x] Intake + plan turns (`POST .../context/turn`, `POST .../plan`) — call the stub `LLM`
   - [x] TTS (`POST /api/voice/tts`)
-- [ ] **B5 — workspace-turn endpoint** [spec §9.2-D] — _executed by the agent crew._ The specified `POST /commitments/{id}/workspace/turn` REST route does **not** exist. A `/ws` WebSocket handler (`routes/ws.py`) already calls `LLM.workspace_turn`, persists proposals, records contact, and pushes the reply — so the seam exists, but the REST endpoint the chat UI is meant to call is not built. **Demo-critical.**
+- [x] **B5 — workspace-turn endpoint** [spec §9.2-D] — _executed by the agent crew._ `POST /api/commitments/{id}/workspace/turn` shipped (PR #62), mirroring the `/ws` handler 1:1 (record contact, persist proposal, return `{response_type, say, proposal, emotion, proposal_id}`). Built against the stub contract, so it works now and keeps working once Lane C swaps in the real client. The chat UI (A3) can call it today; replies become real when Lane C lands.
 
 ---
 
@@ -79,7 +79,7 @@ This doc tracks **only status** — what is done (`[x]`) vs not done (`[ ]`), pe
 - [x] Real amplitude lip-sync + voice input capture [D2]
 - [x] Emotion → expression wiring (6-value enum) + six Hiyori (Adik) expressions [D2/D4]
 - [x] Deploy: Vercel (frontend) + Render (backend) live, auto-deploy from `main` [D4, half]
-- [ ] **D3 — Web Push** [spec §6.3] — backend send-side exists (`push.py`, VAPID/pywebpush, no-op without keys); **no service worker, no client subscribe flow.** Closed-tab push not demoable.
+- [ ] **D3 — Web Push** — client shipped (PR #63): service worker (`public/sw.js`) + subscribe flow (`notifications/webPush.ts`) + Settings toggle + `GET /api/push/vapid-public-key`, degrades silently when unconfigured. Backend send-side already existed. **Remaining (human ops): generate a VAPID keypair and set it in Render env** — delivery lights up the moment keys are present.
 - [ ] D4 — integration QA across full demo thread + Python seed/reset script for a clean demo dataset
 - [ ] D5 — demo script + video + Devpost + README (team-owned)
 
@@ -90,8 +90,8 @@ This doc tracks **only status** — what is done (`[x]`) vs not done (`[ ]`), pe
 The still-open, demo-critical items, pulled together:
 
 - [ ] **Lane C AI layer** — replace all stubs with the real Chutes client, schema sets, judge, and persona tone (C1–C4). Nothing AI is real yet.
-- [ ] **B5 workspace-turn endpoint** (agent crew) — the REST seam the chat UI calls; WS handler exists but the route does not.
-- [ ] **Workspace chat / AI-workflow view rework** [A3] — wire the chat UI off mocks onto B5 + Lane C; drive the reactive Live2D face from real `{say, emotion}`.
-- [ ] **D3 Web Push** — service worker + client subscribe flow (backend send-side ready).
+- [x] **B5 workspace-turn endpoint** (agent crew) — shipped (PR #62). The REST seam the chat UI calls now exists.
+- [ ] **Workspace chat / AI-workflow view rework** [A3] — wire the chat UI off mocks onto B5 (shipped) + Lane C; drive the reactive Live2D face from real `{say, emotion}`.
+- [~] **D3 Web Push** — client shipped (PR #63); only remaining piece is the VAPID keypair in Render env (human ops). Independent of Lane C.
 - [ ] **D4 integration QA + seed/reset script** — full demo thread tested with determinism levers; clean pre-staged demo data.
 - [ ] **D5 demo video + Devpost + README** (team-owned).
