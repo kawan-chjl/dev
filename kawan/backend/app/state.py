@@ -74,9 +74,16 @@ async def begin_verifying(db: AsyncSession, c: Commitment) -> None:
         await db.commit()
 
 
+_FINALIZABLE_STATUSES = {"verifying", "grace"}
+
+
 async def apply_final_verdict(db: AsyncSession, c: Commitment, verdict: str) -> str:
     """Resolve a final-verify Verdict into completed | grace | missed (spec §5.3).
+    Guard: only acts from verifying/grace; returns current status unchanged otherwise.
     Grace is entered only on a non-pass with a skip-day available, and spends it."""
+    if c.status not in _FINALIZABLE_STATUSES:
+        return c.status
+
     if verdict == "pass":
         await _set_status(db, c, "completed")
         await _record_outcome(db, c, "completed")
@@ -112,10 +119,16 @@ async def grace_expire(db: AsyncSession, c: Commitment) -> str:
     return "missed"
 
 
+_TERMINAL_STATUSES = {"completed", "missed"}
+
+
 async def abandon(db: AsyncSession, c: Commitment) -> str:
     """User-initiated abandon → missed (TR-21, §6.3). The status change is the user's
     own decision, so it is audited actor='user'; the stake (if any) fires as a system
-    consequence in the pipeline. The frontend gates this behind a confirm dialog."""
+    consequence in the pipeline. The frontend gates this behind a confirm dialog.
+    No-op if already terminal."""
+    if c.status in _TERMINAL_STATUSES:
+        return c.status
     old, c.status = c.status, "missed"
     await audit(db, commitment_id=c.id, field="status", old=old, new="missed", actor="user")
     await _record_outcome(db, c, "missed")

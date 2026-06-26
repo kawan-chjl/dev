@@ -170,11 +170,20 @@ async def check(c: Commitment = Depends(_owned), db: AsyncSession = Depends(get_
             "delivered_via": ck.delivered_via, "evidence_id": ck.evidence_id}
 
 
+_ALLOWED_IMAGE_TYPES = {"image/png", "image/jpeg", "image/webp"}
+_MAX_EVIDENCE_BYTES = 8 * 1024 * 1024  # 8 MB (TR-46)
+
+
 @router.post("/{commitment_id}/evidence")
 async def evidence(file: UploadFile = File(...), c: Commitment = Depends(_owned),
                    db: AsyncSession = Depends(get_session)):
     import base64
-    raw = await file.read()  # consumed then discarded — file deleted post-verdict (TR-46)
+    if file.content_type not in _ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                            f"unsupported content-type '{file.content_type}'; allowed: png, jpeg, webp")
+    raw = await file.read(_MAX_EVIDENCE_BYTES + 1)
+    if len(raw) > _MAX_EVIDENCE_BYTES:
+        raise HTTPException(413, "evidence file exceeds the 8 MB limit")
     image_b64 = base64.b64encode(raw).decode()
     await record_contact(db, c)
     ev = await pipeline.judge_upload(db, c, {"filename": file.filename}, image_b64=image_b64)
