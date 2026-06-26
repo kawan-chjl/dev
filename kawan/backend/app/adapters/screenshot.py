@@ -5,6 +5,7 @@ bundle with the image bytes and calls judge directly."""
 
 from __future__ import annotations
 
+import base64
 from datetime import datetime
 from typing import TYPE_CHECKING
 
@@ -14,6 +15,26 @@ from app.prompts import JUDGE_MODELS, JUDGE_SYSTEM, VERDICT_SCHEMA
 if TYPE_CHECKING:
     from app.chutes import ChutesClient
     from app.models import Commitment
+
+_JPEG = b"\xff\xd8\xff"
+_GIF = b"GIF8"
+
+
+def _data_uri(b64: str) -> str:
+    """Build the image data URI, sniffing the MIME from magic bytes (spec §10.3
+    allows PNG/JPG/WebP). Defaults to image/png when the signature is unrecognized."""
+    mime = "image/png"
+    try:
+        head = base64.b64decode(b64[:24])
+        if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
+            mime = "image/webp"
+        elif head.startswith(_JPEG):
+            mime = "image/jpeg"
+        elif head.startswith(_GIF):
+            mime = "image/gif"
+    except Exception:
+        pass
+    return f"data:{mime};base64,{b64}"
 
 
 class ScreenshotAdapter:
@@ -40,7 +61,7 @@ class ScreenshotAdapter:
                 f"Commitment: I will {commitment.action} {commitment.deliverable} "
                 f"by {commitment.deadline:%Y-%m-%d %H:%M}.\n"
                 "Judge this screenshot as evidence of the deliverable."},
-            {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64}"}},
+            {"type": "image_url", "image_url": {"url": _data_uri(b64)}},
         ]
         r = await self._chutes.structured(
             user_id=commitment.user_id, model=JUDGE_MODELS,

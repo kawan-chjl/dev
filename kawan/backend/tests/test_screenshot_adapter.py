@@ -50,3 +50,18 @@ async def test_judge_unclear_without_image():
     verdict = await adapter.judge(_Commitment(), bundle, None)
     assert verdict.verdict == "unclear"
     assert fake.calls == []
+
+
+async def test_judge_detects_jpeg_mime():
+    # Magic-byte sniffing labels a JPEG upload image/jpeg, not hardcoded png (spec §10.3).
+    import base64
+    jpeg_b64 = base64.b64encode(b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01").decode()
+    fake = _FakeChutes({"verdict": "pass", "confidence": 0.8, "observations": ["x"],
+                        "reasoning": "y", "follow_up_request": None})
+    adapter = ScreenshotAdapter(fake)
+    bundle = EvidenceBundle(adapter="screenshot", raw_ref={"filename": "shot.jpg"},
+                            items=[{"b64": jpeg_b64}], summary="")
+    await adapter.judge(_Commitment(), bundle, None)
+    parts = fake.calls[0]["messages"][1]["content"]
+    assert any(p.get("type") == "image_url" and p["image_url"]["url"].startswith("data:image/jpeg;base64,")
+               for p in parts)

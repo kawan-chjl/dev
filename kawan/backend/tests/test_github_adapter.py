@@ -99,3 +99,24 @@ async def test_judge_unclear_when_no_commits():
         await http.aclose()
     assert verdict.verdict == "unclear"
     assert fake.calls == []  # deterministic pre-check, no LLM spend
+
+
+async def test_fetch_handles_empty_commit_message():
+    # A commit with an empty message must not crash _first_line (regression: IndexError).
+    sha = "c" * 40
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/repos/o/r/commits":
+            return httpx.Response(200, json=[{"sha": sha, "commit": {"message": ""}}])
+        if request.url.path == f"/repos/o/r/commits/{sha}":
+            return httpx.Response(200, json={"sha": sha, "stats": {"total": 40}, "commit": {"message": ""}})
+        return httpx.Response(404)
+
+    http = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    adapter = GitHubAdapter(_FakeChutes({}), http=http)
+    try:
+        bundle = await adapter.fetch(_Commitment(), None)
+    finally:
+        await http.aclose()
+    assert len(bundle.items) == 1 and bundle.items[0]["total"] == 40
+    assert "''" in bundle.summary  # empty first line rendered, no crash

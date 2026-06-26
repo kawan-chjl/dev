@@ -2,11 +2,15 @@
 structured call end-to-end. Usage: KAWAN_CHUTES_API_KEY=cpk_... uv run python scripts/smoke_chutes.py"""
 
 import asyncio
+import pathlib
+import sys
 
-from app.chutes import ChutesClient
-from app.config import settings
-from app.personas import get_persona
-from app.prompts import INTAKE_SCHEMA, intake_system
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))  # make `app` importable when run directly
+
+from app.chutes import ChutesClient  # noqa: E402
+from app.config import settings  # noqa: E402
+from app.personas import get_persona  # noqa: E402
+from app.prompts import INTAKE_SCHEMA, intake_system  # noqa: E402
 
 
 class _CpkTokens:

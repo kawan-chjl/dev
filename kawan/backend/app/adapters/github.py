@@ -22,6 +22,12 @@ _TRIVIAL_TOTAL = 3   # stats.total < 3 is trivial (spec §10.2, rule shown in UI
 _MAX_DETAIL = 5      # only fetch per-commit stats for the 5 newest (rate-limit budget)
 
 
+def _first_line(message: str) -> str:
+    """First line of a commit message, safe for empty/blank messages (no IndexError)."""
+    lines = message.splitlines()
+    return lines[0] if lines else ""
+
+
 class GitHubAdapter:
     type = "github"
     trust = "high"
@@ -62,7 +68,7 @@ class GitHubAdapter:
                 await http.aclose()
 
         summary = (f"{len(items)} new non-trivial commit(s): "
-                   + "; ".join(f"'{i['message'].splitlines()[0]}'" for i in items)) if items \
+                   + "; ".join(f"'{_first_line(i['message'])}'" for i in items)) if items \
             else "no new non-trivial commits in window"
         return EvidenceBundle(adapter="github", raw_ref={"shas": [i["sha"] for i in items]},
                               items=items, summary=summary)
@@ -72,7 +78,7 @@ class GitHubAdapter:
             return Verdict("unclear", 0.5, ["no new non-trivial commits in window"],
                            "Nothing fetched since the last check.",
                            "Push something non-trivial and I'll look again.")
-        commit_lines = "\n".join(f"- {i['message'].splitlines()[0]} ({i['total']} lines changed)"
+        commit_lines = "\n".join(f"- {_first_line(i['message'])} ({i['total']} lines changed)"
                                  for i in bundle.items)
         messages = [
             {"role": "system", "content": JUDGE_SYSTEM},
