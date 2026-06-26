@@ -7,13 +7,13 @@ import { useEffect, useState } from 'react'
 import { MOCK_AUTH } from '../auth/api'
 import { fetchStats } from './api'
 
-interface TitleInfo {
+export interface TitleInfo {
   label: string
   nextThreshold: number | null
   wins: number
 }
 
-function deriveTitle(wins: number): TitleInfo {
+export function deriveTitle(wins: number): TitleInfo {
   if (wins >= 10) return { label: 'Serial Shipper', nextThreshold: null, wins }
   if (wins >= 5) return { label: 'Shipper', nextThreshold: 10, wins }
   if (wins >= 3) return { label: 'Finisher', nextThreshold: 5, wins }

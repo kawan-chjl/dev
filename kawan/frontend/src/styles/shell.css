@@ -579,6 +579,16 @@
   color: var(--ink-faint);
   margin-top: 2px;
 }
+.topbar-tier-chip {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--surface-2);
+  letter-spacing: 0.04em;
+}
 .topbar-popover-balance {
   font-size: var(--text-caption);
   color: var(--ink-soft);

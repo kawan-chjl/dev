@@ -72,6 +72,20 @@
   color: var(--ink);
 }
 
+/* Danger: genuine red destructive action — hardcoded so dark-mode --danger (amber) doesn't bleed in */
+.btn-danger {
+  background: #c0392b;
+  color: #fff;
+}
+.btn-danger:hover:not(:disabled) {
+  background: #a93226;
+  box-shadow: var(--shadow-sm);
+}
+.btn-danger:active:not(:disabled) {
+  background: #922b21;
+  box-shadow: none;
+}
+
 /* Accent: burnt orange CTA — keep as alias of primary for backward compat */
 .btn-accent {
   background: var(--accent);

@@ -1235,16 +1235,6 @@
   gap: 2px;
 }
 
-/* Visible label above the deliverable input (others use sr-only) */
-.nc-madlib-field-label {
-  font-size: var(--text-caption);
-  font-weight: 600;
-  color: var(--ink-faint);
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
-  line-height: 1;
-}
-
 /* Deliverable input: expands to fill available wrap-row space */
 .nc-madlib-deliverable-wrap {
   flex: 1;
@@ -1272,12 +1262,10 @@
   color: var(--ink-faint);
 }
 
-.nc-compose-hint {
-  font-size: var(--text-small);
-  color: var(--ink-soft);
-  padding-top: var(--space-1);
-  border-top: 1px solid var(--line);
-  margin-top: var(--space-1);
+/* Compose step — align Select trigger to match input/datepicker height (44px) */
+.nc-madlib .kawan-select-trigger {
+  height: 44px;
+  font-size: var(--text-body);
 }
 
 /* Live sentence preview — Fraunces italic voice (the "I will ... by ..." moment) */

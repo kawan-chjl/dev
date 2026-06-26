@@ -1352,16 +1352,6 @@
   transform: translateX(22px);
 }
 
-.settings-placeholder {
-  font-size: var(--text-small);
-  color: var(--ink-soft);
-  margin-bottom: var(--space-4);
-}
-
-.settings-add-btn {
-  align-self: flex-start;
-}
-
 .settings-danger {
   padding-top: var(--space-4);
   border-top: 1.5px solid var(--line);

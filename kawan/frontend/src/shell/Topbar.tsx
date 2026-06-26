@@ -6,8 +6,11 @@ import { LogOut, Menu, Settings } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { MOCK_AUTH } from '../auth/api'
 import { useTheme } from '../hooks/useTheme'
 import { NotificationBell } from '../notifications/NotificationBell'
+import { fetchStats } from '../timeline/api'
+import { deriveTitle } from '../timeline/IdentityTitle'
 import { ThemeToggle } from '../ui/ThemeToggle'
 
 interface TopbarProps {
@@ -30,6 +33,16 @@ function usePageTitle(): string {
   return ROUTE_TITLES[pathname] ?? 'Kawan'
 }
 
+// Tier chip colors (one per tier, readable in light + dark via CSS variables).
+const TIER_COLORS: Record<string, string> = {
+  Starter: 'var(--clay)',
+  Finisher: 'var(--sage-deep)',
+  Shipper: 'var(--accent)',
+  'Serial Shipper': 'var(--warning)'
+}
+
+const MOCK_WINS = 1
+
 export function Topbar({ onMenuOpen }: TopbarProps) {
   const title = usePageTitle()
   const navigate = useNavigate()
@@ -37,11 +50,22 @@ export function Topbar({ onMenuOpen }: TopbarProps) {
   const { theme, toggle } = useTheme()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const [tierLabel, setTierLabel] = useState<string>('Starter')
 
   // Guest users: show "Guest" regardless of backend username format.
   const displayName = me?.guest ? 'Guest' : (me?.username ?? 'Guest')
   const balanceDisplay = me?.balance != null ? `$${me.balance.toFixed(2)}` : 'Not set'
   const avatarLetter = displayName.charAt(0).toUpperCase()
+
+  useEffect(() => {
+    if (MOCK_AUTH) {
+      setTierLabel(deriveTitle(MOCK_WINS).label)
+      return
+    }
+    fetchStats()
+      .then((s) => setTierLabel(deriveTitle(s?.verified_wins ?? 0).label))
+      .catch(() => setTierLabel('Starter'))
+  }, [])
 
   useEffect(() => {
     if (!menuOpen) return
@@ -90,7 +114,9 @@ export function Topbar({ onMenuOpen }: TopbarProps) {
             <div className="topbar-popover" role="menu">
               <div className="topbar-popover-header">
                 <p className="topbar-popover-username">{displayName}</p>
-                {me?.persona && <p className="topbar-popover-role">{me.persona}</p>}
+                <span className="topbar-tier-chip" style={{ background: TIER_COLORS[tierLabel] ?? 'var(--clay)' }}>
+                  {tierLabel}
+                </span>
                 <p className="topbar-popover-balance">Chutes balance: {balanceDisplay}</p>
               </div>
               <div className="topbar-popover-body">

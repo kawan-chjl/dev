@@ -218,7 +218,7 @@ function ComposeSection({
             />
           </span>
           <span className="nc-madlib-field nc-madlib-deliverable-wrap">
-            <label className="nc-madlib-field-label" htmlFor="nc-deliverable">
+            <label className="sr-only" htmlFor="nc-deliverable">
               the deliverable
             </label>
             <input
@@ -241,8 +241,6 @@ function ComposeSection({
         </div>
 
         {composeError && <p className="compose-error">{composeError}</p>}
-
-        <p className="nc-compose-hint">Evidence will be verified. Self-report is not accepted.</p>
 
         {/* Live sentence preview */}
         <p className="nc-sentence-preview">
@@ -480,7 +478,7 @@ function PlanSection({
 // "Start commitment" CTA is surfaced via the bottom-center nav island on this step.
 
 interface CompanionSectionProps {
-  selectedPersona: Persona
+  selectedPersona: Persona | null
   onSelect: (p: Persona) => void
   startError: string | null
   composeValid: boolean
@@ -525,7 +523,7 @@ function CompanionSection({ selectedPersona, onSelect, startError, composeValid,
         {/* Horizontal cube-card grid - always horizontal, scroll-snap on narrow */}
         <div className="nc-companion-grid">
           {personas.map((p) => {
-            const isSelected = selectedPersona === p.id
+            const isSelected = selectedPersona !== null && selectedPersona === p.id
             return (
               <button
                 key={p.id}
@@ -564,15 +562,15 @@ function CompanionSection({ selectedPersona, onSelect, startError, composeValid,
 
 export function NewCommitment() {
   const navigate = useNavigate()
-  const { me, setPersona } = useAuth()
+  const { setPersona } = useAuth()
 
   // Current step index (0 = Compose, 1 = Context, 2 = Plan, 3 = Companion)
   const [stepIndex, setStepIndex] = useState(0)
   const activeStep = STEPS[stepIndex]
 
-  // Companion selection - seeded from current persona.
+  // Companion selection - starts unset; user must actively choose.
   // NO setPersona call here; committed only in handleStart.
-  const [selectedPersona, setSelectedPersona] = useState<Persona>(me?.persona ?? 'kawan')
+  const [selectedPersona, setSelectedPersona] = useState<Persona | null>(null)
 
   // Compose state - lifted so it persists across steps and feeds handleStart.
   // NO API calls until the final "Start commitment" - Cancel at any prior point is inert.
@@ -612,7 +610,7 @@ export function NewCommitment() {
     { id: 'nc-compose', label: 'Compose', done: composeValid },
     { id: 'nc-context', label: 'Context', done: false },
     { id: 'nc-plan', label: 'Plan', done: false },
-    { id: 'nc-companion', label: 'Companion', done: !!selectedPersona }
+    { id: 'nc-companion', label: 'Companion', done: selectedPersona !== null }
   ]
 
   const isFinalStep = stepIndex === STEPS.length - 1
@@ -660,6 +658,11 @@ export function NewCommitment() {
     const diffMs = deadlineDate.getTime() - Date.now()
     if (diffMs < 60 * 60 * 1000) {
       if (!window.confirm("That's under an hour. Are you sure?")) return
+    }
+
+    if (selectedPersona === null) {
+      setStartError('Please choose a companion.')
+      return
     }
 
     if (MOCK_AUTH) {
@@ -710,8 +713,8 @@ export function NewCommitment() {
     }
   }
 
-  // The final step's Continue becomes Start commitment; requires composeValid + no incomplete stake.
-  const continueDisabled = isFinalStep && (!composeValid || stakeIncomplete)
+  // The final step's Continue becomes Start commitment; requires composeValid + companion selected + no incomplete stake.
+  const continueDisabled = isFinalStep && (!composeValid || selectedPersona === null || stakeIncomplete)
 
   return (
     <div className="workspace-root nc-root">
