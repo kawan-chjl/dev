@@ -9,10 +9,14 @@ import json
 
 from app.personas import Persona
 
-# Vision judging — strongest multimodal TEE pair; price irrelevant (judging is rare).
-JUDGE_MODELS = "moonshotai/Kimi-K2.6-TEE,Qwen/Qwen3.5-397B-A17B-TEE"
-# GitHub judging is text-only — the cheap, fast gemma pair is ample.
-GITHUB_JUDGE_MODELS = "google/gemma-4-31B-turbo-TEE,Qwen/Qwen3.6-27B-TEE"
+# Vision judging — gemma-4 is the only TEE model that both accepts images AND reliably
+# returns the JSON in `content`. The big reasoning vision models (Kimi-K2.6,
+# Qwen3.5-397B) emit to reasoning_content leaving `content` null; Qwen3.6 does so
+# intermittently — all unusable for our content-based structured() parse, which Chutes'
+# 200-failover won't catch (ADR-0005, verified via scripts/smoke_chutes.py --invoke).
+JUDGE_MODELS = "google/gemma-4-31B-turbo-TEE"
+# GitHub judging is text-only — DeepSeek primary (fast), gemma failover.
+GITHUB_JUDGE_MODELS = "deepseek-ai/DeepSeek-V3.2-TEE,google/gemma-4-31B-turbo-TEE"
 
 _EMOTIONS = ["neutral", "curious", "pleased", "skeptical", "concerned"]
 
@@ -120,7 +124,8 @@ VERDICT_SCHEMA = {
 # ── System prompts ──────────────────────────────────────────────────────────────
 
 def _voice(p: Persona) -> str:
-    return f"You are {p.name}, the user's accountability companion. Voice: {p.tone}."
+    return (f"You are {p.name}, the user's accountability companion. Voice: {p.tone}. "
+            "Address the user as 'you'; never call them by your own name.")
 
 
 def intake_system(p: Persona, slots: dict) -> str:
@@ -168,8 +173,10 @@ def workspace_system(p: Persona) -> str:
         "response_type='refusal' and redirect, in character, to the user's next concrete move. "
         "You may propose a change to ONE hard field (deadline|deliverable|cadence|"
         "evidence_type|stake) via response_type='proposal' and the `proposal` object — the user "
-        "alone applies it. Otherwise response_type='coaching' and proposal=null. Return JSON "
-        "matching the schema."
+        "alone applies it. Otherwise response_type='coaching' and proposal=null. You may be "
+        "given the user's real progress (recent check-ins, latest verdict, time left) and the "
+        "recent conversation — ground your reply in them, never restate them verbatim. Return "
+        "JSON matching the schema."
     )
 
 

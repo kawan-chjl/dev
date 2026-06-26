@@ -6,7 +6,7 @@ from datetime import timedelta
 
 from sqlalchemy import select
 
-from app.models import AuditLog, Checkin, Commitment, Evidence, User
+from app.models import AuditLog, Commitment, User
 from app.util import new_id, now_utc
 
 
@@ -222,7 +222,7 @@ async def test_delete_my_data_removes_all_user_data(client, db):
 
 async def test_delete_my_data_user_row_survives(client, db):
     """The User row and session survive DELETE /api/me/data (data-only wipe)."""
-    cid = await _create_commitment(client)
+    await _create_commitment(client)  # seed data for the wipe (return value unused)
 
     r = await client.delete('/api/me/data')
     assert r.status_code == 204

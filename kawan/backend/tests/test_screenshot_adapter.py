@@ -36,7 +36,8 @@ async def test_judge_builds_image_message_and_maps_verdict():
 
     assert verdict.verdict == "pass"
     call = fake.calls[0]
-    assert call["model"] == "moonshotai/Kimi-K2.6-TEE,Qwen/Qwen3.5-397B-A17B-TEE"
+    from app.prompts import JUDGE_MODELS
+    assert call["model"] == JUDGE_MODELS  # uses the configured vision-judge model(s)
     # the user message is multimodal: a text part + an image_url data URI
     parts = call["messages"][1]["content"]
     assert any(p.get("type") == "image_url" and "data:image/png;base64,aGVsbG8=" in p["image_url"]["url"]

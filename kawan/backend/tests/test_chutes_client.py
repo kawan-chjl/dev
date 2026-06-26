@@ -31,7 +31,8 @@ class _Tokens:
 
 def _client(handler, tokens):
     http = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    return ChutesClient(tokens, base_url="https://llm.chutes.ai/v1", http=http), http
+    # retry_backoff=0 keeps the 5xx-retry tests instant.
+    return ChutesClient(tokens, base_url="https://llm.chutes.ai/v1", http=http, retry_backoff=0), http
 
 
 async def test_structured_returns_parsed_content_and_sends_bearer():
@@ -90,7 +91,10 @@ async def test_structured_refreshes_once_on_401_then_retries():
 
 
 async def test_structured_raises_on_non_200_after_retry():
+    calls = {"n": 0}
+
     def handler(request: httpx.Request) -> httpx.Response:
+        calls["n"] += 1
         return httpx.Response(500, text="upstream boom")
 
     client, http = _client(handler, _Tokens())
@@ -102,6 +106,47 @@ async def test_structured_raises_on_non_200_after_retry():
             )
     finally:
         await http.aclose()
+    assert calls["n"] == 3  # 1 initial + 2 retries (max_5xx_retries default)
+
+
+async def test_structured_retries_transient_5xx_then_succeeds():
+    calls = {"n": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls["n"] += 1
+        if calls["n"] <= 2:
+            return httpx.Response(502, text="bad gateway")  # transient upstream blip
+        return httpx.Response(200, json={"choices": [{"message": {"content": json.dumps({"ok": True})}}]})
+
+    client, http = _client(handler, _Tokens())
+    try:
+        out = await client.structured(
+            user_id="u1", model="m1", messages=[{"role": "user", "content": "hi"}],
+            schema=_SCHEMA, schema_name="probe",
+        )
+    finally:
+        await http.aclose()
+    assert out == {"ok": True}
+    assert calls["n"] == 3  # 502, 502, then 200
+
+
+async def test_structured_does_not_retry_client_4xx():
+    calls = {"n": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls["n"] += 1
+        return httpx.Response(422, text="unprocessable")
+
+    client, http = _client(handler, _Tokens())
+    try:
+        with pytest.raises(ChutesError):
+            await client.structured(
+                user_id="u1", model="m1", messages=[{"role": "user", "content": "hi"}],
+                schema=_SCHEMA, schema_name="probe",
+            )
+    finally:
+        await http.aclose()
+    assert calls["n"] == 1  # a 4xx is not retried
 
 
 async def test_structured_wraps_malformed_response_in_chutes_error():

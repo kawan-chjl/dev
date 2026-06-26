@@ -76,13 +76,18 @@ class ChutesLLMClient:
             schema=CHECKIN_SCHEMA, schema_name="checkin",
         )
 
-    async def workspace_turn(self, commitment: "Commitment", soft_context: dict, user_says: str) -> dict:
+    async def workspace_turn(self, commitment: "Commitment", soft_context: dict, user_says: str,
+                             recent_turns: list[dict] | None = None, progress: dict | None = None) -> dict:
         p = await self._resolve(commitment.user_id)
-        messages = [
-            {"role": "system", "content": workspace_system(p)},
-            {"role": "user", "content": f"{_commitment_line(commitment)}\n"
-                                        f"Soft context: {json.dumps(soft_context)}\nUser says: {user_says}"},
-        ]
+        messages = [{"role": "system", "content": workspace_system(p)}]
+        if progress:  # read-only progress snapshot assembled server-side (C6, spec §4.5)
+            messages.append({"role": "system",
+                             "content": f"Progress so far (read-only; do not restate verbatim): {json.dumps(progress)}"})
+        for t in (recent_turns or []):  # frontend-held session transcript, already clamped server-side
+            role = "assistant" if t.get("role") == "assistant" else "user"
+            messages.append({"role": role, "content": str(t.get("content", ""))})
+        messages.append({"role": "user", "content": f"{_commitment_line(commitment)}\n"
+                                                     f"Soft context: {json.dumps(soft_context)}\nUser says: {user_says}"})
         return await self._chutes.structured(
             user_id=commitment.user_id, model=p.chat_models, messages=messages,
             schema=WORKSPACE_SCHEMA, schema_name="workspace",

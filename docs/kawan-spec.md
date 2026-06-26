@@ -434,7 +434,7 @@ Persona: **Aiman**, indie builder, chronic deadline-slipper. Goal: portfolio sit
 
 ### 7.3 Real-time check-ins (kept deliberately small)
 
-- Per active commitment, exactly **3 jobs**: `cadence` (cron) · `deadline` (one-shot → final verify) · `winback` (re-armed after each silent check-in; fires after the 2nd).
+- Per active commitment, **2–3 jobs**: `cadence` · `deadline` (one-shot → final verify) · `winback` (re-armed after each silent check-in; fires after the 2nd). **Cadence is window-derived (ADR-0003):** ≥1 day → daily cron; <1 day → one nudge at the window midpoint; ultra-short (<~5 min) → deadline-only (no `cadence` job). **Win-back is window-aware:** ~25% of the remaining window after the silent tick, clamped 30 min–6 h, never past the deadline.
 - `POST /commitments/{id}/check` runs the identical cadence pipeline on demand → one code path, exercised all dev long, deterministic on stage.
 - **No per-step scheduler exists. The roadmap is data, not state.**
 - Delivery: WS if connected → else Web Push → else timeline on next open. Push payloads carry the headline only (privacy + iOS limits).

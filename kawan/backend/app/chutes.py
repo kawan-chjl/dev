@@ -8,6 +8,7 @@ schema-valid dict; callers read documented keys and never write hard fields."""
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 
@@ -91,11 +92,14 @@ def _extract_json(content: str) -> dict:
 
 class ChutesClient:
     def __init__(self, token_provider: TokenProvider, *, base_url: str,
-                 http: httpx.AsyncClient | None = None, timeout: float = 90.0) -> None:
+                 http: httpx.AsyncClient | None = None, timeout: float = 90.0,
+                 max_5xx_retries: int = 2, retry_backoff: float = 0.5) -> None:
         self._tokens = token_provider
         self._base_url = base_url.rstrip("/")
         self._http = http  # injected in tests (MockTransport); None → one client per call
         self._timeout = timeout
+        self._max_5xx_retries = max_5xx_retries  # transient upstream 5xx (e.g. gateway 502)
+        self._retry_backoff = retry_backoff  # linear: backoff * attempt
 
     async def _post(self, http: httpx.AsyncClient, token: str, payload: dict) -> httpx.Response:
         return await http.post(
@@ -127,6 +131,14 @@ class ChutesClient:
             resp = await self._post(http, token, payload)
             if resp.status_code == 401:  # one transparent refresh then retry (TR-29)
                 token = await self._tokens.refresh(user_id)
+                resp = await self._post(http, token, payload)
+            # Transient upstream 5xx (e.g. a gateway 502) — bounded linear-backoff retry.
+            # 4xx are NOT retried (a client error won't fix itself); read timeouts propagate
+            # raw rather than compound the latency.
+            for attempt in range(1, self._max_5xx_retries + 1):
+                if resp.status_code < 500:
+                    break
+                await asyncio.sleep(self._retry_backoff * attempt)
                 resp = await self._post(http, token, payload)
             if resp.status_code != 200:
                 raise ChutesError(f"chutes {resp.status_code}: {resp.text[:200]}")

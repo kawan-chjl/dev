@@ -1,15 +1,13 @@
-"""Test harness: a temp SQLite file, schema recreated per test, a guest-authenticated
+"""Test harness: an in-memory SQLite DB, schema recreated per test, a guest-authenticated
 HTTP client, and a bare DB session for unit tests. No network, no scheduler start."""
 
 import os
-import pathlib
-import tempfile
 
-_TMP = pathlib.Path(tempfile.gettempdir()) / "kawan_test.db"
-# Force SQLite for tests, overriding any exported KAWAN_DATABASE_URL. The per-test
-# drop_all/create_all (below) would otherwise WIPE a real Postgres/Supabase database
-# if the dev/prod URL ever leaks into the environment.
-os.environ["KAWAN_DATABASE_URL"] = f"sqlite+aiosqlite:///{_TMP}"
+# Force an in-memory SQLite DB for tests, overriding any exported KAWAN_DATABASE_URL.
+# In-memory (StaticPool, see app/db.py) leaves no file to collide on at teardown — the
+# old shared /tmp file flaked with "disk I/O error" — and cannot WIPE a real
+# Postgres/Supabase database if the dev/prod URL ever leaks into the environment.
+os.environ["KAWAN_DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
 os.environ.setdefault("KAWAN_SESSION_SECRET", "test-secret-please-change")
 os.environ.setdefault("KAWAN_CHUTES_API_KEY", "")
 

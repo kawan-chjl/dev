@@ -35,17 +35,27 @@ export interface WorkspaceMessage {
   proposalState?: 'open' | 'applied' | 'dismissed'
 }
 
+/** A prior conversation turn sent to the backend for session memory (C6). */
+export interface WorkspaceHistoryTurn {
+  role: 'user' | 'assistant'
+  content: string
+}
+
 /**
- * POST /api/commitments/{id}/workspace/turn  { say }
+ * POST /api/commitments/{id}/workspace/turn  { say, recent_turns }
  * 200 → WorkspaceTurnResponse. Throws on non-OK.
- * History arg is additive-ready: extend this signature when the backend accepts prior turns (C6).
+ * recent_turns carries the recent session transcript (C6); the server clamps the tail.
  */
-export async function workspaceTurn(commitmentId: string, say: string): Promise<WorkspaceTurnResponse> {
+export async function workspaceTurn(
+  commitmentId: string,
+  say: string,
+  recentTurns: WorkspaceHistoryTurn[] = []
+): Promise<WorkspaceTurnResponse> {
   const res = await fetch(`/api/commitments/${commitmentId}/workspace/turn`, {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ say })
+    body: JSON.stringify({ say, recent_turns: recentTurns })
   })
   if (res.ok) return (await res.json()) as WorkspaceTurnResponse
   let message = `POST /api/commitments/${commitmentId}/workspace/turn returned ${res.status}`

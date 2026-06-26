@@ -49,6 +49,58 @@ async def _last_tick_time(db: AsyncSession, c: Commitment):
     return as_utc(last.created_at) if last else as_utc(c.created_at)
 
 
+# --- workspace-turn context (C6) ------------------------------------------------
+# Two read-only channels the workspace LLM call carries beyond soft_context: the
+# frontend-held recent transcript and a server-assembled progress snapshot (spec
+# §4.5). Both are prompt inputs only — neither can write hard fields.
+
+_MAX_TURNS = 8
+_MAX_TURN_CHARS = 600
+
+
+def clamp_turns(raw: list[dict] | None) -> list[dict]:
+    """Normalize + bound the frontend transcript: last few turns, known roles, capped
+    length. The client holds the full session; the prompt carries only a recent tail."""
+    turns: list[dict] = []
+    for t in (raw or [])[-_MAX_TURNS:]:
+        if not isinstance(t, dict):
+            continue
+        role = "assistant" if t.get("role") == "assistant" else "user"
+        content = str(t.get("content") or t.get("say") or "")[:_MAX_TURN_CHARS]
+        if content:
+            turns.append({"role": role, "content": content})
+    return turns
+
+
+async def assemble_progress(db: AsyncSession, c: Commitment) -> dict:
+    """A compact, read-only snapshot of real progress for the workspace prompt (spec
+    §4.5): status, time-to-deadline, escalation, skip-days, last few check-ins, latest
+    verdict. Derived on demand — never stored, never writable by the AI."""
+    recent = (await db.scalars(
+        select(Checkin).where(Checkin.commitment_id == c.id)
+        .order_by(Checkin.created_at.desc()).limit(3)
+    )).all()
+    latest_ev = await db.scalar(
+        select(Evidence).where(Evidence.commitment_id == c.id)
+        .order_by(Evidence.created_at.desc()).limit(1)
+    )
+    return {
+        "status": c.status,
+        "hours_to_deadline": _hours_left(c),
+        "escalation": c.escalation,
+        "skip_days_left": c.skip_days_total - c.skip_days_used,
+        "recent_checkins": [
+            {"kind": ck.kind, "message": ck.message, "at": as_utc(ck.created_at).isoformat()}
+            for ck in reversed(recent)
+        ],
+        "latest_verdict": (
+            {"verdict": latest_ev.verdict, "reasoning": latest_ev.reasoning,
+             "at": as_utc(latest_ev.created_at).isoformat()}
+            if latest_ev else None
+        ),
+    }
+
+
 async def run_checkin(db: AsyncSession, c: Commitment, kind: str) -> Checkin:
     adapter = adapter_for(c.evidence_type)
     bundle = await adapter.fetch(c, await _last_tick_time(db, c))
@@ -108,7 +160,7 @@ async def _maybe_lapse(db: AsyncSession, c: Commitment, prior: Checkin | None, h
     this_silent = (not had_new) and not (contact and contact > prior_time)
     prior_silent = prior is not None and prior.evidence_id is None and not (contact and contact > as_utc(prior.created_at))
     if this_silent and prior_silent and await state.mark_lapsed(db, c):
-        scheduler.arm_winback(c.id)  # exactly one win-back per lapse (TR-23)
+        scheduler.arm_winback(c)  # exactly one win-back per lapse (TR-23)
 
 
 async def send_winback(db: AsyncSession, c: Commitment) -> Checkin:

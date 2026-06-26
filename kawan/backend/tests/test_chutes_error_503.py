@@ -45,7 +45,7 @@ async def test_context_turn_chutes_error_returns_503(client, monkeypatch):
 async def test_workspace_turn_chutes_error_returns_503(client, monkeypatch):
     cid = await _create_commitment(client)
 
-    async def _raise(commitment, soft, say):
+    async def _raise(commitment, soft, say, recent_turns=None, progress=None):
         raise ChutesError('inference failed')
 
     monkeypatch.setattr(wiring.LLM, 'workspace_turn', _raise)
