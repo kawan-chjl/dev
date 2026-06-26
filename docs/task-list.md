@@ -69,10 +69,10 @@ This doc tracks **only status** — what is done (`[x]`) vs not done (`[ ]`), pe
   - [x] Intake + plan turns (`POST .../context/turn`, `POST .../plan`) — call the stub `LLM`
   - [x] TTS (`POST /api/voice/tts`)
 - [x] **B5 — workspace-turn endpoint** [spec §9.2-D] — _executed by the agent crew._ `POST /api/commitments/{id}/workspace/turn` shipped (PR #62), mirroring the `/ws` handler 1:1 (record contact, persist proposal, return `{response_type, say, proposal, emotion, proposal_id}`). Built against the stub contract, so it works now and keeps working once Lane C swaps in the real client. The chat UI (A3) can call it today; replies become real when Lane C lands.
-- [ ] **B6 — Achievements table + award logic** [spec §11.4] `[deviation: not in spec]` — new `achievements` table (or per-user award rows) + award-on-verified-win logic + a read endpoint for A10. **STRETCH** (pairs with A10; the only gamification piece needing a schema change). _Agent crew._
+- [x] **B6 — Achievements table + award logic** [spec §11.4] `[deviation: not in spec]` — shipped (PR #72, ADR-0004): `achievements` table + `unique(user_id,code)` + idempotent award-on-verified-win logic + `GET /api/me/achievements` for A10. **STRETCH** (pairs with A10; the only gamification piece needing a schema change). _Agent crew._
 - [x] **B7 — Demo seed/reset script** — shipped (PR #67): `scripts/seed_demo.py` stages a **dedicated `demo_showcase` account** (never shared Guest; hard `_assert_safe_to_wipe` guard) with varied-state commitments + pre-staged history; idempotent `--reset`. Provision endpoint + auto-runner = NICE, not built.
-- [ ] **B8 — Fix flaky backend test harness** [infra] — the suite is non-deterministic on Py3.14/WSL2 (`sqlite3 disk I/O error` in async fixture teardown on the shared `/tmp/kawan_test.db`; clean `main` already shows it). Dispose the async engine per test or use a unique per-test DB file. **NICE/infra** — not demo-critical, but it makes QA/CI unreliable. _Agent crew._
-- [ ] **B9 — Dynamic check-in cadence + window-aware retry** [spec §7.3; extends the existing cadence/winback, don't rebuild] — derive the check-in schedule from the commitment window at creation instead of the fixed daily cron: **≥1 day → daily** (today's behavior); **~2h–1 day → one nudge at the window midpoint**; **<~2h → deadline-only**. Make the existing **winback** (already the 1 retry) **window-aware** — fire it `~25% of time-to-deadline` after a silent tick, clamped 30min–6h, instead of the hardcoded "next local morning"; still max 1, then the deadline runs the miss path. Touches `scheduler.py` (`_cadence_trigger`, `arm_winback`, `register_commitment_jobs`) + the state machine. **NICE/robustness; off the C5 path — also improves the demo (a short `?demo_deadline` window auto-fires a timely check-in).** _Agent crew._
+- [x] **B8 — Fix flaky backend test harness** [infra] — shipped (PR #72): tests run on **in-memory SQLite + StaticPool**, removing the shared `/tmp/kawan_test.db` that caused the `sqlite3 disk I/O error` at async-fixture teardown (Py3.14/WSL2). Suite deterministic across repeated runs. **NICE/infra.** _Agent crew._
+- [x] **B9 — Dynamic check-in cadence + window-aware retry** [spec §7.3; **ADR-0003** ratified the band collapse] — shipped (PR #72): derive the check-in schedule from the commitment window at creation instead of the fixed daily cron: **≥1 day → daily** (today's behavior); **~2h–1 day → one nudge at the window midpoint**; **<~2h → deadline-only**. Make the existing **winback** (already the 1 retry) **window-aware** — fire it `~25% of time-to-deadline` after a silent tick, clamped 30min–6h, instead of the hardcoded "next local morning"; still max 1, then the deadline runs the miss path. Touches `scheduler.py` (`_cadence_trigger`, `arm_winback`, `register_commitment_jobs`) + the state machine. **NICE/robustness; off the C5 path — also improves the demo (a short `?demo_deadline` window auto-fires a timely check-in).** _Agent crew._
 
 ---
 
@@ -84,9 +84,9 @@ This doc tracks **only status** — what is done (`[x]`) vs not done (`[ ]`), pe
 - [x] Four prompt/schema sets — intake, plan, check-in, workspace [C2] — `app/prompts.py` + schemas (`2db17e7`), `ChutesLLMClient` four calls (`49b1e16`).
 - [x] Per-persona layered system prompts + emotion tagging [C2] — persona registry, hero + 2 variants, per-persona model IDs (`bd2ddd0`).
 - [x] Evidence adapters + judge (GitHub + screenshot/TEE vision, three-valued verdict) [C3] — `1ba6c99` (GitHub + text judge), `fc73954` (screenshot + TEE vision judge).
-- [~] Persona tone tuning + variant-persona QA (×3) [C4] — 3 personas wired; live tone QA pending activation.
-- [ ] **C5 — Activation** [TR-68, §12.5] — set `KAWAN_AI_BACKEND=chutes` in Render env, confirm the per-persona Chutes model IDs are valid/available, run `scripts/smoke_chutes.py` against live, then integration-test the real thread (folds into D4). Until then prod still runs stubs. **DEMO-CRITICAL — this is what makes the AI real on stage; everything else's demo value depends on it.**
-- [ ] **C6 — Session-scoped AI memory + progress state** [spec §4.5] — **PO chose session-scoped (no persisted table).** Two halves: (1) the A3 chat frontend holds the conversation transcript in component state and sends recent turns with each B5 call (no schema change); (2) assemble **progress state** (check-ins / evidence / outcomes — which `workspace_turn` does NOT currently receive) into the workspace prompt. **Cross-lane, keep consistent:** `app/contracts.py` (`workspace_turn` signature), `app/llm/client.py`, B5 REST (`routes/commitments.py`), `routes/ws.py`. Folds into A3. **NICE** (progress-state half = higher demo payoff). _Agent crew (Lane C/B) + Lane A consumer._ Persisted cross-session transcript = `[ROADMAP]`, post-demo.
+- [x] Persona tone tuning + variant-persona QA (×3) [C4] — shipped (PR #72): `scripts/persona_qa.py` ran live ×2; tuned to DeepSeek-primary + an "address the user as you" guardrail (ADR-0005); 17/18 clean, distinct + on-character, all guardrails held; Tuna signed off.
+- [x] **C5 — Activation** [TR-68, §12.5] — done (PR #72): `KAWAN_AI_BACKEND=chutes` set in Render; `scripts/smoke_chutes.py --invoke` green live (catalog + structured_outputs + TEE + invocability + Pro quota). Two demo-killers caught + fixed (vision judges returned null `content`; gemma-4 chat latency) → **ADR-0005** pins DeepSeek-primary personas + gemma-4 vision judge. Live screenshot→TEE-vision verdict confirmed (~20s, reads the image, three-valued). Full real-thread QA folds into D4. **DEMO-CRITICAL.**
+- [x] **C6 — Session-scoped AI memory + progress state** [spec §4.5] — shipped (PR #72): both halves done — (1) the A3 chat frontend holds the transcript in component state and sends `recent_turns` with each B5 call (frontend wired in PR #72; no schema change); (2) the server assembles **progress state** (status / time-to-deadline / escalation / skip-days / recent check-ins / latest verdict) into the workspace prompt via a shared helper for REST + `/ws`. **Cross-lane, keep consistent:** `app/contracts.py` (`workspace_turn` signature), `app/llm/client.py`, B5 REST (`routes/commitments.py`), `routes/ws.py`. Folds into A3. **NICE** (progress-state half = higher demo payoff). _Agent crew (Lane C/B) + Lane A consumer._ Persisted cross-session transcript = `[ROADMAP]`, post-demo.
 
 ---
 
@@ -97,7 +97,7 @@ This doc tracks **only status** — what is done (`[x]`) vs not done (`[ ]`), pe
 - [x] Real amplitude lip-sync + voice input capture [D2]
 - [x] Emotion → expression wiring (6-value enum) + six Hiyori (Adik) expressions [D2/D4]
 - [x] Deploy: Vercel (frontend) + Render (backend) live, auto-deploy from `main` [D4, half]
-- [ ] **D3 — Web Push** — client shipped (PR #63): service worker (`public/sw.js`) + subscribe flow (`notifications/webPush.ts`) + Settings toggle + `GET /api/push/vapid-public-key`, degrades silently when unconfigured. Backend send-side already existed. **Remaining (human ops): generate a VAPID keypair and set it in Render env** — delivery lights up the moment keys are present. **NICE (human ops, one line).**
+- [x] **D3 — Web Push** — done (PR #72): client shipped (PR #63: service worker + subscribe flow + Settings toggle + `GET /api/push/vapid-public-key`); backend send-side existed; `scripts/gen_vapid.py` added; **VAPID keypair generated + set in Render env** (human ops, done). Delivery now lit for the Settings opt-in. **NICE.**
 - [ ] D4 — integration QA across full demo thread + Python seed/reset script for a clean demo dataset — **now = QA of the full REAL (Lane C active) thread; the seed script is X-DEMO/B7.** **DEMO-CRITICAL.**
 - [ ] D5 — demo script + video + Devpost + README (team-owned). **DEMO-CRITICAL.**
 
@@ -112,12 +112,12 @@ Status lists only — design lives in [`plan.md`](./plan.md). Each piece is also
 - [x] A7 identity titles UI — shipped (PR #66, derive from `success_patterns`)
 - [ ] A8 productivity meter UI — rises with verified wins; **growth rate scaled by the streak multiplier (1×–~3×, see Streak)** — **NICE** `[deviation: "trust meter" renamed → "productivity meter"]`
 - [ ] A9 win-receipt share card — **NICE** (client PNG, user-triggered)
-- [ ] A10 achievements UI + B6 achievements table/award logic — **STRETCH** `[deviation: not in spec]`
+- [ ] A10 achievements UI (pending) + B6 achievements table/award logic (**done, PR #72**) — **STRETCH** `[deviation: not in spec]`
 - [ ] **Streak — verified-win streak + productivity multiplier** (PO 26 Jun) — current run of consecutive **completed** commitments; a **miss resets to 0**. The streak drives the A8 **productivity-meter growth multiplier**: **1× baseline → climbs with the streak (e.g. +0.25×/win), capped ~3×, resets on miss** — each win on a streak adds `base × multiplier` to the meter. All derived from ordered outcome history (no schema; **no points economy**). Extend `/api/me/stats` with `current_streak` (+ multiplier) + UI beside the meter on the momentum view. **NICE.** _Agent crew._ Spec-compatible: counts verified wins, not raw activity (§11).
 
 ### X-MEM — Session-scoped AI memory — NICE (PO chose session-scoped; persisted = `[ROADMAP]`)
 
-- [ ] C6 frontend-held recent-turn transcript (no schema) + progress-state assembly into the workspace prompt (cross-lane: contracts.py ⇄ client.py ⇄ B5 REST ⇄ /ws)
+- [x] C6 frontend-held recent-turn transcript (no schema) + progress-state assembly into the workspace prompt (cross-lane: contracts.py ⇄ client.py ⇄ B5 REST ⇄ /ws) — shipped (PR #72)
 
 ### X-NOTIF — Multi-channel check-in notifications + user preferences (PO, 26 Jun) `[deviation: replaces the spec's laddered WS→Push→timeline with a user-selectable PARALLEL fan-out; email-for-check-ins is new — spec reserved email for stake/win-back]`
 
@@ -163,12 +163,12 @@ Status lists only — design lives in [`plan.md`](./plan.md). Each piece is also
 
 The still-open, demo-critical items, pulled together:
 
-- [x] **Lane C AI layer** — built & merged (`170ec1e`), behind `KAWAN_AI_BACKEND` (default `stub`). **Remaining: activate** (C5: env flag + valid model IDs + live smoke + integration test).
+- [x] **Lane C AI layer** — built & merged (`170ec1e`), behind `KAWAN_AI_BACKEND` (default `stub`). **Activated** (C5, PR #72): env flag set, model IDs validated live, smoke + live vision verdict confirmed.
 - [x] **B5 workspace-turn endpoint** (agent crew) — shipped (PR #62). The REST seam the chat UI calls now exists.
 - [x] **Workspace chat / AI-workflow view rework** [A3] — shipped (PR #64). Goes fully real on C5 activation.
 - [x] **Stake wizard UI** [A6] — shipped (PR #65).
 - [x] **Reward beat** [A7 titles] — shipped (PR #66).
 - [x] **Demo seed** [B7] — shipped (PR #67).
-- [~] **D3 Web Push** — client shipped (PR #63); only remaining piece is the VAPID keypair in Render env (human ops). Independent of Lane C.
+- [x] **D3 Web Push** — client shipped (PR #63); VAPID keypair set in Render env (PR #72 added `gen_vapid.py`; keys set). Independent of Lane C.
 - [ ] **D4 integration QA** — full **real** demo thread tested with the determinism levers; clean pre-staged demo data.
 - [ ] **D5 demo video + Devpost + README** (team-owned).
