@@ -42,14 +42,14 @@ This doc tracks **only status** — what is done (`[x]`) vs not done (`[ ]`), pe
 - [x] Fredoka headings + uppercase wordmark branding
 - [x] Numerous layout/contrast/scroll hotfixes
 - [x] Email/password auth removed — SIWC + Guest only (was added, then reverted)
-- [ ] Workspace chat UI rework [A3, spec §5.2] — still renders `getMockConversation()` in `WorkspaceLayout.tsx`; send-to-AI unwired. Needs Lane C (B5 endpoint shipped, PR #62). **Demo-critical.**
-- [ ] **A3a — Capture-and-propose design pass** [spec §5.2] — short design note for the workspace chat rework (capture → POST B5 → render `{say, emotion}` → drive Live2D face); Tuna reviews before build. May fold an OPTIONAL VN-style action-selection exploration into the capture surface (not a standalone task). **DEMO-CRITICAL** (gates A3).
-- [ ] **A6 — Stake wizard UI** [spec §5.2 step 3b "Terms"] — `NewCommitment.tsx` has NO stake toggle / contact-name / contact-email fields; backend already supports `stake_enabled` + `stake_contact_{name,email}` (schemas.py `CommitmentPatch`, proposal-apply). Add the missing wizard controls; email-witness only (monetary stake is `[ROADMAP]`). **DEMO-CRITICAL** (the §12.5 "stake ON, contact set" beat is unshowable today).
-- [ ] **A7 — Identity titles UI** [spec §11.4, TR-74] — render `Starter → Finisher → Shipper → Serial Shipper` (1/3/5/10 verified wins) on the momentum view (V5); derived from `success_patterns` (no schema change — backend already writes a row per outcome in `state.py`). **DEMO-CRITICAL** (cheap; the reward beat in §12.5).
+- [x] Workspace chat UI rework [A3] — shipped (PR #64): wired off mocks onto B5 + real Lane C; three response types (coaching / refusal / proposal), reactive Live2D face from the real emotion tag, session-scoped memory, empty-state starter chips. Shows stub replies until C5 activates.
+- [x] **A3a — Capture-and-propose design pass** — done; design note at `docs/a3-workspace-chat-design.md`, reviewed (empty-state chips; full-screen route kept).
+- [x] **A6 — Stake wizard UI** — shipped (PR #65): stake toggle + witness name/email at the create wizard's Terms step; rides the existing create→PATCH; Start blocked with inline validation so a stake can't be silently dropped. Email-witness only.
+- [x] **A7 — Identity titles UI** — shipped (PR #66): `Starter → Finisher → Shipper → Serial Shipper` (1/3/5/10 verified wins) on the momentum view, derived from `success_patterns` + a new session-gated `GET /api/me/stats`.
 - [ ] **A8 — Productivity meter UI** [spec §11.4 "trust meter", renamed] — meter on V5 that visibly rises with verified wins; derived from `success_patterns` `outcome='completed'` count. `[deviation: rename only]` PO renames the spec's **"trust meter" → "productivity meter"** (same mechanic; "trust meter" judged cliché). Spec NICE ②. **NICE.**
 - [ ] **A9 — Win-receipt share card** [spec §11.4, TR-75] — client-rendered PNG (character art + commitment sentence + "VERIFIED ✓" + date); **user-triggered only, never auto-posted**; Web Share API / X-intent + WhatsApp links / download. Spec NICE ① ("demo gold"). **NICE.**
 - [ ] **A10 — Achievements UI** [spec §11.4] `[deviation: not in spec]` — surface earned achievements (badges/list) on V5. New system (see X-GAMIF below); consumes the backend award table. **STRETCH** (lowest demo-leverage per unit of work; the only reward needing new backend schema).
-- [ ] **A11 — Trim cadence presets to daily-only** [spec §7.3] — `NewCommitment.tsx` `CADENCE_OPTIONS` currently offers `every_2_days`/`weekly`, but `scheduler.py:_cadence_trigger` silently collapses them to daily. Remove the non-daily options (keep `daily_evening`/`daily`/`daily_morning`-style presets) so the UI can't lie on stage. Do NOT build non-daily cron. **DEMO-CRITICAL** (small; correctness).
+- [x] **A11 — Trim cadence presets to daily-only** — shipped (PR #65): removed `every_2_days`/`weekly`; daily presets only, so the wizard can't lie on stage.
 
 ---
 
@@ -70,7 +70,8 @@ This doc tracks **only status** — what is done (`[x]`) vs not done (`[ ]`), pe
   - [x] TTS (`POST /api/voice/tts`)
 - [x] **B5 — workspace-turn endpoint** [spec §9.2-D] — _executed by the agent crew._ `POST /api/commitments/{id}/workspace/turn` shipped (PR #62), mirroring the `/ws` handler 1:1 (record contact, persist proposal, return `{response_type, say, proposal, emotion, proposal_id}`). Built against the stub contract, so it works now and keeps working once Lane C swaps in the real client. The chat UI (A3) can call it today; replies become real when Lane C lands.
 - [ ] **B6 — Achievements table + award logic** [spec §11.4] `[deviation: not in spec]` — new `achievements` table (or per-user award rows) + award-on-verified-win logic + a read endpoint for A10. **STRETCH** (pairs with A10; the only gamification piece needing a schema change). _Agent crew._
-- [ ] **B7 — Demo seed/reset endpoint** [spec §6.4, §12.5, TR-78 (D4)] — provision a **dedicated demo account** (NOT the shared Guest user — a reset on Guest clobbers everyone) with seeded commitments at varied states + pre-staged momentum history; idempotent reset. Backend half of X-DEMO. **DEMO-CRITICAL** (the seed) / the auto-runner that drives it is NICE. _Agent crew._
+- [x] **B7 — Demo seed/reset script** — shipped (PR #67): `scripts/seed_demo.py` stages a **dedicated `demo_showcase` account** (never shared Guest; hard `_assert_safe_to_wipe` guard) with varied-state commitments + pre-staged history; idempotent `--reset`. Provision endpoint + auto-runner = NICE, not built.
+- [ ] **B8 — Fix flaky backend test harness** [infra] — the suite is non-deterministic on Py3.14/WSL2 (`sqlite3 disk I/O error` in async fixture teardown on the shared `/tmp/kawan_test.db`; clean `main` already shows it). Dispose the async engine per test or use a unique per-test DB file. **NICE/infra** — not demo-critical, but it makes QA/CI unreliable. _Agent crew._
 
 ---
 
@@ -107,7 +108,7 @@ Status lists only — design lives in [`plan.md`](./plan.md). Each piece is also
 
 ### X-GAMIF — Reward stack (spec §11.4) — NO leaderboard (§11.5 rejects it; PO agreed)
 
-- [ ] A7 identity titles UI — **DEMO-CRITICAL** (derive from `success_patterns`)
+- [x] A7 identity titles UI — shipped (PR #66, derive from `success_patterns`)
 - [ ] A8 productivity meter UI — **NICE** `[deviation: "trust meter" renamed → "productivity meter"]`
 - [ ] A9 win-receipt share card — **NICE** (client PNG, user-triggered)
 - [ ] A10 achievements UI + B6 achievements table/award logic — **STRETCH** `[deviation: not in spec]`
@@ -118,7 +119,7 @@ Status lists only — design lives in [`plan.md`](./plan.md). Each piece is also
 
 ### X-DEMO — Demo Mode (spec §6.4, §12.5) — on a DEDICATED account, never shared Guest
 
-- [ ] B7 seed/reset script staging a clean demo account (varied states + pre-staged history) — **DEMO-CRITICAL**
+- [x] B7 seed/reset script staging a clean demo account (varied states + pre-staged history) — shipped (PR #67)
 - [ ] B7 provision endpoint/flow to create the seeded commitments — **NICE**
 - [ ] Compressed-clock / scripted-tick driver chaining the EXISTING levers (`?demo_deadline=+5m` on `.../start`, `POST .../check`) — **NICE/STRETCH**
 - [ ] "Try Demo" button (Lane A; PO imagines it in `/commitments`' top container) — **NICE**
@@ -138,10 +139,10 @@ The still-open, demo-critical items, pulled together:
 
 - [x] **Lane C AI layer** — built & merged (`170ec1e`), behind `KAWAN_AI_BACKEND` (default `stub`). **Remaining: activate** (C5: env flag + valid model IDs + live smoke + integration test).
 - [x] **B5 workspace-turn endpoint** (agent crew) — shipped (PR #62). The REST seam the chat UI calls now exists.
-- [ ] **Workspace chat / AI-workflow view rework** [A3] — wire the chat UI off mocks onto B5 (shipped) + Lane C; drive the reactive Live2D face from real `{say, emotion}`. **Now unblocked — Lane C is real.**
-- [ ] **Stake wizard UI** [A6] — the §12.5 "stake ON, contact set" beat is unshowable in the create flow today. Small, backend-ready.
-- [ ] **Reward beat** [A7 titles] — identity titles on the momentum view (cheap, real §12.5 reward moment).
-- [ ] **Demo seed** [B7] — a dedicated demo account with pre-staged history (spec §6.4 / §12.5 both require it).
+- [x] **Workspace chat / AI-workflow view rework** [A3] — shipped (PR #64). Goes fully real on C5 activation.
+- [x] **Stake wizard UI** [A6] — shipped (PR #65).
+- [x] **Reward beat** [A7 titles] — shipped (PR #66).
+- [x] **Demo seed** [B7] — shipped (PR #67).
 - [~] **D3 Web Push** — client shipped (PR #63); only remaining piece is the VAPID keypair in Render env (human ops). Independent of Lane C.
 - [ ] **D4 integration QA** — full **real** demo thread tested with the determinism levers; clean pre-staged demo data.
 - [ ] **D5 demo video + Devpost + README** (team-owned).
