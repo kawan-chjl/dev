@@ -7,14 +7,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-# Conversational calls need a model that returns the JSON in `content` AND responds
-# fast. Reasoning models (Qwen3.6, Qwen3.5-397B, Kimi-K2.6) emit to reasoning_content
-# (content null — unusable; ADR-0005), and gemma-4 showed variable >60s latency on long
-# chat prompts (persona_qa.py). So every persona runs DeepSeek-V3.2 (fast, reliable
-# content) primary with gemma-4 as failover; tone is carried by the per-persona system
-# prompt, not the base model. Verified via scripts/smoke_chutes.py + scripts/persona_qa.py.
+# Per-persona model diversity (spec §11.1), restored after ChutesClient.structured()
+# disabled thinking + switched to json_object mode (ADR-0005): gemma-4, DeepSeek-V3.2 and
+# Kimi-K2.6 all return schema-valid `content` fast through that path (re-validated live —
+# gemma now ~5s, not the old >60s). Each string is "primary,failover"; current routing is
+# kawan=gemma→DeepSeek, adik=DeepSeek→gemma, cik_maid=Kimi→gemma. The two Qwen TEE chutes
+# stay out — they 400 on the enable_thinking payload.
 _GEMMA = "google/gemma-4-31B-turbo-TEE"
 _DEEPSEEK = "deepseek-ai/DeepSeek-V3.2-TEE"
+_KIMI = "moonshotai/Kimi-K2.6-TEE"
 
 
 @dataclass(frozen=True)
@@ -32,7 +33,7 @@ PERSONAS: dict[str, Persona] = {
     "kawan": Persona(
         id="kawan", name="Kawan", archetype="skeptical concierge",
         live2d="models/haru_greeter", voice="en_US-amy-medium",
-        chat_models=f"{_DEEPSEEK},{_GEMMA}",
+        chat_models=f"{_GEMMA},{_DEEPSEEK}",
         tone="warm, teasing, allergic to excuses; short sentences; never preachy",
     ),
     "adik": Persona(
@@ -44,7 +45,7 @@ PERSONAS: dict[str, Persona] = {
     "cik_maid": Persona(
         id="cik_maid", name="Cik Maid", archetype="playful taskmaster",
         live2d="models/liveroid", voice="en_US-ryan-medium",
-        chat_models=f"{_DEEPSEEK},{_GEMMA}",
+        chat_models=f"{_KIMI},{_GEMMA}",
         tone="teasing, theatrical disappointment; never actually cruel",
     ),
 }
