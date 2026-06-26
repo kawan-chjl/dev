@@ -87,3 +87,20 @@ async def test_achievements_endpoint_reflects_earned(client, db):
     body = (await client.get("/api/me/achievements")).json()
     fw = next(i for i in body if i["code"] == "first_win")
     assert fw["earned"] is True and fw["awarded_at"] is not None
+
+
+async def test_deleting_a_commitment_keeps_the_badge_clears_its_link(client, db):
+    """Single-commitment delete must not leave Achievement.commitment_id dangling
+    (CodeRabbit): the badge survives, the provenance link is nulled."""
+    from app.auth import GUEST_USER_ID
+    cid = (await client.post("/api/commitments",
+                             json={"action": "ship", "deliverable": "d",
+                                   "deadline": (now_utc() + timedelta(days=1)).isoformat()})).json()["id"]
+    db.add(Achievement(user_id=GUEST_USER_ID, code="first_win", commitment_id=cid))
+    await db.commit()
+    assert (await client.delete(f"/api/commitments/{cid}")).status_code == 204
+    await db.rollback()  # drop the session's cached view so the query hits the shared DB
+    row = await db.scalar(
+        select(Achievement).where(Achievement.user_id == GUEST_USER_ID, Achievement.code == "first_win")
+    )
+    assert row is not None and row.commitment_id is None  # trophy kept, link cleared

@@ -261,8 +261,8 @@ async def delete_commitment(c: Commitment = Depends(_owned), db: AsyncSession = 
     """Permanently delete a commitment and all its related rows (cascade order:
     evidence -> checkins -> proposals -> soft_context -> plan -> success_patterns -> audit_log -> commitment).
     Current-user scoped via _owned. No undo."""
-    from sqlalchemy import delete as sql_delete
-    from app.models import AuditLog, Checkin, Evidence, Plan, Proposal, SoftContext, SuccessPattern
+    from sqlalchemy import delete as sql_delete, update as sql_update
+    from app.models import Achievement, AuditLog, Checkin, Evidence, Plan, Proposal, SoftContext, SuccessPattern
     cid = c.id
     await db.execute(sql_delete(Evidence).where(Evidence.commitment_id == cid))
     await db.execute(sql_delete(Checkin).where(Checkin.commitment_id == cid))
@@ -271,6 +271,8 @@ async def delete_commitment(c: Commitment = Depends(_owned), db: AsyncSession = 
     await db.execute(sql_delete(Plan).where(Plan.commitment_id == cid))
     await db.execute(sql_delete(SuccessPattern).where(SuccessPattern.commitment_id == cid))
     await db.execute(sql_delete(AuditLog).where(AuditLog.commitment_id == cid))
+    # Achievements are user-level trophies — keep the badge, clear the now-dangling provenance link.
+    await db.execute(sql_update(Achievement).where(Achievement.commitment_id == cid).values(commitment_id=None))
     await db.delete(c)
     await db.commit()
 
