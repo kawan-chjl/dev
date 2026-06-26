@@ -1,4 +1,5 @@
-from contextlib import asynccontextmanager
+import asyncio
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -6,9 +7,10 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app import models  # noqa: F401 - registers all tables on Base.metadata before create_all
 from app import scheduler as sched
+from app import telegram as tg
 from app.config import settings
 from app.db import Base, engine
-from app.routes import auth, commitments, me, push, voice, ws
+from app.routes import auth, commitments, me, push, telegram, voice, ws
 
 
 @asynccontextmanager
@@ -18,10 +20,16 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all)
     sched.start()
     await sched.rebuild_from_db()  # restart resilience: jobs rebuilt from DB (TR-15)
+    # Telegram long-poll linking loop (ADR-0006) — only when a bot token is configured.
+    poller = asyncio.create_task(tg.run_poller()) if settings.telegram_bot_token else None
     try:
         yield
     finally:
         sched.shutdown()
+        if poller is not None:
+            poller.cancel()
+            with suppress(asyncio.CancelledError):
+                await poller
 
 
 app = FastAPI(title="Kawan API", lifespan=lifespan)
@@ -49,6 +57,6 @@ async def health() -> dict:
     return {"status": "ok"}
 
 
-for _router in (auth.router, commitments.router, me.router, push.router, voice.router):
+for _router in (auth.router, commitments.router, me.router, push.router, telegram.router, voice.router):
     app.include_router(_router, prefix="/api")
 app.include_router(ws.router)  # WS at /ws (vite proxies it unprefixed)

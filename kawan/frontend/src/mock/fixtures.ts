@@ -21,6 +21,7 @@ export const mockActiveCommitment: Commitment = {
   stake_enabled: false,
   stake_contact_name: null,
   stake_contact_email: null,
+  notify_email: null,
   skip_days_total: 1,
   skip_days_used: 0,
   status: 'active',

@@ -43,7 +43,8 @@ _Avoid_: edit, change, suggestion (when loose)
 
 **Check-in**:
 A system-initiated accountability touch — kind `cadence | on_demand | deadline |
-winback` — delivered down the ladder. `on_demand` is the `check now` lever.
+winback` — delivered via the user's Channels (see Delivery). `on_demand` is the
+`check now` lever.
 _Avoid_: notification, reminder, message
 
 **Cadence**:
@@ -60,6 +61,32 @@ A user-initiated interaction with the active Commitment (workspace turn, `check
 now`, evidence upload, …) that resets the silence clock. Distinct from Evidence:
 talking to Kawan is Contact but not Evidence.
 _Avoid_: activity, engagement, interaction (when loose)
+
+### Delivery
+
+**Channel**:
+A transport that carries a Check-in to the user — `in-app | email | Web Push |
+Telegram`. **In-app** (the timeline entry, live-pushed while the app is open) is
+the only always-on Channel; **email**, **Web Push**, and **Telegram** are each
+opt-in — email per-Commitment (by supplying a Reminder email), Web Push and
+Telegram per-account.
+_Avoid_: medium, transport, provider
+
+**Fan-out**:
+Delivering one **reminder** Check-in (`cadence` or `winback`) to the user's
+**device tier** (in-app while the app is open, else Web Push, else just the
+timeline entry — the original first-success ladder) _and_, in parallel, to every
+enabled **off-device** Channel (email, Telegram). Outcome messages (Verdict,
+celebration, Miss reckoning, Grace) and `on_demand` checks use the device tier
+only — no off-device fan-out.
+_Avoid_: broadcast, blast
+
+**Reminder email**:
+The user's _own_ optional address, set per-Commitment, where reminder Check-ins
+(`cadence` / `winback`) are emailed. Distinct from the **stake contact** — the
+witness emailed once on a Miss. Stored on the Commitment (`notify_email`); like
+the stake contact, never enters any LLM prompt.
+_Avoid_: stake email, witness, contact email
 
 ### Evidence & judgment
 

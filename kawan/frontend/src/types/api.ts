@@ -31,6 +31,7 @@ export interface Commitment {
   stake_enabled: boolean
   stake_contact_name: string | null
   stake_contact_email: string | null
+  notify_email: string | null // X-NOTIF: the user's own reminder email
   skip_days_total: number
   skip_days_used: number
   status: CommitmentStatus

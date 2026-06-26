@@ -119,6 +119,7 @@ export async function patchCommitment(
     stake_enabled?: boolean
     stake_contact_name?: string
     stake_contact_email?: string
+    notify_email?: string
   }
 ): Promise<Commitment> {
   const res = await fetch(`/api/commitments/${id}`, {

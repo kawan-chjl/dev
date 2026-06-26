@@ -36,6 +36,7 @@ class CommitmentPatch(BaseModel):
     stake_enabled: bool | None = None
     stake_contact_name: str | None = None
     stake_contact_email: str | None = None
+    notify_email: str | None = None  # X-NOTIF: the user's own reminder address (ADR-0006)
     skip_days_total: int | None = None
 
     @field_validator("deadline")
@@ -104,6 +105,7 @@ class CommitmentOut(BaseModel):
     stake_enabled: bool
     stake_contact_name: str | None
     stake_contact_email: str | None
+    notify_email: str | None
     skip_days_total: int
     skip_days_used: int
     status: str

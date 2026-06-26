@@ -4,13 +4,14 @@
 // Persona is sourced from me.persona (single source of truth via AuthContext).
 
 import { Check } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthProvider'
 import { MOCK_AUTH } from '../../auth/api'
 import { deleteMyData } from '../../commitments/api'
 import { listPersonas } from '../../mock/provider'
 import { useNotifications } from '../../notifications/NotificationProvider'
+import { getTelegramStatus, linkTelegram, unlinkTelegram } from '../../notifications/telegram'
 import type { PushStatus } from '../../notifications/webPush'
 import { subscribeToPush, unsubscribeFromPush } from '../../notifications/webPush'
 import { Button } from '../../ui/Button'
@@ -29,6 +30,27 @@ export function Settings() {
   const [signingOut, setSigningOut] = useState(false)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [tgLinked, setTgLinked] = useState<boolean | null>(null)
+  const [tgBusy, setTgBusy] = useState(false)
+
+  // Reflect the server's Telegram link state (X-NOTIF). MOCK_AUTH dev has no backend.
+  useEffect(() => {
+    if (MOCK_AUTH) {
+      setTgLinked(false)
+      return
+    }
+    let cancelled = false
+    getTelegramStatus()
+      .then((s) => {
+        if (!cancelled) setTgLinked(s.linked)
+      })
+      .catch(() => {
+        if (!cancelled) setTgLinked(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   // Source of truth for the selected persona is me.persona.
   // setPersona does an optimistic update so the selector re-renders immediately.
@@ -48,6 +70,52 @@ export function Settings() {
       notify('Could not delete your data. Please try again.', { kind: 'error' })
     } finally {
       setDeleting(false)
+    }
+  }
+
+  async function handleTelegramConnect() {
+    if (MOCK_AUTH) {
+      setTgLinked(true)
+      return
+    }
+    setTgBusy(true)
+    try {
+      const link = await linkTelegram()
+      if (!link.configured || !link.url) {
+        notify('Telegram isn’t set up on the server yet.', { kind: 'error' })
+        return
+      }
+      window.open(link.url, '_blank', 'noopener')
+      notify('Opening Telegram — tap Start to finish linking.', { kind: 'info' })
+      // Poll for the /start to land (the user taps Start in Telegram), up to ~2 min.
+      const deadline = Date.now() + 120_000
+      const poll = async () => {
+        if (Date.now() > deadline) return
+        const s = await getTelegramStatus().catch(() => null)
+        if (s?.linked) {
+          setTgLinked(true)
+          notify('Telegram connected.', { kind: 'success' })
+          return
+        }
+        window.setTimeout(poll, 3000)
+      }
+      window.setTimeout(poll, 3000)
+    } finally {
+      setTgBusy(false)
+    }
+  }
+
+  async function handleTelegramDisconnect() {
+    if (MOCK_AUTH) {
+      setTgLinked(false)
+      return
+    }
+    setTgBusy(true)
+    try {
+      await unlinkTelegram()
+      setTgLinked(false)
+    } finally {
+      setTgBusy(false)
     }
   }
 
@@ -109,6 +177,18 @@ export function Settings() {
         <Card>
           <div className="toggle-row">
             <div>
+              <p className="toggle-label">In-app</p>
+              <p className="toggle-sub">Always on — check-ins appear in your timeline.</p>
+            </div>
+          </div>
+          <div className="toggle-row">
+            <div>
+              <p className="toggle-label">Email</p>
+              <p className="toggle-sub">Set a reminder email per commitment when you create it.</p>
+            </div>
+          </div>
+          <div className="toggle-row">
+            <div>
               <p className="toggle-label">Push notifications</p>
               <p className="toggle-sub push-status-copy">
                 {pushStatus === 'subscribed' || pushEnabled
@@ -149,6 +229,23 @@ export function Settings() {
             >
               <span className="toggle-knob" />
             </button>
+          </div>
+          <div className="toggle-row">
+            <div>
+              <p className="toggle-label">Telegram</p>
+              <p className="toggle-sub">
+                {tgLinked
+                  ? 'Connected — check-ins are also sent to your Telegram.'
+                  : 'Connect to also get check-ins in Telegram.'}
+              </p>
+            </div>
+            <Button
+              variant="secondary"
+              disabled={tgBusy || tgLinked === null}
+              onClick={tgLinked ? handleTelegramDisconnect : handleTelegramConnect}
+            >
+              {tgLinked ? 'Disconnect' : tgBusy ? 'Connecting…' : 'Connect'}
+            </Button>
           </div>
         </Card>
       </section>
