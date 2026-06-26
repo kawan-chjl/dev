@@ -155,11 +155,12 @@ class AuditLog(Base):
 
 class PushSubscription(Base):
     """Web Push subscriptions (spec §8.1). The spec DDL has no PK; an id is added
-    for ORM identity (additive, no behavioral change)."""
+    for ORM identity (additive, no behavioral change). endpoint is unique per device."""
 
     __tablename__ = "push_subscriptions"
 
     id: Mapped[str] = mapped_column(primary_key=True, default=new_id)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    endpoint: Mapped[str | None] = mapped_column(default=None, unique=True)
     subscription: Mapped[dict[str, Any]] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(default=now_utc)
