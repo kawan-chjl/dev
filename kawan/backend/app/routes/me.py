@@ -36,6 +36,17 @@ async def patch_me(body: MePatch, user: User = Depends(current_user), db: AsyncS
             "guest": user.id == GUEST_USER_ID, "balance": None}
 
 
+@router.get("/me/stats")
+async def me_stats(user: User = Depends(current_user), db: AsyncSession = Depends(get_session)):
+    """Count of verified wins (success_patterns.outcome='completed') for the current user.
+    Used to derive identity titles (spec §11.4, TR-74). Read-only; no schema change."""
+    verified_wins = len((await db.scalars(
+        select(SuccessPattern.id)
+        .where(SuccessPattern.user_id == user.id, SuccessPattern.outcome == "completed")
+    )).all())
+    return {"verified_wins": verified_wins}
+
+
 @router.get("/me/history", response_model=list[AuditRowOut])
 async def get_history(user: User = Depends(current_user), db: AsyncSession = Depends(get_session)):
     """List the current user's audit-log rows across all their commitments, newest-first.

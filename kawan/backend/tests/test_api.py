@@ -84,3 +84,24 @@ async def test_patch_me_persists_persona(client, db):
 async def test_patch_me_rejects_unknown_persona(client):
     r = await client.patch("/api/me", json={"persona": "bogus"})
     assert r.status_code == 422
+
+
+# ── A7: GET /api/me/stats returns verified_wins count ───────────────────────────
+
+async def test_me_stats_zero_with_no_completions(client):
+    r = await client.get("/api/me/stats")
+    assert r.status_code == 200
+    assert r.json() == {"verified_wins": 0}
+
+
+async def test_me_stats_counts_completed_outcomes(client, db):
+    from app.auth import GUEST_USER_ID
+    from app.models import SuccessPattern
+    # Seed one completed and one missed outcome for the guest user
+    db.add(SuccessPattern(user_id=GUEST_USER_ID, outcome="completed", features={}))
+    db.add(SuccessPattern(user_id=GUEST_USER_ID, outcome="missed", features={}))
+    await db.commit()
+
+    r = await client.get("/api/me/stats")
+    assert r.status_code == 200
+    assert r.json() == {"verified_wins": 1}  # only completed counts, not missed
