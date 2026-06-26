@@ -97,7 +97,7 @@ This doc tracks **only status** — what is done (`[x]`) vs not done (`[ ]`), pe
 - [x] Real amplitude lip-sync + voice input capture [D2]
 - [x] Emotion → expression wiring (6-value enum) + six Hiyori (Adik) expressions [D2/D4]
 - [x] Deploy: Vercel (frontend) + Render (backend) live, auto-deploy from `main` [D4, half]
-- [ ] **D3 — Web Push** — client shipped (PR #63): service worker (`public/sw.js`) + subscribe flow (`notifications/webPush.ts`) + Settings toggle + `GET /api/push/vapid-public-key`, degrades silently when unconfigured. Backend send-side already existed. **Remaining (human ops): generate a VAPID keypair and set it in Render env** — delivery lights up the moment keys are present. **NICE (human ops, one line).**
+- [x] **D3 — Web Push** — client shipped (PR #63) + idempotent subs/dead-sub cleanup (#31). VAPID keypair generated (kymil04), set on Render, and **verified live** (`/api/push/vapid-public-key` serves an 87-char key). Full path works: Settings toggle → subscribe → closed-tab notifications. **DONE.**
 - [ ] D4 — integration QA across full demo thread + Python seed/reset script for a clean demo dataset — **now = QA of the full REAL (Lane C active) thread; the seed script is X-DEMO/B7.** **DEMO-CRITICAL.**
 - [ ] D5 — demo script + video + Devpost + README (team-owned). **DEMO-CRITICAL.**
 
@@ -169,6 +169,6 @@ The still-open, demo-critical items, pulled together:
 - [x] **Stake wizard UI** [A6] — shipped (PR #65).
 - [x] **Reward beat** [A7 titles] — shipped (PR #66).
 - [x] **Demo seed** [B7] — shipped (PR #67).
-- [~] **D3 Web Push** — client shipped (PR #63); only remaining piece is the VAPID keypair in Render env (human ops). Independent of Lane C.
+- [x] **D3 Web Push** — DONE: client (PR #63) + idempotency (#31) + VAPID keys set on Render and verified live. Closed-tab notifications work.
 - [ ] **D4 integration QA** — full **real** demo thread tested with the determinism levers; clean pre-staged demo data.
 - [ ] **D5 demo video + Devpost + README** (team-owned).
