@@ -11,6 +11,8 @@ import { MOCK_AUTH } from '../../auth/api'
 import { deleteMyData } from '../../commitments/api'
 import { listPersonas } from '../../mock/provider'
 import { useNotifications } from '../../notifications/NotificationProvider'
+import type { PushStatus } from '../../notifications/webPush'
+import { subscribeToPush, unsubscribeFromPush } from '../../notifications/webPush'
 import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
 import { Modal } from '../../ui/Modal'
@@ -22,6 +24,8 @@ export function Settings() {
   const { notify } = useNotifications()
   const personas = listPersonas()
   const [pushEnabled, setPushEnabled] = useState(false)
+  const [pushStatus, setPushStatus] = useState<PushStatus | null>(null)
+  const [pushBusy, setPushBusy] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -106,7 +110,15 @@ export function Settings() {
           <div className="toggle-row">
             <div>
               <p className="toggle-label">Push notifications</p>
-              <p className="toggle-sub">Allow Kawan to deliver check-ins to this device.</p>
+              <p className="toggle-sub push-status-copy">
+                {pushStatus === 'subscribed' || pushEnabled
+                  ? 'Notifications are on.'
+                  : pushStatus === 'denied'
+                    ? 'Notifications are blocked in your browser settings.'
+                    : pushStatus === 'unsupported'
+                      ? 'This browser does not support notifications.'
+                      : 'Turn on notifications to get nudged when the tab is closed.'}
+              </p>
             </div>
             <button
               type="button"
@@ -114,7 +126,26 @@ export function Settings() {
               role="switch"
               aria-checked={pushEnabled}
               aria-label="Toggle push notifications"
-              onClick={() => setPushEnabled((v) => !v)}
+              disabled={pushBusy || pushStatus === 'unsupported' || pushStatus === 'denied'}
+              onClick={async () => {
+                if (MOCK_AUTH) {
+                  setPushEnabled((v) => !v)
+                  return
+                }
+                if (pushEnabled) {
+                  setPushBusy(true)
+                  await unsubscribeFromPush()
+                  setPushEnabled(false)
+                  setPushStatus(null)
+                  setPushBusy(false)
+                  return
+                }
+                setPushBusy(true)
+                const status = await subscribeToPush()
+                setPushStatus(status)
+                setPushEnabled(status === 'subscribed')
+                setPushBusy(false)
+              }}
             >
               <span className="toggle-knob" />
             </button>
