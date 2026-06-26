@@ -26,6 +26,7 @@ interface StageModeProps {
   phase: WorkspacePhase
   slotProgress: SlotProgress
   commitment: Commitment | null
+  openerLoading: boolean
   onSend: (text: string) => Promise<void>
   onIntakeAnswer: (text: string) => Promise<void>
   onRetry: () => void
@@ -56,14 +57,6 @@ function writeMuted(v: boolean) {
   }
 }
 
-// Canned intake action options shown to the user in the VN action menu.
-// Always includes Type my own + Skip (per OQ-INTAKE-MENU hybrid design).
-const INTAKE_CANNED: string[] = [
-  "That's a great question — let me think...",
-  'I already know the answer',
-  "I'm not sure yet"
-]
-
 export function StageMode({
   messages,
   sending,
@@ -72,6 +65,7 @@ export function StageMode({
   phase,
   slotProgress,
   commitment,
+  openerLoading,
   onSend,
   onIntakeAnswer,
   onRetry,
@@ -92,9 +86,8 @@ export function StageMode({
   const [devPersona, setDevPersona] = useState<Persona>(persona)
   const [devEmotion, setDevEmotion] = useState<Emotion>('neutral')
 
-  // Controlled input for the dialogue bar (chat phase) and custom intake answer
+  // Controlled input for the dialogue bar (chat phase) and intake answer
   const [inputText, setInputText] = useState('')
-  const [showTypeOwn, setShowTypeOwn] = useState(false)
 
   const mic = useSpeechInput()
 
@@ -154,12 +147,6 @@ export function StageMode({
     const text = inputText.trim()
     if (!text || sending) return
     setInputText('')
-    setShowTypeOwn(false)
-    void onIntakeAnswer(text)
-  }
-
-  function handleCannedSelect(text: string) {
-    if (!gestureUnlocked) setGestureUnlocked(true)
     void onIntakeAnswer(text)
   }
 
@@ -301,7 +288,7 @@ export function StageMode({
       )}
 
       {/* Intake phase: slot progress indicator + skip-ahead escape hatch */}
-      {phase === 'intake' && (
+      {phase === 'intake' && !openerLoading && (
         <div className="stage-intake-progress" role="status" aria-live="polite" aria-atomic="true">
           <span className="stage-intake-progress-label">Context</span>
           {Array.from({ length: slotProgress.total }).map((_, i) => (
@@ -318,7 +305,7 @@ export function StageMode({
       )}
 
       {/* Starter chips — chat phase empty state */}
-      {showStarterChips && (
+      {showStarterChips && !openerLoading && (
         <div className="stage-starter-chips">
           {starterChips.map((chip) => (
             <button
@@ -366,91 +353,57 @@ export function StageMode({
         </div>
       )}
 
-      {/* VN dialogue box — bottom-center; shows latest Kawan line */}
-      <section
-        className={`stage-dialogue-box${isRefusal ? ' stage-dialogue-box--refusal' : ''}`}
-        aria-label="Dialogue"
-        aria-live="polite"
-      >
-        <div className="stage-dialogue-inner">
-          {isRefusal && (
-            <div className="stage-refusal-chip">
-              <ShieldX size={12} aria-hidden="true" />
-              <span>won't do that</span>
-            </div>
-          )}
-          <p className="stage-speaker-name">{latestMsg?.from === 'user' ? 'You' : 'Kawan'}</p>
-          <div className="stage-dialogue-line">{renderMarkdown(latestMsg?.text ?? '')}</div>
-        </div>
-
-        {/* Mic button in the dialogue bar */}
-        <button
-          type="button"
-          className="stage-voice-btn stage-mic-bar-btn"
-          onClick={handleMicToggle}
-          aria-label={
-            !mic.supported
-              ? 'Voice input not supported in this browser'
-              : mic.listening
-                ? 'Stop listening'
-                : 'Start voice input'
-          }
-          aria-pressed={mic.listening}
-          disabled={!mic.supported || sending}
-          title={!mic.supported ? 'Voice input needs Chrome or a supported browser' : undefined}
+      {/* VN dialogue box — bottom-center; shows latest Kawan line; hidden while opener loads */}
+      {!openerLoading && (
+        <section
+          className={`stage-dialogue-box${isRefusal ? ' stage-dialogue-box--refusal' : ''}`}
+          aria-label="Dialogue"
+          aria-live="polite"
         >
-          {mic.listening ? <MicOff size={14} aria-hidden="true" /> : <Mic size={14} aria-hidden="true" />}
-        </button>
-      </section>
+          <div className="stage-dialogue-inner">
+            {isRefusal && (
+              <div className="stage-refusal-chip">
+                <ShieldX size={12} aria-hidden="true" />
+                <span>won't do that</span>
+              </div>
+            )}
+            <p className="stage-speaker-name">{latestMsg?.from === 'user' ? 'You' : 'Kawan'}</p>
+            <div className="stage-dialogue-line">{renderMarkdown(latestMsg?.text ?? '')}</div>
+          </div>
 
-      {/* Phase 1 — VN intake action menu (replaces free-text bar during intake) */}
-      {phase === 'intake' && !showTypeOwn && (
-        <fieldset className="stage-intake-menu">
-          <legend className="sr-only">Intake response options</legend>
-          {INTAKE_CANNED.map((option) => (
-            <button
-              key={option}
-              type="button"
-              className="stage-intake-btn"
-              disabled={sending}
-              onClick={() => handleCannedSelect(option)}
-            >
-              {option}
-            </button>
-          ))}
+          {/* Mic button in the dialogue bar */}
           <button
             type="button"
-            className="stage-intake-btn stage-intake-btn--secondary"
-            disabled={sending}
-            onClick={() => setShowTypeOwn(true)}
+            className="stage-voice-btn stage-mic-bar-btn"
+            onClick={handleMicToggle}
+            aria-label={
+              !mic.supported
+                ? 'Voice input not supported in this browser'
+                : mic.listening
+                  ? 'Stop listening'
+                  : 'Start voice input'
+            }
+            aria-pressed={mic.listening}
+            disabled={!mic.supported || sending}
+            title={!mic.supported ? 'Voice input needs Chrome or a supported browser' : undefined}
           >
-            Type my own answer...
+            {mic.listening ? <MicOff size={14} aria-hidden="true" /> : <Mic size={14} aria-hidden="true" />}
           </button>
-          <button
-            type="button"
-            className="stage-intake-btn stage-intake-btn--skip"
-            disabled={sending}
-            onClick={handleSkip}
-          >
-            Skip this question
-          </button>
-        </fieldset>
+        </section>
       )}
 
-      {/* Type my own — inline input that appears in intake phase */}
-      {phase === 'intake' && showTypeOwn && (
+      {/* Phase 1 — intake input bar (primary control) + skip this question */}
+      {phase === 'intake' && !openerLoading && (
         <div className="stage-input-bar">
           <input
             className="stage-input"
             type="text"
             placeholder="Type your answer…"
-            aria-label="Custom intake answer"
+            aria-label="Intake answer"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleIntakeKeyDown}
             disabled={sending}
-            // biome-ignore lint/a11y/noAutofocus: intentional — user just tapped "Type my own"
-            autoFocus
           />
           <button
             type="button"
@@ -463,13 +416,13 @@ export function StageMode({
           </button>
           <button
             type="button"
-            className="stage-intake-cancel-btn"
-            onClick={() => {
-              setShowTypeOwn(false)
-              setInputText('')
-            }}
+            className="stage-intake-skip-btn"
+            onClick={handleSkip}
+            disabled={sending}
+            aria-label="Skip this question"
+            title="Skip this question"
           >
-            ×
+            Skip
           </button>
         </div>
       )}

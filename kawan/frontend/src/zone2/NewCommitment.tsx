@@ -30,12 +30,6 @@ const ACTION_OPTIONS = ['complete', 'finish', 'ship', 'write', 'build', 'submit'
 type Action = (typeof ACTION_OPTIONS)[number]
 const ACTION_SELECT_OPTIONS: SelectOption[] = ACTION_OPTIONS.map((a) => ({ value: a, label: a }))
 
-// Cadence options — daily presets only (scheduler collapses non-daily to daily, spec §7.3).
-const CADENCE_OPTIONS: SelectOption[] = [
-  { value: 'daily_evening', label: 'Daily (evening)' },
-  { value: 'daily', label: 'Daily' }
-]
-
 // Evidence options (Q7 - include github with repo field).
 const EVIDENCE_OPTIONS_FULL: { value: EvidenceType; label: string; trust: string }[] = [
   { value: 'github', label: 'GitHub commits', trust: 'high trust' },
@@ -65,7 +59,7 @@ interface DraftPlan {
 }
 
 const DEFAULT_DRAFT_PLAN: DraftPlan = {
-  cadence: 'daily_evening',
+  cadence: 'daily',
   evidence_type: 'screenshot',
   evidence_config: null,
   skip_days_total: 0,
@@ -327,20 +321,6 @@ function PlanSection({
         {/* Safe hard-field GUI controls (GUI-set, user session, never AI - TR-25/26) */}
         {/* Un-boxed: dropdowns stand alone, no surrounding container */}
         <div className="nc-plan-settings">
-          <div className="plan-setting-row">
-            <span className="plan-setting-label">
-              Cadence
-              <Tooltip text="How often Kawan checks in on your progress." />
-            </span>
-            <Select
-              className="plan-setting-select"
-              aria-label="Check-in cadence"
-              value={draft.cadence}
-              onChange={(v) => onDraftChange({ ...draft, cadence: v })}
-              options={CADENCE_OPTIONS}
-            />
-          </div>
-
           <div className="plan-setting-row">
             <span className="plan-setting-label">
               Evidence
