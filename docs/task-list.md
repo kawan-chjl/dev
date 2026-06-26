@@ -97,7 +97,7 @@ This doc tracks **only status** — what is done (`[x]`) vs not done (`[ ]`), pe
 - [x] Real amplitude lip-sync + voice input capture [D2]
 - [x] Emotion → expression wiring (6-value enum) + six Hiyori (Adik) expressions [D2/D4]
 - [x] Deploy: Vercel (frontend) + Render (backend) live, auto-deploy from `main` [D4, half]
-- [x] **D3 — Web Push** — done (PR #72): client shipped (PR #63: service worker + subscribe flow + Settings toggle + `GET /api/push/vapid-public-key`); backend send-side existed; `scripts/gen_vapid.py` added; **VAPID keypair generated + set in Render env** (human ops, done). Delivery now lit for the Settings opt-in. **NICE.**
+- [x] **D3 — Web Push** — **DONE**: client shipped (PR #63: service worker + subscribe flow + Settings toggle + `GET /api/push/vapid-public-key`) + idempotent subs/dead-sub cleanup (#31); `scripts/gen_vapid.py` added (PR #72); VAPID keypair set on Render and **verified live** (`/api/push/vapid-public-key` serves an 87-char key). Full path: Settings toggle → subscribe → closed-tab notifications. **NICE.**
 - [ ] D4 — integration QA across full demo thread + Python seed/reset script for a clean demo dataset — **now = QA of the full REAL (Lane C active) thread; the seed script is X-DEMO/B7.** **DEMO-CRITICAL.**
 - [ ] D5 — demo script + video + Devpost + README (team-owned). **DEMO-CRITICAL.**
 
@@ -169,6 +169,6 @@ The still-open, demo-critical items, pulled together:
 - [x] **Stake wizard UI** [A6] — shipped (PR #65).
 - [x] **Reward beat** [A7 titles] — shipped (PR #66).
 - [x] **Demo seed** [B7] — shipped (PR #67).
-- [x] **D3 Web Push** — client shipped (PR #63); VAPID keypair set in Render env (PR #72 added `gen_vapid.py`; keys set). Independent of Lane C.
+- [x] **D3 Web Push** — DONE: client (PR #63) + idempotency (#31) + `gen_vapid.py` (PR #72); VAPID keys set on Render and verified live. Closed-tab notifications work. Independent of Lane C.
 - [ ] **D4 integration QA** — full **real** demo thread tested with the determinism levers; clean pre-staged demo data.
 - [ ] **D5 demo video + Devpost + README** (team-owned).

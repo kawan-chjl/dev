@@ -2866,6 +2866,19 @@
   color: var(--accent-press);
 }
 
+.commitments-filter-row-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.commitments-filter-row-wrap .commitments-selection-toolbar {
+  padding: var(--space-2) var(--space-3);
+  flex-shrink: 0;
+}
+
 .commitments-filter-row {
   display: flex;
   flex-wrap: wrap;

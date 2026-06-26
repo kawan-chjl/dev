@@ -380,14 +380,7 @@
   background: radial-gradient(ellipse 80% 60% at 50% 0%, #1e1409 0%, #161009 55%);
 }
 
-.messages-thread {
-  flex: 1;
-  overflow-y: auto;
-  padding: var(--space-6) var(--space-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
+/* .messages-thread base layout is defined in the "Layout fix 1" section below */
 
 .message-row {
   display: flex;
@@ -2023,6 +2016,352 @@ fieldset.stage-voice-controls {
 }
 .message-row-user .message-col {
   align-items: flex-end;
+}
+
+/* ── Layout fix 1: centered max-width thread column (kill the dark void) ── */
+/* The thread grows from the bottom — flex-col with justify-end so sparse content
+   anchors near the input, not the top of a large dark void. */
+.messages-thread {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end; /* content near input when sparse */
+}
+
+.messages-thread-inner {
+  max-width: 720px;
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* ── Layout fix 3: constrain Kawan dialogue strip in Stage view ── */
+.stage-dialogue-box {
+  max-width: min(580px, calc(100vw - var(--space-8)));
+}
+
+/* ── Layout fix 4 & 5: friendly error + retry affordance ── */
+.stage-error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  justify-content: center;
+}
+
+.stage-error-retry,
+.messages-error-retry {
+  background: transparent;
+  border: 1px solid rgba(217, 100, 58, 0.4);
+  border-radius: var(--radius-md);
+  color: var(--accent);
+  font-family: var(--font-body);
+  font-size: var(--text-caption);
+  font-weight: 500;
+  padding: var(--space-1) var(--space-2);
+  cursor: pointer;
+  min-height: 28px;
+  white-space: nowrap;
+}
+.stage-error-retry:hover,
+.messages-error-retry:hover {
+  background: rgba(217, 100, 58, 0.12);
+}
+
+.messages-error-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ── Layout fix 2 & 5: Starter chips — no bullets, pill buttons, tidy stack ── */
+/* Replaces the old <ul>/<li> approach — rendered as <div> rows of <button> pills */
+.stage-starter-chips {
+  position: absolute;
+  bottom: 180px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: min(420px, calc(100vw - var(--space-8)));
+  z-index: 6;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.messages-starters-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) 0 var(--space-1);
+  /* Visually separate from the Kawan bubble above */
+  margin-top: var(--space-2);
+}
+
+/* ── T4: Intake progress indicator ── */
+.stage-intake-progress {
+  position: absolute;
+  top: var(--space-3);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: rgba(22, 16, 9, 0.72);
+  border: 1px solid rgba(244, 236, 225, 0.1);
+  border-radius: var(--radius-pill);
+  padding: var(--space-1) var(--space-3);
+  backdrop-filter: var(--blur-backdrop);
+  z-index: 10;
+}
+
+.stage-intake-progress-label {
+  font-size: var(--text-caption);
+  color: rgba(244, 236, 225, 0.5);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+/* Escape hatch — always visible during intake, never blocks progress */
+.stage-intake-skip-ahead,
+.messages-intake-skip-ahead {
+  margin-left: auto;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: var(--text-caption);
+  color: rgba(244, 236, 225, 0.35);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 400;
+  line-height: 1;
+}
+.stage-intake-skip-ahead:hover,
+.messages-intake-skip-ahead:hover {
+  color: rgba(244, 236, 225, 0.65);
+}
+
+.stage-intake-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(244, 236, 225, 0.2);
+  border: 1px solid rgba(244, 236, 225, 0.25);
+  transition: background var(--duration-ui) var(--ease-smooth);
+}
+.stage-intake-dot--filled {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.messages-intake-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid rgba(244, 236, 225, 0.06);
+  background: rgba(22, 16, 9, 0.4);
+}
+.messages-intake-label {
+  font-size: var(--text-caption);
+  color: rgba(244, 236, 225, 0.45);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  font-weight: 500;
+  margin-right: var(--space-1);
+}
+.messages-intake-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(244, 236, 225, 0.18);
+  border: 1px solid rgba(244, 236, 225, 0.22);
+  transition: background var(--duration-ui) var(--ease-smooth);
+}
+.messages-intake-dot--filled {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* fieldset reset for intake menus (Biome useSemanticElements requires <fieldset> for button groups) */
+fieldset.stage-intake-menu,
+fieldset.messages-intake-menu {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* ── T4: Intake VN action menu (Stage mode) ── */
+/* Uniform-width pill buttons, no bullets (Layout fix 2) */
+.stage-intake-menu {
+  position: absolute;
+  bottom: 120px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: min(420px, calc(100vw - var(--space-8)));
+  z-index: 6;
+}
+
+.stage-intake-btn {
+  background: rgba(22, 16, 9, 0.78);
+  border: 1.5px solid rgba(244, 236, 225, 0.14);
+  border-radius: var(--radius-pill);
+  padding: var(--space-3) var(--space-4);
+  color: rgba(244, 236, 225, 0.82);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  text-align: center;
+  cursor: pointer;
+  min-height: 44px;
+  width: 100%;
+  backdrop-filter: var(--blur-backdrop);
+  transition:
+    background var(--duration-ui) var(--ease-smooth),
+    border-color var(--duration-ui) var(--ease-smooth),
+    color var(--duration-ui) var(--ease-smooth);
+}
+.stage-intake-btn:hover:not(:disabled) {
+  background: rgba(217, 100, 58, 0.16);
+  border-color: rgba(217, 100, 58, 0.45);
+  color: rgba(244, 236, 225, 0.95);
+}
+.stage-intake-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.stage-intake-btn--secondary {
+  color: rgba(244, 236, 225, 0.55);
+  border-style: dashed;
+  background: transparent;
+}
+.stage-intake-btn--secondary:hover:not(:disabled) {
+  color: rgba(244, 236, 225, 0.85);
+  background: rgba(244, 236, 225, 0.06);
+  border-color: rgba(244, 236, 225, 0.25);
+}
+.stage-intake-btn--skip {
+  color: rgba(244, 236, 225, 0.4);
+  border-color: rgba(244, 236, 225, 0.08);
+  background: transparent;
+  font-size: var(--text-caption);
+}
+.stage-intake-btn--skip:hover:not(:disabled) {
+  color: rgba(244, 236, 225, 0.6);
+  background: rgba(244, 236, 225, 0.04);
+}
+
+/* Cancel button inside intake type-own bar */
+.stage-intake-cancel-btn {
+  background: none;
+  border: none;
+  color: rgba(244, 236, 225, 0.4);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 var(--space-1);
+  min-height: 44px;
+  min-width: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.stage-intake-cancel-btn:hover {
+  color: rgba(244, 236, 225, 0.7);
+}
+
+/* ── T4: Intake VN action menu (Messages mode) ── */
+.messages-intake-menu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid rgba(244, 236, 225, 0.06);
+  background: rgba(22, 16, 9, 0.55);
+  max-width: 720px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.messages-intake-btn {
+  background: rgba(244, 236, 225, 0.06);
+  border: 1.5px solid rgba(244, 236, 225, 0.12);
+  border-radius: var(--radius-pill);
+  padding: var(--space-2) var(--space-4);
+  color: rgba(244, 236, 225, 0.78);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  text-align: center;
+  cursor: pointer;
+  min-height: 44px;
+  width: 100%;
+  transition:
+    background var(--duration-ui) var(--ease-smooth),
+    border-color var(--duration-ui) var(--ease-smooth),
+    color var(--duration-ui) var(--ease-smooth);
+}
+.messages-intake-btn:hover:not(:disabled) {
+  background: rgba(217, 100, 58, 0.12);
+  border-color: rgba(217, 100, 58, 0.38);
+  color: rgba(244, 236, 225, 0.95);
+}
+.messages-intake-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.messages-intake-btn--secondary {
+  color: rgba(244, 236, 225, 0.5);
+  border-style: dashed;
+  background: transparent;
+}
+.messages-intake-btn--secondary:hover:not(:disabled) {
+  color: rgba(244, 236, 225, 0.82);
+  background: rgba(244, 236, 225, 0.05);
+}
+.messages-intake-btn--skip {
+  color: rgba(244, 236, 225, 0.38);
+  border-color: rgba(244, 236, 225, 0.07);
+  background: transparent;
+  font-size: var(--text-caption);
+}
+.messages-intake-btn--skip:hover:not(:disabled) {
+  color: rgba(244, 236, 225, 0.55);
+}
+
+/* Cancel button in messages intake type-own bar */
+.messages-intake-cancel {
+  background: none;
+  border: none;
+  color: rgba(244, 236, 225, 0.4);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0 var(--space-1);
+  min-height: 44px;
+  min-width: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.messages-intake-cancel:hover {
+  color: rgba(244, 236, 225, 0.65);
+}
+
+/* ── Layout fix 5: proposal card spacing from the Kawan bubble ── */
+.message-proposal-sep {
+  margin-top: var(--space-3);
 }
 
 /* ── Typing indicator bubble (Messages mode) ── */

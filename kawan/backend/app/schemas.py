@@ -38,6 +38,16 @@ class CommitmentPatch(BaseModel):
     stake_contact_email: str | None = None
     skip_days_total: int | None = None
 
+    @field_validator("deadline")
+    @classmethod
+    def _future(cls, v: datetime | None) -> datetime | None:
+        if v is None:
+            return v
+        v = as_utc(v)
+        if v <= now_utc():
+            raise ValueError("deadline must be in the future")
+        return v
+
 
 class ContextTurnIn(BaseModel):
     say: str = ""
