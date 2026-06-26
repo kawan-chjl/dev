@@ -704,7 +704,7 @@ export function NewCommitment() {
       await startCommitment(created.id)
       // 4. Persist persona selection ONLY on full success
       await setPersona(selectedPersona)
-      navigate('/home')
+      navigate(`/commitments/${created.id}`)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to start commitment. Please try again.'
       setStartError(msg)

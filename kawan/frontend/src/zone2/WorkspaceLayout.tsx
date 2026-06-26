@@ -116,8 +116,8 @@ export function WorkspaceLayout() {
         <button
           type="button"
           className="workspace-back-btn"
-          aria-label="Back to home"
-          onClick={() => navigate('/home')}
+          aria-label="Back to commitment"
+          onClick={() => navigate(`/commitments/${commitmentId}`)}
         >
           <ArrowLeft size={16} aria-hidden="true" />
           <span>Back</span>
