@@ -5,7 +5,7 @@
 
 import type { ButtonHTMLAttributes } from 'react'
 
-type Variant = 'primary' | 'secondary' | 'accent'
+type Variant = 'primary' | 'secondary' | 'accent' | 'danger'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant
@@ -14,7 +14,8 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 const styles: Record<Variant, string> = {
   primary: 'btn btn-primary',
   secondary: 'btn btn-secondary',
-  accent: 'btn btn-accent'
+  accent: 'btn btn-accent',
+  danger: 'btn btn-danger'
 }
 
 export function Button({ variant = 'primary', className = '', type = 'button', children, ...rest }: ButtonProps) {

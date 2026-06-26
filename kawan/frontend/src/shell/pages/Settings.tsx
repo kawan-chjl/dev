@@ -153,22 +153,9 @@ export function Settings() {
         </Card>
       </section>
 
-      {/* Accountability contact */}
-      <section className="settings-section" aria-labelledby="stake-heading">
-        <h3 id="stake-heading" className="settings-section-title">
-          Accountability contact
-        </h3>
-        <Card>
-          <p className="settings-placeholder">Add a contact who gets a message if you miss your commitment.</p>
-          <Button variant="secondary" className="settings-add-btn" disabled>
-            Add contact
-          </Button>
-        </Card>
-      </section>
-
       {/* Delete all data — above sign out */}
       <section className="settings-section settings-danger">
-        <Button variant="secondary" disabled={deleting} onClick={() => setDeleteConfirmOpen(true)}>
+        <Button variant="danger" disabled={deleting} onClick={() => setDeleteConfirmOpen(true)}>
           {deleting ? 'Deleting...' : 'Delete all data'}
         </Button>
       </section>
