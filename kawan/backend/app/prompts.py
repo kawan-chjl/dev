@@ -9,10 +9,14 @@ import json
 
 from app.personas import Persona
 
-# Vision judging — strongest multimodal TEE pair; price irrelevant (judging is rare).
-JUDGE_MODELS = "moonshotai/Kimi-K2.6-TEE,Qwen/Qwen3.5-397B-A17B-TEE"
-# GitHub judging is text-only — the cheap, fast gemma pair is ample.
-GITHUB_JUDGE_MODELS = "google/gemma-4-31B-turbo-TEE,Qwen/Qwen3.6-27B-TEE"
+# Vision judging — gemma-4 is the only TEE model that both accepts images AND reliably
+# returns the JSON in `content`. The big reasoning vision models (Kimi-K2.6,
+# Qwen3.5-397B) emit to reasoning_content leaving `content` null; Qwen3.6 does so
+# intermittently — all unusable for our content-based structured() parse, which Chutes'
+# 200-failover won't catch (ADR-0005, verified via scripts/smoke_chutes.py --invoke).
+JUDGE_MODELS = "google/gemma-4-31B-turbo-TEE"
+# GitHub judging is text-only — gemma + DeepSeek, both reliable content-returners.
+GITHUB_JUDGE_MODELS = "google/gemma-4-31B-turbo-TEE,deepseek-ai/DeepSeek-V3.2-TEE"
 
 _EMOTIONS = ["neutral", "curious", "pleased", "skeptical", "concerned"]
 

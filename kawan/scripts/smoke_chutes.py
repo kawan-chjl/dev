@@ -111,5 +111,45 @@ if failures:
     print(f"\n{len(failures)} problem(s). Pick replacements from the TEE catalog above,")
     print("update app/personas.py + app/prompts.py, and re-run. (Activation gate: FAILING.)")
     raise SystemExit(1)
+
+if "--invoke" in sys.argv:  # TR-68: a live structured call per distinct model + quota visibility
+    import json  # noqa: F401 - kept for parity with --json; payload uses dict literals
+
+    distinct: list[str] = []
+    for _label, ids, _tee, _vision in configured:
+        for mid in ids:
+            if mid not in distinct:
+                distinct.append(mid)
+    su = httpx.get(f"{settings.chutes_api_base_url}/users/me/subscription_usage", headers=HEADERS, timeout=30)
+    print(f"\nsubscription_usage [{su.status_code}]: {su.text[:300]}")
+    ping_schema = {"type": "object", "additionalProperties": False,
+                   "properties": {"ok": {"type": "boolean"}}, "required": ["ok"]}
+    print("\nLive structured invocation (one minimal call per distinct model):")
+    invoke_fail: list[str] = []
+    for mid in distinct:
+        payload = {"model": mid, "max_tokens": 50,
+                   "messages": [{"role": "user", "content": 'Reply with {"ok": true}.'}],
+                   "response_format": {"type": "json_schema",
+                                       "json_schema": {"name": "ping", "schema": ping_schema, "strict": True}}}
+        try:
+            r = httpx.post(f"{settings.chutes_inference_base_url}/chat/completions",
+                           headers={**HEADERS, "Content-Type": "application/json"}, json=payload, timeout=90)
+            if r.status_code != 200:
+                ok, detail = False, r.text[:120]
+            else:
+                # Mirror ChutesClient.structured(): the JSON MUST be in `content`. Reasoning
+                # models that emit to reasoning_content (content null/empty) are unusable here.
+                content = r.json()["choices"][0]["message"].get("content")
+                ok, detail = True, str(json.loads(content))[:50]
+        except Exception as exc:  # noqa: BLE001 - flag non-content / non-JSON models, keep sweeping
+            ok, detail = False, f"{type(exc).__name__}: {exc}"
+        print(f"  [{'ok ' if ok else 'FAIL'}] {mid}  {detail}")
+        if not ok:
+            invoke_fail.append(mid)
+    if invoke_fail:
+        print(f"\n{len(invoke_fail)} model(s) not invokable on this account — check tier/quota.")
+        raise SystemExit(1)
+    print("\nAll distinct models invokable with structured output (TR-68 coverage).")
+
 print("\nAll configured models are live, structured-output capable, judges TEE, vision judge")
 print("multimodal. Safe to flip KAWAN_AI_BACKEND=chutes.")
