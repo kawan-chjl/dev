@@ -110,10 +110,10 @@ Status lists only — design lives in [`plan.md`](./plan.md). Each piece is also
 ### X-GAMIF — Reward stack (spec §11.4) — NO leaderboard (§11.5 rejects it; PO agreed)
 
 - [x] A7 identity titles UI — shipped (PR #66, derive from `success_patterns`)
-- [ ] A8 productivity meter UI — **NICE** `[deviation: "trust meter" renamed → "productivity meter"]`
+- [ ] A8 productivity meter UI — rises with verified wins; **growth rate scaled by the streak multiplier (1×–~3×, see Streak)** — **NICE** `[deviation: "trust meter" renamed → "productivity meter"]`
 - [ ] A9 win-receipt share card — **NICE** (client PNG, user-triggered)
 - [ ] A10 achievements UI + B6 achievements table/award logic — **STRETCH** `[deviation: not in spec]`
-- [ ] **Streak — verified-win streak** (PO 26 Jun) — current run of consecutive **completed** commitments; a **miss resets it to 0**. Derived from outcome history (no schema change, like titles/meter): extend `/api/me/stats` with `current_streak` + a small UI element on the momentum view. **NICE.** _Agent crew._ Spec-compatible: counts verified wins, not raw activity/days (§11 rejects activity streaks).
+- [ ] **Streak — verified-win streak + productivity multiplier** (PO 26 Jun) — current run of consecutive **completed** commitments; a **miss resets to 0**. The streak drives the A8 **productivity-meter growth multiplier**: **1× baseline → climbs with the streak (e.g. +0.25×/win), capped ~3×, resets on miss** — each win on a streak adds `base × multiplier` to the meter. All derived from ordered outcome history (no schema; **no points economy**). Extend `/api/me/stats` with `current_streak` (+ multiplier) + UI beside the meter on the momentum view. **NICE.** _Agent crew._ Spec-compatible: counts verified wins, not raw activity (§11).
 
 ### X-MEM — Session-scoped AI memory — NICE (PO chose session-scoped; persisted = `[ROADMAP]`)
 
