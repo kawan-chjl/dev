@@ -143,7 +143,10 @@ if "--invoke" in sys.argv:  # TR-68: a live call per distinct model THROUGH the 
             try:
                 out = await chutes.structured(user_id="guest", model=mid, messages=msgs,
                                               schema=ping_schema, schema_name="ping")
-                ok, detail = isinstance(out, dict) and "ok" in out, str(out)[:50]
+                # Validate the exact ping_schema shape — structured() only extracts JSON,
+                # it doesn't enforce the schema, so check {"ok": bool} and nothing else.
+                ok = isinstance(out, dict) and set(out) == {"ok"} and isinstance(out.get("ok"), bool)
+                detail = str(out)[:50]
             except Exception as exc:  # noqa: BLE001 - flag any model the real path can't use
                 ok, detail = False, f"{type(exc).__name__}: {str(exc)[:90]}"
             print(f"  [{'ok ' if ok else 'FAIL'}] {mid}  {detail}")

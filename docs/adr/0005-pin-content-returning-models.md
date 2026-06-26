@@ -52,7 +52,7 @@ disables thinking (`chat_template_kwargs={"enable_thinking": False}`), uses
 Re-validating the dropped models **through that real path** (2× each, live): **gemma-4
 (~4–6 s — the >60 s latency is gone), DeepSeek-V3.2, and Kimi-K2.6 all return
 schema-valid `content` fast.** So per-persona diversity is **restored** — kawan→gemma-4,
-adik→DeepSeek-V3.2, cik_maid→Kimi-K2.6, each with gemma-4 as the (fastest) failover. The
+adik→DeepSeek-V3.2, cik_maid→Kimi-K2.6, with failovers kawan→DeepSeek-V3.2 and adik/cik_maid→gemma-4. The
 two **Qwen** TEE chutes stay out: they now **400 on the `enable_thinking` payload**.
 `smoke_chutes.py --invoke` was rewritten to call through `structured()` so the gate
 reflects this. The vision judge stays gemma-4 (Kimi-vision not yet validated with an image).

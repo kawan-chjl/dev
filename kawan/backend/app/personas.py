@@ -10,8 +10,9 @@ from dataclasses import dataclass
 # Per-persona model diversity (spec §11.1), restored after ChutesClient.structured()
 # disabled thinking + switched to json_object mode (ADR-0005): gemma-4, DeepSeek-V3.2 and
 # Kimi-K2.6 all return schema-valid `content` fast through that path (re-validated live —
-# gemma now ~5s, not the old >60s). Each string is "primary,failover"; gemma-4 (fastest) is
-# the universal failover. The two Qwen TEE chutes stay out — they 400 on the enable_thinking payload.
+# gemma now ~5s, not the old >60s). Each string is "primary,failover"; current routing is
+# kawan=gemma→DeepSeek, adik=DeepSeek→gemma, cik_maid=Kimi→gemma. The two Qwen TEE chutes
+# stay out — they 400 on the enable_thinking payload.
 _GEMMA = "google/gemma-4-31B-turbo-TEE"
 _DEEPSEEK = "deepseek-ai/DeepSeek-V3.2-TEE"
 _KIMI = "moonshotai/Kimi-K2.6-TEE"
