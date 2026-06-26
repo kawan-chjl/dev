@@ -62,13 +62,14 @@ This doc tracks **only status** — what is done (`[x]`) vs not done (`[ ]`), pe
 
 ## Lane C — AI layer (agent crew)
 
-**Status: NOT built.** All AI calls run as deterministic stubs (`app/stubs.py`), swapped in one file (`app/wiring.py` → `StubLLMClient`, `StubGitHubAdapter`, `StubScreenshotAdapter`). Lane C's job is to replace these behind the identical `app/contracts.py` signatures.
+**Status: BUILT & merged to `main`** (laneC → `170ec1e`, by Jeremy Woon / WhiteAvocad0). The real Chutes-backed AI lives behind the `KAWAN_AI_BACKEND` flag in `app/wiring.py` (`_build()`), which defaults to `stub` — so `main` stays offline-testable and the demo/prod env opts in with `KAWAN_AI_BACKEND=chutes`. Backend suite: 88 passing (26 new AI-layer tests). New code: `app/chutes.py`, `app/llm/client.py`, `app/prompts.py`, `app/adapters/{github,screenshot}.py`.
 
-- [ ] Chutes client + structured-output harness + SIWC-billed Bearer [C1, spec §3.1, §9.1]
-- [ ] Four prompt/schema sets — intake, plan, check-in, workspace [C2, spec §9.2]
-- [ ] Per-persona layered system prompts + 6-value emotion tagging [C2, spec §11.1]
-- [ ] Evidence adapters + judge (GitHub + screenshot/TEE vision, three-valued verdict) [C3, spec §9.3]
-- [ ] Persona tone tuning + variant-persona QA (×3) [C4, spec §11.2]
+- [x] Chutes client + structured-output harness + SIWC-billed Bearer [C1] — `app/chutes.py` (`acb0590`): structured output, failover, 401-refresh-retry.
+- [x] Four prompt/schema sets — intake, plan, check-in, workspace [C2] — `app/prompts.py` + schemas (`2db17e7`), `ChutesLLMClient` four calls (`49b1e16`).
+- [x] Per-persona layered system prompts + emotion tagging [C2] — persona registry, hero + 2 variants, per-persona model IDs (`bd2ddd0`).
+- [x] Evidence adapters + judge (GitHub + screenshot/TEE vision, three-valued verdict) [C3] — `1ba6c99` (GitHub + text judge), `fc73954` (screenshot + TEE vision judge).
+- [~] Persona tone tuning + variant-persona QA (×3) [C4] — 3 personas wired; live tone QA pending activation.
+- [ ] **Activation (not yet done):** set `KAWAN_AI_BACKEND=chutes` in Render env, confirm the per-persona Chutes model IDs are valid/available, run `scripts/smoke_chutes.py` against live, then integration-test the real thread (folds into D4). Until then prod still runs stubs.
 
 ---
 
@@ -89,9 +90,9 @@ This doc tracks **only status** — what is done (`[x]`) vs not done (`[ ]`), pe
 
 The still-open, demo-critical items, pulled together:
 
-- [ ] **Lane C AI layer** — replace all stubs with the real Chutes client, schema sets, judge, and persona tone (C1–C4). Nothing AI is real yet.
+- [x] **Lane C AI layer** — built & merged (`170ec1e`), behind `KAWAN_AI_BACKEND` (default `stub`). **Remaining: activate** (env flag + valid model IDs + live smoke + integration test).
 - [x] **B5 workspace-turn endpoint** (agent crew) — shipped (PR #62). The REST seam the chat UI calls now exists.
-- [ ] **Workspace chat / AI-workflow view rework** [A3] — wire the chat UI off mocks onto B5 (shipped) + Lane C; drive the reactive Live2D face from real `{say, emotion}`.
+- [ ] **Workspace chat / AI-workflow view rework** [A3] — wire the chat UI off mocks onto B5 (shipped) + Lane C; drive the reactive Live2D face from real `{say, emotion}`. **Now unblocked — Lane C is real.**
 - [~] **D3 Web Push** — client shipped (PR #63); only remaining piece is the VAPID keypair in Render env (human ops). Independent of Lane C.
 - [ ] **D4 integration QA + seed/reset script** — full demo thread tested with determinism levers; clean pre-staged demo data.
 - [ ] **D5 demo video + Devpost + README** (team-owned).
