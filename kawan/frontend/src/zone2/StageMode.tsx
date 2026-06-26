@@ -1,21 +1,27 @@
-// StageMode — VN/RPG dialogue box (bottom-center) + action surface (middle-center).
-// Driven by mock conversation turns. Tap-to-advance through dialogue.
-// D2: voice output (Piper primary, WebSpeech fallback), mic input, mute toggle, emotion wiring.
+// StageMode — VN/RPG dialogue box + input bar + Live2D face reactive to real Kawan turns.
+// A3: accepts WorkspaceMessage[] from WorkspaceLayout instead of mock ConversationTurn[].
+// Emotion effect keys on the latest Kawan message id (not currentIndex).
+// Do NOT remount the stage — Live2DStageView mounts once here (see a3-workspace-chat-design.md §4).
 
-import { ChevronRight, Mic, MicOff, Play, Square, Volume2, VolumeX } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { Mic, MicOff, Play, ShieldX, Square, Volume2, VolumeX } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '../auth/AuthProvider'
-import type { ConversationTurn } from '../mock/fixtures'
 import type { Emotion, Persona } from '../types/api'
+import type { WorkspaceMessage } from '../workspace/api'
 import type { Live2DStageHandle } from './live2d/Live2DStageView'
 import { Live2DStageView } from './live2d/Live2DStageView'
+import { ProposalCard } from './ProposalCard'
 import { useSpeechInput } from './voice/useSpeechInput'
 import { speakLine } from './voice/useVoice'
 
 interface StageModeProps {
-  turns: ConversationTurn[]
-  currentIndex: number
-  onAdvance: () => void
+  messages: WorkspaceMessage[]
+  sending: boolean
+  error: string | null
+  commitmentId: string
+  onSend: (text: string) => Promise<void>
+  onProposalApplied: (messageId: string) => void
+  onProposalDismissed: (messageId: string) => void
 }
 
 // TR-34 emotion enum — matches the expressionMap keys in modelRegistry.
@@ -41,10 +47,15 @@ function writeMuted(v: boolean) {
   }
 }
 
-export function StageMode({ turns, currentIndex, onAdvance }: StageModeProps) {
-  const current = turns[currentIndex]
-  const isKawan = current?.speaker === 'kawan'
-  const hasAction = current?.action != null
+export function StageMode({
+  messages,
+  sending,
+  error,
+  commitmentId,
+  onSend,
+  onProposalApplied,
+  onProposalDismissed
+}: StageModeProps) {
   const { me } = useAuth()
   const persona: Persona = me?.persona ?? 'kawan'
 
@@ -52,39 +63,66 @@ export function StageMode({ turns, currentIndex, onAdvance }: StageModeProps) {
   const [muted, setMuted] = useState(readMuted)
   // gestureUnlocked: audio is blocked until the user has made a gesture (browser autoplay policy).
   const [gestureUnlocked, setGestureUnlocked] = useState(false)
-  // Track which turn index we last spoke so we don't re-speak on re-render.
-  const lastSpokenIndex = useRef<number>(-1)
+  // Track the last Kawan message id we reacted to — avoids re-firing on re-render.
+  const lastSpokenId = useRef<string | null>(null)
 
   // DEV harness state
   const [devText, setDevText] = useState('Hello, I am your accountability companion.')
   const [devPersona, setDevPersona] = useState<Persona>(persona)
   const [devEmotion, setDevEmotion] = useState<Emotion>('neutral')
 
+  // Controlled input for the dialogue bar
+  const [inputText, setInputText] = useState('')
+
   const mic = useSpeechInput()
+
+  // When mic delivers a final transcript, copy it into the input (user reviews, then sends).
+  useEffect(() => {
+    if (!mic.listening && mic.transcript) {
+      setInputText(mic.transcript)
+      mic.clearTranscript()
+    }
+  }, [mic.listening, mic.transcript, mic.clearTranscript])
+
+  // Latest Kawan message — drives VN box and emotion/voice effect.
+  const latestKawan = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].from === 'kawan') return messages[i]
+    }
+    return null
+  }, [messages])
 
   // React to each new Kawan turn: expression fires always; speech is gated on unmuted + gesture unlock.
   useEffect(() => {
-    if (!isKawan) return
-    if (currentIndex === lastSpokenIndex.current) return
-    if (!current?.text) return
+    if (!latestKawan) return
+    if (latestKawan.id === lastSpokenId.current) return
+    if (!latestKawan.text) return
 
-    lastSpokenIndex.current = currentIndex
+    lastSpokenId.current = latestKawan.id
 
     // Expression fires regardless of mute state (audio-only mute, face always reacts)
-    if (current.emotion) {
-      stageRef.current?.setExpression(current.emotion)
+    if (latestKawan.emotion) {
+      stageRef.current?.setExpression(latestKawan.emotion)
     }
 
     // Speak — gated on unmuted + gesture unlock; text is always readable even if voice fails
     if (!muted && gestureUnlocked) {
-      void speakLine(stageRef.current, current.text, persona)
+      void speakLine(stageRef.current, latestKawan.text, persona)
     }
-  }, [currentIndex, isKawan, muted, gestureUnlocked, current, persona])
+  }, [latestKawan, muted, gestureUnlocked, persona])
 
-  function handleAdvance() {
-    // First tap unlocks audio (browser autoplay policy)
+  function handleSendClick() {
     if (!gestureUnlocked) setGestureUnlocked(true)
-    onAdvance()
+    const text = inputText
+    setInputText('')
+    void onSend(text)
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSendClick()
+    }
   }
 
   function toggleMute() {
@@ -116,9 +154,28 @@ export function StageMode({ turns, currentIndex, onAdvance }: StageModeProps) {
     stageRef.current?.speak(arrayBuffer)
   }
 
+  // Determine the displayed VN box content.
+  const latestMsg = messages.length > 0 ? messages[messages.length - 1] : null
+  const displayedKawan = latestKawan
+
+  const isRefusal = displayedKawan?.responseType === 'refusal'
+  const hasProposal =
+    displayedKawan?.responseType === 'proposal' &&
+    displayedKawan.proposal &&
+    displayedKawan.proposalId &&
+    displayedKawan.proposalState !== 'dismissed'
+
+  // Empty-state starter chips — shown only when the only message is the static greeting.
+  const showStarterChips = messages.length === 1 && messages[0].from === 'kawan'
+  const starterChips = [
+    "I shipped something yesterday — here's what I did.",
+    "I'm stuck and not sure what to do next.",
+    'I want to re-scope this commitment.'
+  ]
+
   return (
     <div className="stage-mode">
-      {/* Character stage area */}
+      {/* Character stage area — single mount, never remounts (A3 design §4) */}
       <div className="stage-character-area">
         <Live2DStageView ref={stageRef} persona={persona} />
       </div>
@@ -209,62 +266,67 @@ export function StageMode({ turns, currentIndex, onAdvance }: StageModeProps) {
         </div>
       )}
 
-      {/* Action surface — middle-center, shown when Kawan asks */}
-      {isKawan && hasAction && current.action === 'options' && (
-        <div className="stage-action-surface">
-          {(current.options ?? []).map((opt, i) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: option list has no stable id
-            <button key={i} type="button" className="stage-option-card" onClick={handleAdvance}>
-              {opt}
-            </button>
+      {/* Empty-state starter chips — shown only on the static greeting, pre-fill input only */}
+      {showStarterChips && (
+        <ul className="stage-starter-chips" aria-label="Suggested starters">
+          {starterChips.map((chip) => (
+            <li key={chip}>
+              <button type="button" className="stage-starter-chip" onClick={() => setInputText(chip)}>
+                {chip}
+              </button>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
-      {isKawan && hasAction && current.action === 'input' && (
-        <div className="stage-action-surface">
-          <input
-            className="stage-text-input"
-            type="text"
-            placeholder="Type your response..."
-            aria-label="Open text response"
-            value={mic.transcript}
-            onChange={(e) => {
-              // Allow manual editing of mic transcript
-              void e
-            }}
-            readOnly={mic.listening}
+
+      {/* Inline proposal card — shown below VN box when latest Kawan turn is a proposal */}
+      {hasProposal && displayedKawan?.proposal && displayedKawan.proposalId && (
+        <div className="stage-proposal-area">
+          <ProposalCard
+            commitmentId={commitmentId}
+            proposalId={displayedKawan.proposalId}
+            proposal={displayedKawan.proposal}
+            state={displayedKawan.proposalState ?? 'open'}
+            onApplied={() => onProposalApplied(displayedKawan.id)}
+            onDismissed={() => onProposalDismissed(displayedKawan.id)}
           />
-          <button
-            type="button"
-            className="stage-dev-btn stage-mic-btn"
-            onClick={handleMicToggle}
-            aria-label={
-              mic.supported
-                ? mic.listening
-                  ? 'Stop listening'
-                  : 'Start voice input'
-                : 'Voice input not supported in this browser'
-            }
-            aria-pressed={mic.listening}
-            disabled={!mic.supported}
-            title={!mic.supported ? 'Voice input needs Chrome or a supported browser' : undefined}
-          >
-            {mic.listening ? <MicOff size={14} aria-hidden="true" /> : <Mic size={14} aria-hidden="true" />}
-          </button>
-          {/* LANE C: send transcript to workspace-turn endpoint
-              When Lane C is wired, add a submit handler here that POSTs mic.transcript
-              to POST /api/commitments/{id}/context/turn and clears the transcript.
-              Do NOT fake an AI reply. */}
         </div>
       )}
 
-      {/* VN dialogue box — bottom-center */}
-      <section className="stage-dialogue-box" aria-label="Dialogue" aria-live="polite">
-        <div className="stage-dialogue-inner">
-          <p className="stage-speaker-name">{current?.speaker === 'kawan' ? 'Kawan' : 'You'}</p>
-          <p className="stage-dialogue-line">{current?.text ?? ''}</p>
+      {/* Typing / thinking indicator */}
+      {sending && (
+        <div className="stage-thinking" role="status" aria-live="polite" aria-label="Kawan is thinking">
+          <span className="stage-thinking-dot" />
+          <span className="stage-thinking-dot" />
+          <span className="stage-thinking-dot" />
         </div>
-        {/* Mic button in the dialogue bar (always visible, not just when action=input) */}
+      )}
+
+      {/* Network error — non-fatal, shown below VN box */}
+      {error && !sending && (
+        <div className="stage-error" role="alert">
+          {error}
+        </div>
+      )}
+
+      {/* VN dialogue box — bottom-center; shows latest Kawan line */}
+      <section
+        className={`stage-dialogue-box${isRefusal ? ' stage-dialogue-box--refusal' : ''}`}
+        aria-label="Dialogue"
+        aria-live="polite"
+      >
+        <div className="stage-dialogue-inner">
+          {isRefusal && (
+            <div className="stage-refusal-chip">
+              <ShieldX size={12} aria-hidden="true" />
+              <span>won't do that</span>
+            </div>
+          )}
+          <p className="stage-speaker-name">{latestMsg?.from === 'user' ? 'You' : 'Kawan'}</p>
+          <p className="stage-dialogue-line">{latestMsg?.text ?? ''}</p>
+        </div>
+
+        {/* Mic button in the dialogue bar */}
         <button
           type="button"
           className="stage-voice-btn stage-mic-bar-btn"
@@ -277,32 +339,42 @@ export function StageMode({ turns, currentIndex, onAdvance }: StageModeProps) {
                 : 'Start voice input'
           }
           aria-pressed={mic.listening}
-          disabled={!mic.supported}
+          disabled={!mic.supported || sending}
           title={!mic.supported ? 'Voice input needs Chrome or a supported browser' : undefined}
         >
           {mic.listening ? <MicOff size={14} aria-hidden="true" /> : <Mic size={14} aria-hidden="true" />}
         </button>
-        <button
-          type="button"
-          className="stage-advance-btn"
-          aria-label={currentIndex < turns.length - 1 ? 'Next line' : 'End of conversation'}
-          onClick={handleAdvance}
-          disabled={currentIndex >= turns.length - 1 && !hasAction}
-        >
-          <ChevronRight size={16} aria-hidden="true" />
-        </button>
       </section>
 
-      {/* Mic transcript display (shown while listening or when transcript is non-empty) */}
-      {(mic.listening || mic.transcript) && (
+      {/* Input bar — always shown; send fires handleSend */}
+      <div className="stage-input-bar">
+        <input
+          className="stage-input"
+          type="text"
+          placeholder={sending ? 'Kawan is thinking…' : 'Say something…'}
+          aria-label="Message input"
+          value={inputText}
+          onChange={(e) => setInputText(e.target.value)}
+          onKeyDown={handleKeyDown}
+          disabled={sending}
+          readOnly={mic.listening}
+        />
+        <button
+          type="button"
+          className="stage-send-btn"
+          onClick={handleSendClick}
+          disabled={sending || !inputText.trim()}
+          aria-label={sending ? 'Sending…' : 'Send message'}
+        >
+          {sending ? '…' : '›'}
+        </button>
+      </div>
+
+      {/* Mic transcript display (shown while listening) */}
+      {mic.listening && (
         <div className="stage-mic-transcript" role="status" aria-live="polite">
-          <span className="stage-mic-label">{mic.listening ? 'Listening...' : 'Heard:'}</span>
+          <span className="stage-mic-label">Listening…</span>
           <span className="stage-mic-text">{mic.transcript}</span>
-          {!mic.listening && mic.transcript && (
-            <button type="button" className="stage-dev-btn" onClick={mic.clearTranscript} aria-label="Clear transcript">
-              Clear
-            </button>
-          )}
         </div>
       )}
     </div>

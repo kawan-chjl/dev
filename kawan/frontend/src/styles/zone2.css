@@ -1641,3 +1641,451 @@ fieldset.stage-voice-controls {
     transition: none;
   }
 }
+
+/* ── A3: Workspace chat additions ── */
+
+/* Refusal bubble — dashed accent left-border + tinted bg to make the iron rule visible (§3b) */
+.bubble-kawan--refusal {
+  border-left: 3px dashed rgba(217, 100, 58, 0.7);
+  background: rgba(217, 100, 58, 0.1);
+  border-color: rgba(217, 100, 58, 0.3);
+}
+
+/* Refusal chip inside the bubble — small icon + label, no emoji */
+.message-refusal-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  margin-bottom: var(--space-2);
+  opacity: 0.8;
+}
+
+/* Stage view refusal chip (inside the VN box) */
+.stage-refusal-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  margin-bottom: var(--space-1);
+  opacity: 0.8;
+}
+
+/* VN dialogue box refusal variant */
+.stage-dialogue-box--refusal {
+  border-left: 3px dashed rgba(217, 100, 58, 0.6);
+  background: rgba(26, 14, 8, 0.92);
+}
+
+/* ── Proposal card ── */
+.proposal-card {
+  margin-top: var(--space-2);
+  background: rgba(22, 16, 9, 0.78);
+  border: 1.5px solid rgba(244, 236, 225, 0.14);
+  border-radius: var(--radius-card);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  backdrop-filter: var(--blur-backdrop);
+  max-width: 100%;
+}
+
+.proposal-card--applied {
+  background: rgba(22, 16, 9, 0.5);
+  border-color: rgba(244, 236, 225, 0.08);
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+}
+
+.proposal-card-icon {
+  color: var(--sage-deep, #6a9a7a);
+  flex-shrink: 0;
+}
+
+.proposal-card-applied-text {
+  font-size: var(--text-small);
+  color: rgba(244, 236, 225, 0.6);
+  font-style: italic;
+}
+
+.proposal-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.proposal-card-label {
+  font-size: var(--text-caption);
+  font-weight: 700;
+  letter-spacing: var(--tracking-label);
+  color: var(--accent);
+  text-transform: uppercase;
+}
+
+.proposal-card-field {
+  font-size: var(--text-caption);
+  font-weight: 500;
+  color: rgba(244, 236, 225, 0.6);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+}
+
+.proposal-card-value {
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: rgba(244, 236, 225, 0.95);
+  line-height: var(--lh-heading);
+}
+
+.proposal-card-reason {
+  font-size: var(--text-small);
+  color: rgba(244, 236, 225, 0.6);
+  line-height: var(--lh-body);
+  font-style: italic;
+}
+
+.proposal-card-error {
+  font-size: var(--text-small);
+  color: var(--accent);
+}
+
+.proposal-card-actions {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  margin-top: var(--space-1);
+}
+
+.proposal-card-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  font-weight: 500;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  min-height: 36px;
+  min-width: 44px;
+  transition:
+    background var(--duration-ui) var(--ease-smooth),
+    border-color var(--duration-ui) var(--ease-smooth);
+}
+.proposal-card-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.proposal-card-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.proposal-card-btn--dismiss {
+  background: transparent;
+  border: 1px solid rgba(244, 236, 225, 0.15);
+  color: rgba(244, 236, 225, 0.6);
+}
+.proposal-card-btn--dismiss:hover:not(:disabled) {
+  background: rgba(244, 236, 225, 0.07);
+  border-color: rgba(244, 236, 225, 0.25);
+}
+
+.proposal-card-btn--apply {
+  background: var(--accent);
+  border: 1px solid transparent;
+  color: #fff;
+}
+.proposal-card-btn--apply:hover:not(:disabled) {
+  background: var(--accent-press);
+}
+
+/* ── Stage proposal area (below VN box) ── */
+.stage-proposal-area {
+  position: relative;
+  margin: 0 auto var(--space-2);
+  width: min(520px, calc(100vw - var(--space-8)));
+  z-index: 5;
+}
+
+/* ── Stage thinking indicator ── */
+.stage-thinking {
+  position: absolute;
+  bottom: 170px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  background: rgba(22, 16, 9, 0.82);
+  border: 1px solid rgba(244, 236, 225, 0.1);
+  border-radius: var(--radius-pill);
+  padding: var(--space-2) var(--space-3);
+  backdrop-filter: var(--blur-backdrop);
+  z-index: 8;
+}
+
+.stage-thinking-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: thinking-bounce 1.2s ease-in-out infinite;
+}
+.stage-thinking-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.stage-thinking-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes thinking-bounce {
+  0%,
+  80%,
+  100% {
+    transform: scale(0.7);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-thinking-dot {
+    animation: none;
+    opacity: 0.7;
+  }
+}
+
+/* ── Stage network error ── */
+.stage-error {
+  position: relative;
+  margin: 0 auto var(--space-2);
+  width: min(520px, calc(100vw - var(--space-8)));
+  font-size: var(--text-small);
+  color: var(--accent);
+  background: rgba(217, 100, 58, 0.1);
+  border: 1px solid rgba(217, 100, 58, 0.25);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  text-align: center;
+  z-index: 5;
+}
+
+/* ── Stage input bar (replaces old advance-only dialogue footer) ── */
+.stage-input-bar {
+  position: relative;
+  display: flex;
+  gap: var(--space-2);
+  margin: 0 auto var(--space-4);
+  width: min(580px, calc(100vw - var(--space-8)));
+  align-items: center;
+}
+
+.stage-input {
+  flex: 1;
+  background: rgba(22, 16, 9, 0.65);
+  border: 1.5px solid rgba(244, 236, 225, 0.13);
+  border-radius: var(--radius-pill);
+  padding: var(--space-2) var(--space-4);
+  color: rgba(244, 236, 225, 0.9);
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  min-height: 44px;
+  backdrop-filter: var(--blur-backdrop);
+  transition: border-color var(--duration-ui) var(--ease-smooth);
+}
+.stage-input::placeholder {
+  color: rgba(244, 236, 225, 0.35);
+}
+.stage-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.stage-input:disabled {
+  opacity: 0.5;
+}
+
+.stage-send-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1;
+  transition:
+    background var(--duration-ui) var(--ease-smooth),
+    transform var(--duration-ui) var(--ease-smooth);
+}
+.stage-send-btn:hover:not(:disabled) {
+  background: var(--accent-press);
+  transform: scale(1.06);
+}
+.stage-send-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.stage-send-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* ── Starter chips (empty state only — pre-fill input, never auto-send) ── */
+.stage-starter-chips {
+  position: absolute;
+  bottom: 180px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: min(420px, calc(100vw - var(--space-8)));
+  z-index: 6;
+}
+
+.stage-starter-chip {
+  background: rgba(22, 16, 9, 0.72);
+  border: 1.5px solid rgba(244, 236, 225, 0.13);
+  border-radius: var(--radius-card);
+  padding: var(--space-3) var(--space-4);
+  color: rgba(244, 236, 225, 0.75);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  text-align: left;
+  cursor: pointer;
+  min-height: 44px;
+  backdrop-filter: var(--blur-backdrop);
+  transition:
+    background var(--duration-ui) var(--ease-smooth),
+    border-color var(--duration-ui) var(--ease-smooth),
+    color var(--duration-ui) var(--ease-smooth);
+}
+.stage-starter-chip:hover {
+  background: rgba(217, 100, 58, 0.14);
+  border-color: rgba(217, 100, 58, 0.4);
+  color: rgba(244, 236, 225, 0.92);
+}
+.stage-starter-chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Messages mode starter chips */
+.messages-starter-chips {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+}
+
+.messages-starter-chip {
+  background: rgba(244, 236, 225, 0.05);
+  border: 1.5px solid rgba(244, 236, 225, 0.1);
+  border-radius: var(--radius-card);
+  padding: var(--space-3) var(--space-4);
+  color: rgba(244, 236, 225, 0.6);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  text-align: left;
+  cursor: pointer;
+  min-height: 44px;
+  transition:
+    background var(--duration-ui) var(--ease-smooth),
+    border-color var(--duration-ui) var(--ease-smooth),
+    color var(--duration-ui) var(--ease-smooth);
+}
+.messages-starter-chip:hover {
+  background: rgba(217, 100, 58, 0.1);
+  border-color: rgba(217, 100, 58, 0.3);
+  color: rgba(244, 236, 225, 0.85);
+}
+.messages-starter-chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Message col — wraps bubble + proposal card ── */
+.message-col {
+  display: flex;
+  flex-direction: column;
+  max-width: 75%;
+  gap: var(--space-2);
+}
+.message-row-user .message-col {
+  align-items: flex-end;
+}
+
+/* ── Typing indicator bubble (Messages mode) ── */
+.message-typing-indicator {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: var(--space-1) 0;
+}
+
+.typing-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(244, 236, 225, 0.5);
+  animation: thinking-bounce 1.2s ease-in-out infinite;
+}
+.typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+/* ── Messages error row ── */
+.messages-error-row {
+  margin: 0 var(--space-4) var(--space-2);
+  font-size: var(--text-small);
+  color: var(--accent);
+  background: rgba(217, 100, 58, 0.08);
+  border: 1px solid rgba(217, 100, 58, 0.2);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+}
+
+/* ── Messages mic bar (listening state) ── */
+.messages-mic-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  background: rgba(22, 16, 9, 0.82);
+  border-top: 1px solid rgba(244, 236, 225, 0.07);
+}
+
+/* Mic button in messages input bar */
+.messages-mic-btn {
+  flex-shrink: 0;
+}
+
+/* ── Ensure message-bubble no longer sets max-width directly (now on .message-col) ── */
+.message-row .message-bubble {
+  max-width: 100%;
+}
