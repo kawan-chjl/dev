@@ -33,12 +33,26 @@ activation.
 
 - Tone diversity now comes from the **per-persona system prompt**, not the base model
   (only two reliable models remain) — acceptable, since tone was always prompt-driven.
-- gemma-4 also showed **variable >60 s latency** on long chat prompts (persona_qa.py), so
+- gemma-4 also showed **variable >60 s latency** on long chat prompts (persona*qa.py), so
   personas run DeepSeek-V3.2 primary (fast) with gemma-4 as failover; gemma-4 is a
-  _primary_ only for the vision judge, where no faster content-returning multimodal TEE
+  \_primary* only for the vision judge, where no faster content-returning multimodal TEE
   model exists (a residual latency risk to confirm in the live screenshot beat).
 - The screenshot vision judge runs on a single model (gemma-4); no reliable
   content-returning multimodal TEE failover exists today. The stub backend + demo
   determinism levers remain the on-stage backstop.
 - The `--invoke` gate is now part of activation: it must pass (parseable content per
   model) before flipping `KAWAN_AI_BACKEND=chutes`.
+
+## Update — diversity restored by the transport fix
+
+The "disable thinking + json_object" option above (then rejected as fragile) was
+implemented at the transport layer in `c1d87f7` (merged via #72): `structured()` now
+disables thinking (`chat_template_kwargs={"enable_thinking": False}`), uses
+`response_format: json_object` with a schema reminder, and parses via `_extract_json`.
+Re-validating the dropped models **through that real path** (2× each, live): **gemma-4
+(~4–6 s — the >60 s latency is gone), DeepSeek-V3.2, and Kimi-K2.6 all return
+schema-valid `content` fast.** So per-persona diversity is **restored** — kawan→gemma-4,
+adik→DeepSeek-V3.2, cik_maid→Kimi-K2.6, each with gemma-4 as the (fastest) failover. The
+two **Qwen** TEE chutes stay out: they now **400 on the `enable_thinking` payload**.
+`smoke_chutes.py --invoke` was rewritten to call through `structured()` so the gate
+reflects this. The vision judge stays gemma-4 (Kimi-vision not yet validated with an image).

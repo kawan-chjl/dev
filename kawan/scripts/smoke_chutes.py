@@ -112,8 +112,10 @@ if failures:
     print("update app/personas.py + app/prompts.py, and re-run. (Activation gate: FAILING.)")
     raise SystemExit(1)
 
-if "--invoke" in sys.argv:  # TR-68: a live structured call per distinct model + quota visibility
-    import json  # noqa: F401 - kept for parity with --json; payload uses dict literals
+if "--invoke" in sys.argv:  # TR-68: a live call per distinct model THROUGH the real structured() path
+    import asyncio
+
+    from app.chutes import ChutesClient  # the real path: json_object + no-thinking + _extract_json
 
     distinct: list[str] = []
     for _label, ids, _tee, _vision in configured:
@@ -124,32 +126,35 @@ if "--invoke" in sys.argv:  # TR-68: a live structured call per distinct model +
     print(f"\nsubscription_usage [{su.status_code}]: {su.text[:300]}")
     ping_schema = {"type": "object", "additionalProperties": False,
                    "properties": {"ok": {"type": "boolean"}}, "required": ["ok"]}
-    print("\nLive structured invocation (one minimal call per distinct model):")
-    invoke_fail: list[str] = []
-    for mid in distinct:
-        payload = {"model": mid, "max_tokens": 50,
-                   "messages": [{"role": "user", "content": 'Reply with {"ok": true}.'}],
-                   "response_format": {"type": "json_schema",
-                                       "json_schema": {"name": "ping", "schema": ping_schema, "strict": True}}}
-        try:
-            r = httpx.post(f"{settings.chutes_inference_base_url}/chat/completions",
-                           headers={**HEADERS, "Content-Type": "application/json"}, json=payload, timeout=90)
-            if r.status_code != 200:
-                ok, detail = False, r.text[:120]
-            else:
-                # Mirror ChutesClient.structured(): the JSON MUST be in `content`. Reasoning
-                # models that emit to reasoning_content (content null/empty) are unusable here.
-                content = r.json()["choices"][0]["message"].get("content")
-                ok, detail = True, str(json.loads(content))[:50]
-        except Exception as exc:  # noqa: BLE001 - flag non-content / non-JSON models, keep sweeping
-            ok, detail = False, f"{type(exc).__name__}: {exc}"
-        print(f"  [{'ok ' if ok else 'FAIL'}] {mid}  {detail}")
-        if not ok:
-            invoke_fail.append(mid)
-    if invoke_fail:
-        print(f"\n{len(invoke_fail)} model(s) not invokable on this account — check tier/quota.")
+
+    class _CpkTokens:
+        async def get_access_token(self, _uid):
+            return settings.chutes_api_key
+
+        async def refresh(self, _uid):
+            return settings.chutes_api_key
+
+    async def _invoke() -> list[str]:
+        chutes = ChutesClient(_CpkTokens(), base_url=settings.chutes_inference_base_url, timeout=120)
+        msgs = [{"role": "user", "content": 'Reply with {"ok": true}.'}]
+        fail: list[str] = []
+        print("\nLive structured() invocation (the real json_object path, one call per distinct model):")
+        for mid in distinct:
+            try:
+                out = await chutes.structured(user_id="guest", model=mid, messages=msgs,
+                                              schema=ping_schema, schema_name="ping")
+                ok, detail = isinstance(out, dict) and "ok" in out, str(out)[:50]
+            except Exception as exc:  # noqa: BLE001 - flag any model the real path can't use
+                ok, detail = False, f"{type(exc).__name__}: {str(exc)[:90]}"
+            print(f"  [{'ok ' if ok else 'FAIL'}] {mid}  {detail}")
+            if not ok:
+                fail.append(mid)
+        return fail
+
+    if asyncio.run(_invoke()):
+        print("\nModel(s) above not usable via structured() — check tier/quota/compat.")
         raise SystemExit(1)
-    print("\nAll distinct models invokable with structured output (TR-68 coverage).")
+    print("\nAll distinct models invokable through structured() (TR-68 coverage).")
 
 print("\nAll configured models are live, structured-output capable, judges TEE, vision judge")
 print("multimodal. Safe to flip KAWAN_AI_BACKEND=chutes.")
