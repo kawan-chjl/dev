@@ -117,6 +117,18 @@ Status lists only — design lives in [`plan.md`](./plan.md). Each piece is also
 
 - [ ] C6 frontend-held recent-turn transcript (no schema) + progress-state assembly into the workspace prompt (cross-lane: contracts.py ⇄ client.py ⇄ B5 REST ⇄ /ws)
 
+### X-TELE — Telegram check-in bridge (PO elevated from roadmap, 26 Jun) `[deviation: was [ROADMAP]]`
+
+Off-app check-in notifications via a Telegram bot — a real chat-app ping is a strong demo beat. **Heaviest remaining item: net-new + a schema change + an external integration + an ops dep. Sequence AFTER C5 activation; ideally run by a teammate off the critical path.** Needs a planner breakdown + Gate 1 before build.
+
+- [ ] **Ops (human, like VAPID):** create a Telegram bot via BotFather → set `KAWAN_TELEGRAM_BOT_TOKEN` in Render. _Tuna/team._ **Blocks the rest.**
+- [ ] Backend: `telegram_chat_id` on `User` `[schema change]` + a Telegram sender (Bot API) — _agent crew._
+- [ ] Backend: account-linking flow — deep-link token + webhook (or long-poll) to capture the chat*id on `/start` — \_agent crew.*
+- [ ] Backend: wire Telegram into the check-in delivery ladder (alongside Web Push) — _agent crew._
+- [ ] Frontend: a small **"Connections" section in Settings** — surfaces the existing Web Push toggle + a "Connect Telegram" deep-link button + connected status. The user-facing "reach me" hub, extensible later; NOT a generalized gateway abstraction. — _Lane A, agent crew._
+- [ ] Demo shortcut: pre-link a demo `chat_id` in the seed script so the stage demo shows a real Telegram ping without live linking — _agent crew._
+- Open Qs (Gate 1): webhook vs long-poll on Render; Telegram parallel-to vs after Web Push in the ladder.
+
 ### X-DEMO — Demo Mode (spec §6.4, §12.5) — on a DEDICATED account, never shared Guest
 
 - [x] B7 seed/reset script staging a clean demo account (varied states + pre-staged history) — shipped (PR #67)
@@ -128,7 +140,7 @@ Status lists only — design lives in [`plan.md`](./plan.md). Each piece is also
 
 ## Roadmap (named, not built)
 
-- External chat bridges (Discord / WhatsApp / Telegram) — `[ROADMAP]`, not for this demo.
+- External chat bridges: **Telegram now in scope** (see X-TELE). Discord / WhatsApp stay `[ROADMAP]`. A _generalized_ connection-gateway/plugin layer is also `[ROADMAP]` — the demo gets a concrete "Connections" Settings section, not an abstraction.
 - Monetary stakes · more evidence adapters · GitHub OAuth/private repos · multi-commitment · auto-recurring · crew/co-commitments/leaderboard (§11.5) · native mobile · true barge-in · retention features (spec §12.3 OUT OF SCOPE).
 
 ---
