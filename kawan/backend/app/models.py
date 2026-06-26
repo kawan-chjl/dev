@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import CheckConstraint, ForeignKey, String
+from sqlalchemy import CheckConstraint, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import JSON
 
@@ -135,6 +135,20 @@ class SuccessPattern(Base):
     outcome: Mapped[str]  # completed|missed
     features: Mapped[dict[str, Any]] = mapped_column(JSON)  # {deadline_hour,cadence,duration_days,used_skip}
     created_at: Mapped[datetime] = mapped_column(default=now_utc)
+
+
+class Achievement(Base):
+    """Behavioral award rows (B6, ADR-0004): one per (user, code), granted on a verified
+    win. Distinct from the derived Identity titles (A7) — these reward HOW you won."""
+
+    __tablename__ = "achievements"
+    __table_args__ = (UniqueConstraint("user_id", "code", name="uq_achievement_user_code"),)
+
+    id: Mapped[str] = mapped_column(primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    code: Mapped[str]
+    commitment_id: Mapped[str | None] = mapped_column(default=None)
+    awarded_at: Mapped[datetime] = mapped_column(default=now_utc)
 
 
 class AuditLog(Base):

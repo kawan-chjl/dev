@@ -8,12 +8,14 @@ from pydantic import BaseModel
 from sqlalchemy import delete as sql_delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import achievements
 from app.auth import GUEST_USER_ID, access_token_for
 from app.config import settings
 from app.db import get_session
 from app.deps import current_user
-from app.models import AuditLog, Commitment, PushSubscription, SuccessPattern, User
+from app.models import Achievement, AuditLog, Commitment, PushSubscription, SuccessPattern, User
 from app.schemas import MePatch
+from app.util import as_utc
 
 router = APIRouter()
 
@@ -45,6 +47,21 @@ async def me_stats(user: User = Depends(current_user), db: AsyncSession = Depend
         .where(SuccessPattern.user_id == user.id, SuccessPattern.outcome == "completed")
     )).all())
     return {"verified_wins": verified_wins}
+
+
+@router.get("/me/achievements")
+async def me_achievements(user: User = Depends(current_user), db: AsyncSession = Depends(get_session)):
+    """The full behavioral-badge catalogue with the current user's earned flags (B6,
+    ADR-0004) — what A10 renders. Earned rows carry awarded_at; locked ones are null."""
+    earned = {a.code: a for a in (await db.scalars(
+        select(Achievement).where(Achievement.user_id == user.id)
+    )).all()}
+    return [
+        {"code": code, "label": label, "description": description,
+         "earned": code in earned,
+         "awarded_at": as_utc(earned[code].awarded_at).isoformat() if code in earned else None}
+        for code, label, description in achievements.CATALOG
+    ]
 
 
 @router.get("/me/history", response_model=list[AuditRowOut])
@@ -106,6 +123,7 @@ async def delete_my_data(user: User = Depends(current_user), db: AsyncSession = 
         SuccessPattern.commitment_id.is_(None)
     ))
     await db.execute(sql_delete(PushSubscription).where(PushSubscription.user_id == user.id))
+    await db.execute(sql_delete(Achievement).where(Achievement.user_id == user.id))
     await db.commit()
 
 

@@ -51,7 +51,7 @@ async def test_workspace_turn_happy_path(client):
 async def test_workspace_turn_persists_proposal(client, db, monkeypatch):
     cid = await _create_and_start(client)
 
-    async def _stub_proposal(commitment, soft_context, user_says):
+    async def _stub_proposal(commitment, soft_context, user_says, recent_turns=None, progress=None):
         return {
             "response_type": "proposal",
             "say": "What if you moved the deadline?",

@@ -7,10 +7,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-# Conversational calls vary the model per persona (spec §11.1); each string is a
-# comma-joined inline-failover pair, gemma as the universal safety net (spec §9.1).
+# Conversational calls need a model that returns the JSON in `content` AND responds
+# fast. Reasoning models (Qwen3.6, Qwen3.5-397B, Kimi-K2.6) emit to reasoning_content
+# (content null — unusable; ADR-0005), and gemma-4 showed variable >60s latency on long
+# chat prompts (persona_qa.py). So every persona runs DeepSeek-V3.2 (fast, reliable
+# content) primary with gemma-4 as failover; tone is carried by the per-persona system
+# prompt, not the base model. Verified via scripts/smoke_chutes.py + scripts/persona_qa.py.
 _GEMMA = "google/gemma-4-31B-turbo-TEE"
-_QWEN_SMALL = "Qwen/Qwen3.6-27B-TEE"
 _DEEPSEEK = "deepseek-ai/DeepSeek-V3.2-TEE"
 
 
@@ -29,13 +32,13 @@ PERSONAS: dict[str, Persona] = {
     "kawan": Persona(
         id="kawan", name="Kawan", archetype="skeptical concierge",
         live2d="models/haru_greeter", voice="en_US-amy-medium",
-        chat_models=f"{_GEMMA},{_QWEN_SMALL}",
+        chat_models=f"{_DEEPSEEK},{_GEMMA}",
         tone="warm, teasing, allergic to excuses; short sentences; never preachy",
     ),
     "adik": Persona(
         id="adik", name="Adik", archetype="gentle cheerleader",
         live2d="models/hiyori", voice="en_US-amy-low",
-        chat_models=f"{_QWEN_SMALL},{_GEMMA}",
+        chat_models=f"{_DEEPSEEK},{_GEMMA}",
         tone="soft encouragement, worried-not-stern; believes in you out loud",
     ),
     "cik_maid": Persona(

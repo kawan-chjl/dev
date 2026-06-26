@@ -118,7 +118,6 @@ def _synthesize(text: str, voice_name: str) -> bytes | None:
 def _wav_writer(buf: io.BytesIO, sample_rate: int):
     """Context manager that writes a RIFF WAV header + PCM16 samples into buf."""
     import contextlib
-    import struct
     import wave
 
     @contextlib.contextmanager

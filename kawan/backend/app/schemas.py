@@ -6,7 +6,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.util import as_utc, now_utc
 
@@ -55,6 +55,8 @@ class ContextTurnIn(BaseModel):
 
 class WorkspaceTurnIn(BaseModel):
     say: str = ""
+    # C6: the frontend holds the session transcript and sends a recent tail with each turn.
+    recent_turns: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class PushSubscribeIn(BaseModel):

@@ -3,19 +3,28 @@ from datetime import datetime
 from sqlalchemy import DateTime
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.pool import StaticPool
 
 from app.config import settings
 
 # asyncpg + Supavisor transaction pooler requires prepared-statement caching disabled.
 # Session pooler (5432) doesn't need it but the args are harmless there too.
-# SQLite path gets no extra args — aiosqlite doesn't accept them.
-_connect_args = (
-    {'statement_cache_size': 0, 'prepared_statement_cache_size': 0}
-    if settings.database_url.startswith('postgresql+asyncpg')
-    else {}
-)
+# In-memory SQLite (tests) needs StaticPool so one shared connection backs the whole
+# app — otherwise every connect would get a fresh, empty database. check_same_thread
+# lets aiosqlite's single connection cross executor threads.
+_is_memory_sqlite = settings.database_url.startswith('sqlite') and ':memory:' in settings.database_url
+if settings.database_url.startswith('postgresql+asyncpg'):
+    _connect_args = {'statement_cache_size': 0, 'prepared_statement_cache_size': 0}
+elif _is_memory_sqlite:
+    _connect_args = {'check_same_thread': False}
+else:
+    _connect_args = {}
 
-engine = create_async_engine(settings.database_url, connect_args=_connect_args)
+_engine_kwargs: dict = {'connect_args': _connect_args}
+if _is_memory_sqlite:
+    _engine_kwargs['poolclass'] = StaticPool
+
+engine = create_async_engine(settings.database_url, **_engine_kwargs)
 SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 

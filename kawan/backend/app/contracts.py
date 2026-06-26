@@ -67,7 +67,8 @@ class LLMClient(Protocol):
 
     async def checkin_line(self, status: dict) -> dict: ...
 
-    async def workspace_turn(self, commitment: "Commitment", soft_context: dict, user_says: str) -> dict: ...
+    async def workspace_turn(self, commitment: "Commitment", soft_context: dict, user_says: str,
+                             recent_turns: list[dict], progress: dict) -> dict: ...
 
 
 @runtime_checkable
