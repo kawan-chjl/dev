@@ -7,11 +7,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-# Conversational calls vary the model per persona (spec §11.1), but ONLY across models
-# that return the JSON in `content`. Reasoning models (Qwen3.6, Qwen3.5-397B, Kimi-K2.6)
-# intermittently emit to reasoning_content and leave `content` null — unusable for our
-# structured() parse, and Chutes' 200-failover won't catch it (ADR-0005, verified via
-# scripts/smoke_chutes.py --invoke). gemma-4 + DeepSeek-V3.2 are the reliable pair.
+# Conversational calls need a model that returns the JSON in `content` AND responds
+# fast. Reasoning models (Qwen3.6, Qwen3.5-397B, Kimi-K2.6) emit to reasoning_content
+# (content null — unusable; ADR-0005), and gemma-4 showed variable >60s latency on long
+# chat prompts (persona_qa.py). So every persona runs DeepSeek-V3.2 (fast, reliable
+# content) primary with gemma-4 as failover; tone is carried by the per-persona system
+# prompt, not the base model. Verified via scripts/smoke_chutes.py + scripts/persona_qa.py.
 _GEMMA = "google/gemma-4-31B-turbo-TEE"
 _DEEPSEEK = "deepseek-ai/DeepSeek-V3.2-TEE"
 
@@ -31,7 +32,7 @@ PERSONAS: dict[str, Persona] = {
     "kawan": Persona(
         id="kawan", name="Kawan", archetype="skeptical concierge",
         live2d="models/haru_greeter", voice="en_US-amy-medium",
-        chat_models=f"{_GEMMA},{_DEEPSEEK}",
+        chat_models=f"{_DEEPSEEK},{_GEMMA}",
         tone="warm, teasing, allergic to excuses; short sentences; never preachy",
     ),
     "adik": Persona(

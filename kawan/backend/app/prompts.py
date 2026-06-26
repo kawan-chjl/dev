@@ -15,8 +15,8 @@ from app.personas import Persona
 # intermittently — all unusable for our content-based structured() parse, which Chutes'
 # 200-failover won't catch (ADR-0005, verified via scripts/smoke_chutes.py --invoke).
 JUDGE_MODELS = "google/gemma-4-31B-turbo-TEE"
-# GitHub judging is text-only — gemma + DeepSeek, both reliable content-returners.
-GITHUB_JUDGE_MODELS = "google/gemma-4-31B-turbo-TEE,deepseek-ai/DeepSeek-V3.2-TEE"
+# GitHub judging is text-only — DeepSeek primary (fast), gemma failover.
+GITHUB_JUDGE_MODELS = "deepseek-ai/DeepSeek-V3.2-TEE,google/gemma-4-31B-turbo-TEE"
 
 _EMOTIONS = ["neutral", "curious", "pleased", "skeptical", "concerned"]
 
@@ -124,7 +124,8 @@ VERDICT_SCHEMA = {
 # ── System prompts ──────────────────────────────────────────────────────────────
 
 def _voice(p: Persona) -> str:
-    return f"You are {p.name}, the user's accountability companion. Voice: {p.tone}."
+    return (f"You are {p.name}, the user's accountability companion. Voice: {p.tone}. "
+            "Address the user as 'you'; never call them by your own name.")
 
 
 def intake_system(p: Persona, slots: dict) -> str:

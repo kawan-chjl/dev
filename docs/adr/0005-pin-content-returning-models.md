@@ -33,6 +33,10 @@ activation.
 
 - Tone diversity now comes from the **per-persona system prompt**, not the base model
   (only two reliable models remain) — acceptable, since tone was always prompt-driven.
+- gemma-4 also showed **variable >60 s latency** on long chat prompts (persona_qa.py), so
+  personas run DeepSeek-V3.2 primary (fast) with gemma-4 as failover; gemma-4 is a
+  _primary_ only for the vision judge, where no faster content-returning multimodal TEE
+  model exists (a residual latency risk to confirm in the live screenshot beat).
 - The screenshot vision judge runs on a single model (gemma-4); no reliable
   content-returning multimodal TEE failover exists today. The stub backend + demo
   determinism levers remain the on-stage backstop.
