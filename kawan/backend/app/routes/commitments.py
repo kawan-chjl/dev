@@ -6,10 +6,12 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
+from fastapi.responses import JSONResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import pipeline, scheduler, state
+from app.chutes import ChutesError
 from app.db import get_session
 from app.deps import current_user
 from app.models import Checkin, Commitment, Evidence, Plan, Proposal, SoftContext, SuccessPattern, User
@@ -17,6 +19,9 @@ from app.pipeline import record_contact
 from app.schemas import CommitmentCreate, CommitmentListOut, CommitmentOut, CommitmentPatch, ContextTurnIn, DebriefIn, WorkspaceTurnIn
 from app.util import as_utc, now_utc, to_jsonable
 from app.wiring import LLM
+
+# Graceful error shape the frontend renders as a retry bubble (Layout fix 4).
+_INFERENCE_ERROR_BODY = {"say": "Kawan couldn't reply just now — try again.", "response_type": "error"}
 
 router = APIRouter(prefix="/commitments")
 
@@ -101,7 +106,11 @@ async def context_turn(body: ContextTurnIn, c: Commitment = Depends(_owned), db:
         sc = SoftContext(commitment_id=c.id)
         db.add(sc)
     current = {k: getattr(sc, k) for k in _SOFT_SLOTS}
-    result = await LLM.intake_turn(c, current, body.say)
+    try:
+        result = await LLM.intake_turn(c, current, body.say)
+    except ChutesError:
+        return JSONResponse(status_code=503, content={**_INFERENCE_ERROR_BODY, "intake_complete": False,
+                                                      "slots": {k: None for k in _SOFT_SLOTS}, "emotion": "neutral"})
     # The ONLY DB write reachable from any LLM output (spec §8.2): the soft_context UPSERT.
     for k, v in (result.get("slots") or {}).items():
         if k in _SOFT_SLOTS and v is not None:
@@ -117,7 +126,10 @@ async def workspace_turn(body: WorkspaceTurnIn, c: Commitment = Depends(_owned),
     await record_contact(db, c)
     sc = await db.get(SoftContext, c.id)
     soft = {k: getattr(sc, k) for k in _SOFT_SLOTS} if sc else {}
-    result = await LLM.workspace_turn(c, soft, body.say)
+    try:
+        result = await LLM.workspace_turn(c, soft, body.say)
+    except ChutesError:
+        return {**_INFERENCE_ERROR_BODY, "proposal": None, "emotion": "neutral"}
     if result.get("response_type") == "proposal" and result.get("proposal"):
         pr = result["proposal"]
         prop = Proposal(commitment_id=c.id, field=pr["field"],
@@ -132,7 +144,10 @@ async def workspace_turn(body: WorkspaceTurnIn, c: Commitment = Depends(_owned),
 async def plan(c: Commitment = Depends(_owned), db: AsyncSession = Depends(get_session)):
     sc = await db.get(SoftContext, c.id)
     soft = {k: getattr(sc, k) for k in _SOFT_SLOTS} if sc else {}
-    result = await LLM.plan(c, soft)  # pre-fills GUI only — never writes hard fields (TR-11)
+    try:
+        result = await LLM.plan(c, soft)  # pre-fills GUI only — never writes hard fields (TR-11)
+    except ChutesError:
+        return JSONResponse(status_code=503, content={**_INFERENCE_ERROR_BODY, "roadmap": [], "front_load_reason": None})
     p = await db.get(Plan, c.id)
     if p is None:
         p = Plan(commitment_id=c.id, roadmap_json=result["roadmap"], rationale=result.get("front_load_reason"))
@@ -165,7 +180,13 @@ async def start(request: Request, c: Commitment = Depends(_owned), db: AsyncSess
 async def check(c: Commitment = Depends(_owned), db: AsyncSession = Depends(get_session)):
     """On-demand check-in — the demo determinism lever; identical pipeline to cron (TR-16)."""
     await record_contact(db, c)
-    ck = await pipeline.run_checkin(db, c, "on_demand")
+    try:
+        ck = await pipeline.run_checkin(db, c, "on_demand")
+    except ChutesError:
+        return JSONResponse(status_code=503, content={**_INFERENCE_ERROR_BODY,
+                                                      "message": "Kawan couldn't reply just now — try again.",
+                                                      "escalation": c.escalation, "delivered_via": "timeline",
+                                                      "evidence_id": None})
     return {"message": ck.message, "escalation": ck.escalation,
             "delivered_via": ck.delivered_via, "evidence_id": ck.evidence_id}
 

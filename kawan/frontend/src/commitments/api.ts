@@ -1,7 +1,48 @@
 // Commitments API client — typed fetch wrappers, no deps.
 // All calls use credentials:'include' so the HttpOnly session cookie rides along.
 
-import type { AuditRow, Commitment } from '../types/api'
+import type { AuditRow, Commitment, Emotion } from '../types/api'
+
+/** Soft-context slots returned by the intake AI (§9.2-A). */
+export interface IntakeSlots {
+  why: string | null
+  obstacles: string | null
+  time_constraints: string | null
+  skill: string | null
+}
+
+/** Response from POST /api/commitments/{id}/context/turn */
+export interface ContextTurnResponse {
+  say: string
+  slots: IntakeSlots
+  intake_complete: boolean
+  emotion: Emotion
+}
+
+/**
+ * POST /api/commitments/{id}/context/turn  { say }
+ * Empty `say` triggers the opener question (backend prompt handles "").
+ * Throws on non-OK.
+ */
+export async function contextTurn(commitmentId: string, say: string): Promise<ContextTurnResponse> {
+  const res = await fetch(`/api/commitments/${commitmentId}/context/turn`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ say })
+  })
+  if (res.ok) return (await res.json()) as ContextTurnResponse
+  // Try to extract the backend's friendly message from the 503 body before throwing.
+  let message = `POST /api/commitments/${commitmentId}/context/turn returned ${res.status}`
+  try {
+    const body = (await res.json()) as { say?: string; detail?: string }
+    if (body.say) message = body.say
+    else if (body.detail) message = String(body.detail)
+  } catch {
+    // Ignore parse errors — fall through to the status-code message.
+  }
+  throw new Error(message)
+}
 
 /** Paginated envelope from GET /api/commitments */
 export interface CommitmentListPage {
