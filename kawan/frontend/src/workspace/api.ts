@@ -48,7 +48,15 @@ export async function workspaceTurn(commitmentId: string, say: string): Promise<
     body: JSON.stringify({ say })
   })
   if (res.ok) return (await res.json()) as WorkspaceTurnResponse
-  throw new Error(`POST /api/commitments/${commitmentId}/workspace/turn returned ${res.status}`)
+  let message = `POST /api/commitments/${commitmentId}/workspace/turn returned ${res.status}`
+  try {
+    const body = (await res.json()) as { say?: string; detail?: string }
+    if (body.say) message = body.say
+    else if (body.detail) message = String(body.detail)
+  } catch {
+    // Ignore parse errors — fall through to the status-code message.
+  }
+  throw new Error(message)
 }
 
 /**

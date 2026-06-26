@@ -10,7 +10,7 @@
 //
 // Motion: step panels cross-fade + rise 8px on step change, gated by prefers-reduced-motion.
 
-import { Check, Clock, Lock, X } from 'lucide-react'
+import { Check, Lock, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
@@ -49,8 +49,8 @@ const EVIDENCE_SELECT_OPTIONS: SelectOption[] = EVIDENCE_OPTIONS_FULL.map((o) =>
 // Skip-days options (0-2).
 const SKIP_DAYS_OPTIONS: SelectOption[] = [0, 1, 2].map((n) => ({ value: String(n), label: String(n) }))
 
-// Step order: Compose -> Context -> Plan -> Companion
-const STEPS = ['nc-compose', 'nc-context', 'nc-plan', 'nc-companion'] as const
+// Step order: Compose -> Plan -> Companion (Context intake moved to workspace, PO decision 1)
+const STEPS = ['nc-compose', 'nc-plan', 'nc-companion'] as const
 type StepId = (typeof STEPS)[number]
 
 // Local draft shape for plan-step fields (held locally; NO API writes until handleStart).
@@ -249,31 +249,6 @@ function ComposeSection({
             ? `by ${new Date(deadlineLocal).toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric' })}`
             : 'by the deadline'}
         </p>
-      </div>
-    </StepPanel>
-  )
-}
-
-// ── ContextSection (stub - AI intake deferred, Open Q1) ──────────────────────
-// LANE C SEAM: replace this component body with the real intake chat when
-// POST /api/commitments/{id}/context/turn and its response schema land.
-
-function ContextSection({ active }: { active: boolean }) {
-  return (
-    <StepPanel id="nc-context" active={active}>
-      <div className="nc-section-inner">
-        <h2 className="nc-section-heading">Tell Kawan more</h2>
-        {/* AI intake chat - STUBBED (Lane C absent, Open Q1). No POST .../context/turn call. */}
-        <div className="nc-context-stub">
-          <div className="nc-context-stub-icon" aria-hidden="true">
-            <Clock size={28} color="var(--ink-faint)" />
-          </div>
-          <p className="nc-context-stub-label">A few questions about your goal (coming soon)</p>
-          <p className="nc-context-stub-sub">
-            Kawan will ask up to 3 questions here to understand your context. Continue past this section to set your
-            plan details now.
-          </p>
-        </div>
       </div>
     </StepPanel>
   )
@@ -608,7 +583,6 @@ export function NewCommitment() {
   // Island steps with completion state
   const islandSteps: IslandStep[] = [
     { id: 'nc-compose', label: 'Compose', done: composeValid },
-    { id: 'nc-context', label: 'Context', done: false },
     { id: 'nc-plan', label: 'Plan', done: false },
     { id: 'nc-companion', label: 'Companion', done: selectedPersona !== null }
   ]
@@ -667,7 +641,7 @@ export function NewCommitment() {
 
     if (MOCK_AUTH) {
       await setPersona(selectedPersona)
-      navigate('/home')
+      navigate('/workspace/mock')
       return
     }
 
@@ -704,7 +678,7 @@ export function NewCommitment() {
       await startCommitment(created.id)
       // 4. Persist persona selection ONLY on full success
       await setPersona(selectedPersona)
-      navigate(`/commitments/${created.id}`)
+      navigate(`/workspace/${created.id}`)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to start commitment. Please try again.'
       setStartError(msg)
@@ -741,7 +715,6 @@ export function NewCommitment() {
             composeError={composeError}
             active={activeStep === 'nc-compose'}
           />
-          <ContextSection active={activeStep === 'nc-context'} />
           <PlanSection
             draft={draftPlan}
             onDraftChange={setDraftPlan}
