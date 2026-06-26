@@ -303,6 +303,11 @@ export function WorkspaceLayout() {
     setPhase('chat')
   }
 
+  // I2: single gate — opener is loading when intake phase, no messages yet, and sending.
+  // Once the first Kawan message lands (messages.length > 0) the spinner clears.
+  // The catch path sets a static greeting message, so messages.length > 0 always clears it.
+  const openerLoading = phase === 'intake' && messages.length === 0 && sending
+
   const sharedProps = {
     messages,
     sending,
@@ -311,6 +316,7 @@ export function WorkspaceLayout() {
     phase,
     slotProgress,
     commitment,
+    openerLoading,
     onSend: handleSend,
     onIntakeAnswer: handleIntakeAnswer,
     onRetry: handleRetry,
@@ -353,9 +359,16 @@ export function WorkspaceLayout() {
         <div className="workspace-spacer" aria-hidden="true" />
       </div>
 
-      {/* Main stage area */}
-      <div className="workspace-stage">
+      {/* Main stage area — wrapper gets blur class while opener loads; stage never remounts */}
+      <div className={`workspace-stage${openerLoading ? ' workspace-loading' : ''}`} aria-busy={openerLoading}>
         {viewMode === 'stage' ? <StageMode {...sharedProps} /> : <MessagesMode {...sharedProps} />}
+        {openerLoading && (
+          <div className="workspace-loading-spinner" role="status" aria-label="Waiting for Kawan">
+            <span className="workspace-loading-dot" />
+            <span className="workspace-loading-dot" />
+            <span className="workspace-loading-dot" />
+          </div>
+        )}
       </div>
     </div>
   )

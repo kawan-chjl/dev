@@ -104,6 +104,59 @@
   position: relative;
 }
 
+/* ── I2: workspace loading overlay — blurs underlying view, single spinner until opener lands ── */
+.workspace-loading {
+  filter: blur(4px);
+  pointer-events: none;
+  opacity: 0.45;
+  /* stage never remounts — this is a CSS filter on the wrapper, not a conditional unmount */
+}
+
+.workspace-loading-spinner {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.workspace-loading-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(244, 236, 225, 0.75);
+  animation: workspace-loading-bounce 1.2s ease-in-out infinite;
+}
+.workspace-loading-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.workspace-loading-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes workspace-loading-bounce {
+  0%,
+  80%,
+  100% {
+    transform: scale(0.7);
+    opacity: 0.45;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-loading-dot {
+    animation: none;
+    opacity: 0.7;
+  }
+}
+
 /* ── Character stage placeholder ── */
 .char-stage-placeholder {
   position: relative;
@@ -2357,6 +2410,30 @@ fieldset.messages-intake-menu {
 }
 .messages-intake-cancel:hover {
   color: rgba(244, 236, 225, 0.65);
+}
+
+/* ── I3: skip button inside the intake input bars ── */
+.stage-intake-skip-btn,
+.messages-intake-skip-btn {
+  background: none;
+  border: none;
+  color: rgba(244, 236, 225, 0.38);
+  font-family: var(--font-body);
+  font-size: var(--text-caption);
+  cursor: pointer;
+  padding: 0 var(--space-2);
+  min-height: 44px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.stage-intake-skip-btn:hover:not(:disabled),
+.messages-intake-skip-btn:hover:not(:disabled) {
+  color: rgba(244, 236, 225, 0.65);
+}
+.stage-intake-skip-btn:disabled,
+.messages-intake-skip-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 
 /* ── Layout fix 5: proposal card spacing from the Kawan bubble ── */

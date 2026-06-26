@@ -22,6 +22,7 @@ interface MessagesModeProps {
   phase: WorkspacePhase
   slotProgress: SlotProgress
   commitment: Commitment | null
+  openerLoading: boolean
   onSend: (text: string) => Promise<void>
   onIntakeAnswer: (text: string) => Promise<void>
   onRetry: () => void
@@ -29,13 +30,6 @@ interface MessagesModeProps {
   onProposalApplied: (messageId: string) => void
   onProposalDismissed: (messageId: string) => void
 }
-
-// Canned intake options matching StageMode (kept in sync here).
-const INTAKE_CANNED: string[] = [
-  "That's a great question — let me think...",
-  'I already know the answer',
-  "I'm not sure yet"
-]
 
 export function MessagesMode({
   messages,
@@ -45,6 +39,7 @@ export function MessagesMode({
   phase,
   slotProgress,
   commitment,
+  openerLoading,
   onSend,
   onIntakeAnswer,
   onRetry,
@@ -53,7 +48,6 @@ export function MessagesMode({
   onProposalDismissed
 }: MessagesModeProps) {
   const [inputText, setInputText] = useState('')
-  const [showTypeOwn, setShowTypeOwn] = useState(false)
   const threadRef = useRef<HTMLDivElement>(null)
   const mic = useSpeechInput()
 
@@ -95,11 +89,6 @@ export function MessagesMode({
     const text = inputText.trim()
     if (!text || sending) return
     setInputText('')
-    setShowTypeOwn(false)
-    void onIntakeAnswer(text)
-  }
-
-  function handleCannedSelect(text: string) {
     void onIntakeAnswer(text)
   }
 
@@ -121,8 +110,8 @@ export function MessagesMode({
 
   return (
     <div className="messages-mode">
-      {/* Slot progress bar + skip-ahead escape hatch — intake phase only */}
-      {phase === 'intake' && (
+      {/* Slot progress bar + skip-ahead escape hatch — intake phase only, not while opener loads */}
+      {phase === 'intake' && !openerLoading && (
         <div className="messages-intake-progress" role="status" aria-live="polite" aria-atomic="true">
           <span className="messages-intake-label">Context</span>
           {Array.from({ length: slotProgress.total }).map((_, i) => (
@@ -249,54 +238,18 @@ export function MessagesMode({
         </div>
       )}
 
-      {/* Phase 1 — intake action menu (VN hybrid: canned + type own + skip) */}
-      {phase === 'intake' && !showTypeOwn && (
-        <fieldset className="messages-intake-menu">
-          <legend className="sr-only">Intake response options</legend>
-          {INTAKE_CANNED.map((option) => (
-            <button
-              key={option}
-              type="button"
-              className="messages-intake-btn"
-              disabled={sending}
-              onClick={() => handleCannedSelect(option)}
-            >
-              {option}
-            </button>
-          ))}
-          <button
-            type="button"
-            className="messages-intake-btn messages-intake-btn--secondary"
-            disabled={sending}
-            onClick={() => setShowTypeOwn(true)}
-          >
-            Type my own answer...
-          </button>
-          <button
-            type="button"
-            className="messages-intake-btn messages-intake-btn--skip"
-            disabled={sending}
-            onClick={handleSkip}
-          >
-            Skip this question
-          </button>
-        </fieldset>
-      )}
-
-      {/* Type my own — visible during intake after user taps that option */}
-      {phase === 'intake' && showTypeOwn && (
+      {/* Phase 1 — intake input bar (primary control) + skip this question */}
+      {phase === 'intake' && !openerLoading && (
         <div className="messages-input-bar">
           <input
             className="messages-input"
             type="text"
             placeholder="Type your answer…"
-            aria-label="Custom intake answer"
+            aria-label="Intake answer"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleIntakeKeyDown}
             disabled={sending}
-            // biome-ignore lint/a11y/noAutofocus: intentional — user just tapped "Type my own"
-            autoFocus
           />
           <button
             type="button"
@@ -309,13 +262,12 @@ export function MessagesMode({
           </button>
           <button
             type="button"
-            className="messages-intake-cancel"
-            onClick={() => {
-              setShowTypeOwn(false)
-              setInputText('')
-            }}
+            className="messages-intake-skip-btn"
+            onClick={handleSkip}
+            disabled={sending}
+            aria-label="Skip this question"
           >
-            ×
+            Skip
           </button>
         </div>
       )}
