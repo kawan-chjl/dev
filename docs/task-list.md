@@ -117,15 +117,26 @@ Status lists only — design lives in [`plan.md`](./plan.md). Each piece is also
 
 - [ ] C6 frontend-held recent-turn transcript (no schema) + progress-state assembly into the workspace prompt (cross-lane: contracts.py ⇄ client.py ⇄ B5 REST ⇄ /ws)
 
-### X-TELE — Telegram check-in bridge (PO elevated from roadmap, 26 Jun) `[deviation: was [ROADMAP]]`
+### X-NOTIF — Multi-channel check-in notifications + user preferences (PO, 26 Jun) `[deviation: replaces the spec's laddered WS→Push→timeline with a user-selectable PARALLEL fan-out; email-for-check-ins is new — spec reserved email for stake/win-back]`
 
-Off-app check-in notifications via a Telegram bot — a real chat-app ping is a strong demo beat. **Heaviest remaining item: net-new + a schema change + an external integration + an ops dep. Sequence AFTER C5 activation; ideally run by a teammate off the critical path.** Needs a planner breakdown + Gate 1 before build.
+**For check-in reminders only.** Four channels, mandatory/optional, user-controlled; all ENABLED channels fire in parallel per check-in (daily cadence = one check-in event/day):
+
+- **In-app** (WS + timeline) = mandatory floor (universal, no data/permission). Built.
+- **Email** = default-on WHERE we have an address — but `User` has no email today (only `stake_contact_email` = the witness); Guest has none → in-app only. Needs an email-capture step.
+- **Web Push** = optional opt-in. Client built; needs VAPID keys.
+- **Telegram** = optional opt-in. Net-new (below).
+
+**Heaviest remaining feature. Sequence AFTER C5; ideally a teammate off the critical path. Needs a planner breakdown + Gate 1.** Ops deps: VAPID keys + a Telegram bot token (both human).
+
+- [ ] Backend: **capture the user's own email** — from a SIWC `email` claim if userinfo returns one, else a Settings field. `[schema: add User.email]` `[open Q: does SIWC userinfo return email?]` — _agent crew._
+- [ ] Backend: **email check-in sender** — reuse the existing email infra (today stake/win-back only) for a "time to check in" message — _agent crew._
+- [ ] Backend: **notification-preferences store** (which optional channels each user enabled) + a **delivery fan-out** that reads prefs and sends in parallel to every enabled channel — _agent crew._
 
 - [ ] **Ops (human, like VAPID):** create a Telegram bot via BotFather → set `KAWAN_TELEGRAM_BOT_TOKEN` in Render. _Tuna/team._ **Blocks the rest.**
 - [ ] Backend: `telegram_chat_id` on `User` `[schema change]` + a Telegram sender (Bot API) — _agent crew._
 - [ ] Backend: account-linking flow — deep-link token + webhook (or long-poll) to capture the chat*id on `/start` — \_agent crew.*
 - [ ] Backend: wire Telegram into the check-in delivery ladder (alongside Web Push) — _agent crew._
-- [ ] Frontend: a small **"Connections" section in Settings** — surfaces the existing Web Push toggle + a "Connect Telegram" deep-link button + connected status. The user-facing "reach me" hub, extensible later; NOT a generalized gateway abstraction. — _Lane A, agent crew._
+- [ ] Frontend: a **"Notifications" section in Settings** — in-app + email shown as always-on (email prompts to add an address if missing); Web Push + Telegram (+ future) as optional toggles/connect with status. The user-facing "reach me" hub — concrete channels, NOT a generalized gateway abstraction. — _Lane A, agent crew._
 - [ ] Demo shortcut: pre-link a demo `chat_id` in the seed script so the stage demo shows a real Telegram ping without live linking — _agent crew._
 - Open Qs (Gate 1): webhook vs long-poll on Render; Telegram parallel-to vs after Web Push in the ladder.
 
@@ -140,7 +151,7 @@ Off-app check-in notifications via a Telegram bot — a real chat-app ping is a 
 
 ## Roadmap (named, not built)
 
-- External chat bridges: **Telegram now in scope** (see X-TELE). Discord / WhatsApp stay `[ROADMAP]`. A _generalized_ connection-gateway/plugin layer is also `[ROADMAP]` — the demo gets a concrete "Connections" Settings section, not an abstraction.
+- External chat bridges: **Telegram now in scope** (see X-NOTIF). Discord / WhatsApp stay `[ROADMAP]`. A _generalized_ connection-gateway/plugin layer is also `[ROADMAP]` — the demo gets a concrete "Connections" Settings section, not an abstraction.
 - Monetary stakes · more evidence adapters · GitHub OAuth/private repos · multi-commitment · auto-recurring · crew/co-commitments/leaderboard (§11.5) · native mobile · true barge-in · retention features (spec §12.3 OUT OF SCOPE).
 
 ---
