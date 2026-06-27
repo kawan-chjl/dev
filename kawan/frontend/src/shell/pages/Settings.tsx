@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthProvider'
 import { MOCK_AUTH } from '../../auth/api'
 import { deleteMyData } from '../../commitments/api'
+import { clearWelcomeDismissed } from '../../demo/welcomeFlag'
 import { listPersonas } from '../../mock/provider'
 import { useNotifications } from '../../notifications/NotificationProvider'
 import { getTelegramStatus, linkTelegram, unlinkTelegram } from '../../notifications/telegram'
@@ -112,6 +113,8 @@ export function Settings() {
       if (!MOCK_AUTH) {
         await deleteMyData()
       }
+      // Clear the welcome-dismissed flag so the tour reappears on next sign-in.
+      clearWelcomeDismissed()
       // Refresh to empty/idle state (no sign-out; account stays)
       navigate('/home')
       window.location.reload()

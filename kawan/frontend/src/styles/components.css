@@ -557,3 +557,163 @@
   background: var(--surface-sunk);
   outline: none;
 }
+
+/* ── Demo step bar ── */
+.demo-step-bar {
+  position: fixed;
+  top: var(--space-4);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: calc(var(--z-topbar) + 10);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-4);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-lg);
+  white-space: nowrap;
+  pointer-events: auto;
+}
+
+.demo-step-list {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.demo-step-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-caption);
+  color: var(--ink-faint);
+  transition: color var(--duration-ui) var(--ease-out);
+}
+
+.demo-step-item-done {
+  color: var(--ink-soft);
+}
+
+.demo-step-item-current {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.demo-step-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.demo-step-item-done .demo-step-dot {
+  background: var(--ink-soft);
+  border-color: var(--ink-soft);
+  color: var(--bg);
+}
+
+.demo-step-item-current .demo-step-dot {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.demo-step-label {
+  font-size: var(--text-caption);
+}
+
+/* Hide step labels on very small screens, keep dots */
+@media (max-width: 480px) {
+  .demo-step-label {
+    display: none;
+  }
+
+  .demo-step-bar {
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+  }
+}
+
+.demo-step-skip {
+  border: none;
+  background: none;
+  color: var(--ink-soft);
+  font-family: var(--font-body);
+  font-size: var(--text-caption);
+  cursor: pointer;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  border-left: 1px solid var(--line);
+  margin-left: var(--space-1);
+  padding-left: var(--space-3);
+  transition: color var(--duration-ui) var(--ease-out);
+}
+
+.demo-step-skip:hover,
+.demo-step-skip:focus-visible {
+  color: var(--ink);
+  outline: none;
+}
+
+/* ── Tour analytics CTA overlay ── */
+.tour-analytics-cta {
+  position: fixed;
+  bottom: var(--space-8);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-topbar);
+  pointer-events: auto;
+}
+
+.tour-analytics-finish-btn {
+  padding: var(--space-3) var(--space-6);
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition:
+    background var(--duration-ui) var(--ease-out),
+    box-shadow var(--duration-ui) var(--ease-out),
+    transform var(--duration-ui) var(--ease-out);
+}
+
+.tour-analytics-finish-btn:hover {
+  background: var(--accent-dark, var(--accent));
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-1px);
+}
+
+.tour-analytics-finish-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .demo-step-bar,
+  .tour-analytics-finish-btn {
+    transition: none;
+  }
+
+  .tour-analytics-finish-btn:hover {
+    transform: none;
+  }
+}

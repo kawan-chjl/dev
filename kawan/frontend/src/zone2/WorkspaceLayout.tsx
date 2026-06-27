@@ -10,6 +10,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { MOCK_AUTH } from '../auth/api'
 import type { ContextTurnResponse } from '../commitments/api'
 import { contextTurn, fetchCommitmentById } from '../commitments/api'
+import { useDemoTour } from '../demo/DemoTour'
 import { mockConversation } from '../mock/fixtures'
 import type { Commitment, Emotion } from '../types/api'
 import type { WorkspaceMessage } from '../workspace/api'
@@ -85,6 +86,7 @@ function mockChatReply(userText: string): WorkspaceMessage {
 export function WorkspaceLayout() {
   const navigate = useNavigate()
   const { id: commitmentId } = useParams<{ id: string }>()
+  const { active: tourActive, currentStep: tourStep } = useDemoTour()
   const [viewMode, setViewMode] = useState<ViewMode>('stage')
   const [viewSwitching, setViewSwitching] = useState(false)
   const [messages, setMessages] = useState<WorkspaceMessage[]>([])
@@ -468,11 +470,13 @@ export function WorkspaceLayout() {
         <button
           type="button"
           className="workspace-back-btn"
-          aria-label="Back to commitment"
-          onClick={() => navigate(`/commitments/${commitmentId}`)}
+          aria-label={tourActive && tourStep === 2 ? 'Continue to analytics' : 'Back to commitment'}
+          onClick={() =>
+            tourActive && tourStep === 2 ? navigate('/welcome/analytics') : navigate(`/commitments/${commitmentId}`)
+          }
         >
           <ArrowLeft size={16} aria-hidden="true" />
-          <span>Back</span>
+          <span>{tourActive && tourStep === 2 ? 'Analytics' : 'Back'}</span>
         </button>
         <div className="workspace-mode-toggle" role="toolbar" aria-label="View mode">
           <button

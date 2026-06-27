@@ -500,6 +500,18 @@
   font-size: var(--text-body);
 }
 
+/* ── WelcomeFinished ── */
+.welcome-finished-main {
+  justify-content: center;
+  text-align: center;
+}
+
+.welcome-finished-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* ── AuthCallback ── */
 .auth-callback-root {
   min-height: 100svh;

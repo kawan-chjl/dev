@@ -4,6 +4,7 @@
 
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { isWelcomeDismissed } from '../demo/welcomeFlag'
 import { useTheme } from '../hooks/useTheme'
 import { ThemeToggle } from '../ui/ThemeToggle'
 import { AuthMethods } from './auth/AuthMethods'
@@ -12,7 +13,9 @@ export function SignIn() {
   const { status } = useAuth()
   const { theme, toggle } = useTheme()
 
-  if (status === 'authenticated') return <Navigate to="/home" replace />
+  if (status === 'authenticated') {
+    return <Navigate to={isWelcomeDismissed() ? '/home' : '/welcome'} replace />
+  }
 
   return (
     <div className="sign-in-root">

@@ -1,12 +1,14 @@
+// HelpButton — fixed bottom-right button that launches the guided walkthrough.
+// Visible only on /home, /commitments, /analytics (gated via useLocation in App.tsx).
+
 import { HelpCircle } from 'lucide-react'
+import { useDemoTour } from '../demo/DemoTour'
 
-interface HelpButtonProps {
-  onClick: () => void
-}
+export function HelpButton() {
+  const { start } = useDemoTour()
 
-export function HelpButton({ onClick }: HelpButtonProps) {
   return (
-    <button type="button" className="help-button" aria-label="Open demo help" onClick={onClick}>
+    <button type="button" className="help-button" aria-label="Start guided walkthrough" onClick={start}>
       <HelpCircle size={24} aria-hidden="true" />
     </button>
   )

@@ -5,15 +5,18 @@
 import { CheckCircle, ShieldCheck, Sparkles } from 'lucide-react'
 import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { isWelcomeDismissed } from '../demo/welcomeFlag'
 
 export function Landing() {
   const { status } = useAuth()
   const [params] = useSearchParams()
   const bypass = params.get('bypass') === '1'
 
-  // Authenticated users visiting / go straight to the app UNLESS ?bypass=1 is set.
-  // The sidebar logo uses /?bypass=1 so clicking it always shows the landing page.
-  if (status === 'authenticated' && !bypass) return <Navigate to="/home" replace />
+  // Authenticated users visiting / go to /welcome (tour intro) unless dismissed,
+  // then to /home. ?bypass=1 (sidebar logo) always shows the landing page.
+  if (status === 'authenticated' && !bypass) {
+    return <Navigate to={isWelcomeDismissed() ? '/home' : '/welcome'} replace />
+  }
 
   return (
     <div className="landing-root">
