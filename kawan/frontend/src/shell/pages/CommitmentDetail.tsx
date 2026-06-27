@@ -4,13 +4,14 @@
 // Timeline section: event log using shared eventRows.tsx.
 // recordRecentCommitment called on mount so Home Recent Activity is updated.
 
-import { ExternalLink, Lock, Share2 } from 'lucide-react'
+import { ExternalLink, Lock, Share2, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthProvider'
+import { deleteCommitment, fetchCommitmentById } from '../../commitments/api'
 import { recordRecentCommitment } from '../../commitments/recent'
 import { statusLabel } from '../../commitments/statusLabel'
-import { useActiveCommitment } from '../../commitments/useActiveCommitment'
+import { useNotifications } from '../../notifications/NotificationProvider'
 import { ShareWinDialog } from '../../share/ShareWinDialog'
 import { CheckinEventRow, EvidenceEventRow, ProposalEventRow } from '../../timeline/eventRows'
 import { verifiedCount } from '../../timeline/metrics'
@@ -20,6 +21,7 @@ import { Badge } from '../../ui/Badge'
 import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
 import { Chip } from '../../ui/Chip'
+import { Modal } from '../../ui/Modal'
 import { Skeleton } from '../../ui/Skeleton'
 import { Tooltip } from '../../ui/Tooltip'
 import type { PageSection } from '../OnThisPage'
@@ -59,6 +61,8 @@ const DETAIL_SECTIONS: PageSection[] = [
   { id: 'section-how-firm', label: 'How firm' },
   { id: 'section-timeline', label: 'Timeline' }
 ]
+
+type LoadState = 'loading' | 'ready' | 'idle'
 
 function OverviewSection({ commitment }: { commitment: Commitment }) {
   const { timeline } = useTimeline(commitment.id)
@@ -204,14 +208,58 @@ function CommitmentDetailSkeleton() {
 
 export function CommitmentDetail() {
   const { id } = useParams<{ id: string }>()
-  const { state, commitment } = useActiveCommitment()
   const navigate = useNavigate()
+  const { notify } = useNotifications()
+  const [state, setState] = useState<LoadState>('loading')
+  const [commitment, setCommitment] = useState<Commitment | null>(null)
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
-  const match = commitment?.id === id ? commitment : null
+  useEffect(() => {
+    let cancelled = false
+    async function loadCommitment() {
+      if (!id) {
+        setCommitment(null)
+        setState('idle')
+        return
+      }
+      setState('loading')
+      try {
+        const c = await fetchCommitmentById(id)
+        if (cancelled) return
+        setCommitment(c)
+        setState(c !== null ? 'ready' : 'idle')
+      } catch {
+        if (cancelled) return
+        setCommitment(null)
+        setState('idle')
+      }
+    }
+    loadCommitment()
+    return () => {
+      cancelled = true
+    }
+  }, [id])
+
+  const match = commitment
 
   useEffect(() => {
     if (match?.id) recordRecentCommitment(match.id)
   }, [match?.id])
+
+  async function handleDelete() {
+    if (match === null) return
+    setConfirmDeleteOpen(false)
+    setDeleting(true)
+    try {
+      await deleteCommitment(match.id)
+      notify('Commitment deleted.', { kind: 'success' })
+      navigate('/commitments')
+    } catch {
+      notify('Could not delete this commitment. Please try again.', { kind: 'error' })
+      setDeleting(false)
+    }
+  }
 
   if (match === null) {
     return (
@@ -231,12 +279,36 @@ export function CommitmentDetail() {
       <Button variant="primary" onClick={() => navigate(`/workspace/${match.id}`)}>
         Check now
       </Button>
+      <Button variant="danger" onClick={() => setConfirmDeleteOpen(true)} disabled={deleting}>
+        <Trash2 size={16} aria-hidden="true" />
+        {deleting ? 'Deleting...' : 'Delete'}
+      </Button>
     </>
   )
 
   return (
     <div className="shell-page">
       <PageHeader title="Commitment" subtitle="Details and your activity so far." actions={headerActions} />
+
+      <Modal
+        open={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        label="Confirm deletion"
+        panelClassName="modal-panel-confirm"
+      >
+        <p className="commitments-confirm-heading">Delete this commitment?</p>
+        <p className="commitments-confirm-body">
+          This permanently deletes the commitment and all its check-in history. This cannot be undone.
+        </p>
+        <div className="commitments-confirm-actions">
+          <Button variant="secondary" onClick={() => setConfirmDeleteOpen(false)}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={handleDelete} disabled={deleting}>
+            Delete permanently
+          </Button>
+        </div>
+      </Modal>
 
       <div className="detail-two-col">
         {/* Left: content sections */}
