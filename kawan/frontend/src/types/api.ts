@@ -88,3 +88,12 @@ export interface AuditRow {
   actor: 'user' | 'system'
   at: string
 }
+
+/** Mirrors GET /api/me/achievements response item (B6, ADR-0004). */
+export interface Achievement {
+  code: string
+  label: string
+  description: string
+  earned: boolean
+  awarded_at: string | null // ISO 8601, null when locked
+}

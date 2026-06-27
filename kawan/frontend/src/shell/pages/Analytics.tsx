@@ -5,6 +5,7 @@
 
 import { TrendingUp } from 'lucide-react'
 import { useCommitments } from '../../commitments/useCommitments'
+import { Achievements } from '../../timeline/Achievements'
 import { AnalyticsPanel } from '../../timeline/AnalyticsPanel'
 import { IdentityTitle } from '../../timeline/IdentityTitle'
 import { ProductivityMeter } from '../../timeline/ProductivityMeter'
@@ -62,6 +63,8 @@ export function Analytics() {
       )}
 
       {!noRecords && commitment !== null && <AnalyticsContent commitmentId={commitment.id} />}
+
+      <Achievements />
     </div>
   )
 }

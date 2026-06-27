@@ -1,7 +1,7 @@
 // Timeline API client — typed fetch wrappers for the timeline GET and check-in trigger.
 // All calls use credentials:'include' so the HttpOnly session cookie rides along.
 
-import type { Timeline } from '../types/api'
+import type { Achievement, Timeline } from '../types/api'
 
 /**
  * GET /api/commitments/:id/timeline
@@ -50,6 +50,17 @@ export async function fetchStats(): Promise<{ verified_wins: number } | null> {
   if (res.ok) return (await res.json()) as { verified_wins: number }
   if (res.status === 401) return null
   throw new Error(`/api/me/stats returned ${res.status}`)
+}
+
+/**
+ * GET /api/me/achievements: full catalogue with per-user earned flags (B6, ADR-0004).
+ * 200 → Achievement[], 401 → null, other non-OK → throws.
+ */
+export async function fetchAchievements(): Promise<Achievement[] | null> {
+  const res = await fetch('/api/me/achievements', { credentials: 'include' })
+  if (res.ok) return (await res.json()) as Achievement[]
+  if (res.status === 401) return null
+  throw new Error(`/api/me/achievements returned ${res.status}`)
 }
 
 // ── WS message union (server → client pushes) ──────────────────────────────────────
