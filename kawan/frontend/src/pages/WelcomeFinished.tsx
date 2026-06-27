@@ -38,7 +38,7 @@ export function WelcomeFinished() {
           real commitments live here whenever you&apos;re ready.
         </p>
 
-        <Button variant="primary" className="welcome-continue-btn" onClick={handleGoHome}>
+        <Button variant="primary" className="welcome-continue-btn" data-tour="finished-home" onClick={handleGoHome}>
           Go to home
         </Button>
 

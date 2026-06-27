@@ -1,53 +1,51 @@
 // FinishIsland — "Finish now" path: same 3 submission methods as CheckinIsland.
 // A Finish submission uses the same evidence judge (POST /evidence or /file or /github-link).
-// On PASS: mark complete intent + roll EndingSequence (win).
-// On FAIL: show denial, stay in workspace.
-// Per plan OQ-FINISH: reuses the same verdict path; no separate endpoint.
+// On completion (backend status:'completed') it signals up (onComplete) so the workspace rolls
+// the full-screen win overlay; on fail/unclear it stays in the workspace and Kawan reacts in chat.
 // Always visible (collapsible) — ungated from keyEvent.
 
 import { ChevronDown, ChevronUp, Trophy } from 'lucide-react'
 import { useState } from 'react'
 import type { EvidenceVerdict } from '../../commitments/api'
-import type { Commitment } from '../../types/api'
-import { EndingSequence } from '../EndingSequence'
+import type { Emotion } from '../../types/api'
 import { SubmissionPanel } from '../SubmissionPanel'
 import { VerdictCard } from '../VerdictCard'
 
 interface FinishIslandProps {
   commitmentId: string
-  commitment: Commitment
+  onKawanSay: (text: string, emotion?: Emotion) => void
+  onActivity: () => void
+  onComplete: (winDateIso: string) => void
 }
 
-type Phase = 'idle' | 'submitting' | 'verdict' | 'complete'
+type Phase = 'idle' | 'submitting' | 'verdict'
 
-export function FinishIsland({ commitmentId, commitment }: FinishIslandProps) {
+export function FinishIsland({ commitmentId, onKawanSay, onActivity, onComplete }: FinishIslandProps) {
   const [expanded, setExpanded] = useState(false)
   const [phase, setPhase] = useState<Phase>('idle')
   const [verdict, setVerdict] = useState<EvidenceVerdict | null>(null)
-  const [winDate, setWinDate] = useState<string | null>(null)
 
   function handleVerdict(v: EvidenceVerdict) {
-    setVerdict(v)
-    // Gate the win sequence on the backend-confirmed 'completed' status, not merely on
-    // verdict === 'pass'. The backend returns status:'completed' only when ?finish=true
-    // was passed and the state machine successfully transitioned. This is the iron-rule-safe
-    // path: never fake completion in the UI.
+    onActivity()
+    // Gate the win on the backend-confirmed 'completed' status, not merely verdict === 'pass'.
+    // The backend returns status:'completed' only when ?finish=true transitioned the state machine.
     if (v.status === 'completed') {
-      setWinDate(new Date().toISOString())
-      setPhase('complete')
-    } else {
-      setPhase('verdict')
+      onComplete(new Date().toISOString())
+      return
     }
+    setVerdict(v)
+    setPhase('verdict')
+    const line =
+      v.reasoning?.trim() ||
+      (v.verdict === 'unclear'
+        ? 'Not enough to call it done. Add more proof and try again.'
+        : 'That evidence did not meet the bar. Bring something stronger.')
+    onKawanSay(line, v.verdict === 'unclear' ? 'neutral' : 'skeptical')
   }
 
   function handleRetry() {
     setVerdict(null)
     setPhase('idle')
-  }
-
-  // Once the verdict is 'pass' we roll the ending sequence — no return.
-  if (phase === 'complete') {
-    return <EndingSequence variant="win" commitment={commitment} winDateIso={winDate ?? new Date().toISOString()} />
   }
 
   return (

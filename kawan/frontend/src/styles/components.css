@@ -697,6 +697,61 @@
   outline: none;
 }
 
+/* ── Demo spotlight ── */
+.demo-spotlight-ring {
+  position: fixed;
+  z-index: calc(var(--z-step-bar) - 1);
+  border-radius: var(--radius-sm);
+  outline: 2px solid color-mix(in srgb, var(--accent) 78%, transparent);
+  outline-offset: 5px;
+  box-shadow:
+    0 0 0 9999px rgba(20, 15, 11, 0.04),
+    0 0 0 8px color-mix(in srgb, var(--accent) 16%, transparent),
+    0 0 30px color-mix(in srgb, var(--accent) 42%, transparent);
+  pointer-events: none;
+  animation: demo-spotlight-pulse 1800ms var(--ease-out) infinite;
+}
+
+.demo-spotlight-tooltip,
+.demo-spotlight-fallback {
+  position: fixed;
+  z-index: calc(var(--z-step-bar) - 1);
+  max-width: min(320px, calc(100vw - var(--space-6)));
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--line));
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--surface-2) 92%, transparent);
+  color: var(--ink);
+  box-shadow: var(--shadow-md);
+  font-size: var(--text-small);
+  line-height: 1.35;
+  text-align: center;
+  pointer-events: none;
+}
+
+.demo-spotlight-fallback {
+  top: calc(var(--space-4) + 54px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+@keyframes demo-spotlight-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 9999px rgba(20, 15, 11, 0.04),
+      0 0 0 8px color-mix(in srgb, var(--accent) 16%, transparent),
+      0 0 28px color-mix(in srgb, var(--accent) 36%, transparent);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 9999px rgba(20, 15, 11, 0.035),
+      0 0 0 10px color-mix(in srgb, var(--accent) 20%, transparent),
+      0 0 38px color-mix(in srgb, var(--accent) 48%, transparent);
+  }
+}
+
 /* ── Tour analytics CTA overlay ── */
 .tour-analytics-cta {
   position: fixed;
@@ -737,7 +792,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .demo-step-bar,
+  .demo-spotlight-ring,
   .tour-analytics-finish-btn {
+    animation: none;
     transition: none;
   }
 

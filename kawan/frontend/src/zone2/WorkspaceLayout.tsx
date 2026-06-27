@@ -16,8 +16,9 @@ import type { Commitment, Emotion } from '../types/api'
 import type { WorkspaceMessage } from '../workspace/api'
 import { workspaceTurn } from '../workspace/api'
 import { fetchMessages } from '../workspace/messagesApi'
+import { Confetti } from './Confetti'
 import { EndingSequence } from './EndingSequence'
-import { ActivityCard } from './islands/ActivityCard'
+import { ActivityCard, type ActivityMilestone } from './islands/ActivityCard'
 import { CheckinIsland } from './islands/CheckinIsland'
 import { ContextIsland } from './islands/ContextIsland'
 import { FinishIsland } from './islands/FinishIsland'
@@ -107,6 +108,13 @@ export function WorkspaceLayout() {
   const [checkinStatus, setCheckinStatus] = useState<CheckinStatus | null>(null)
   // Key event kind derived from commitment state + checkin status
   const [keyEvent, setKeyEvent] = useState<KeyEventKind>(null)
+  // 2.1: whole-workspace init overlay — true from mount until commitment + history + opener resolve.
+  const [initializing, setInitializing] = useState(true)
+  // 3.x: Activity card refresh signal + client-side milestones (e.g. context captured).
+  const [activitySignal, setActivitySignal] = useState(0)
+  const [milestones, setMilestones] = useState<ActivityMilestone[]>([])
+  // 3.5: win overlay — set when a Finish-Now submission completes the commitment.
+  const [winDateIso, setWinDateIso] = useState<string | null>(null)
 
   // Mock intake turn tracker (MOCK_AUTH only)
   const mockIntakeTurnRef = useRef(0)
@@ -131,10 +139,14 @@ export function WorkspaceLayout() {
         setMessages([makeMockIntakeMessage(opener.say, opener.emotion)])
       }
       mockIntakeTurnRef.current = 1
+      setInitializing(false)
       return
     }
 
-    if (!commitmentId) return
+    if (!commitmentId) {
+      setInitializing(false)
+      return
+    }
 
     async function init() {
       if (!commitmentId) return
@@ -172,6 +184,7 @@ export function WorkspaceLayout() {
           setIntakeStep(filledCount)
         }
         // Don't re-fire the opener when history exists
+        setInitializing(false)
         return
       }
 
@@ -205,7 +218,10 @@ export function WorkspaceLayout() {
           ])
           setPhase('chat')
         })
-        .finally(() => setSending(false))
+        .finally(() => {
+          setSending(false)
+          setInitializing(false)
+        })
     }
 
     void init()
@@ -241,6 +257,26 @@ export function WorkspaceLayout() {
     })
   }, [phase, commitmentId, commitment])
 
+  // Append a Kawan line to the shared conversation (used by check-in / finish islands to "reply").
+  const sayAsKawan = useCallback((text: string, emotion: Emotion = 'neutral') => {
+    setMessages((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), from: 'kawan', text, emotion, responseType: 'coaching' }
+    ])
+  }, [])
+
+  // Bump the Activity card so it re-fetches the timeline after a check-in / finish.
+  const bumpActivity = useCallback(() => setActivitySignal((n) => n + 1), [])
+
+  // Add a client-side milestone (e.g. "Context captured") and refresh the Activity card.
+  const addMilestone = useCallback((label: string) => {
+    setMilestones((prev) => [...prev, { at: new Date().toISOString(), label }])
+    setActivitySignal((n) => n + 1)
+  }, [])
+
+  // Finish-Now completed the commitment — roll the full-screen win overlay.
+  const handleFinishComplete = useCallback((iso: string) => setWinDateIso(iso), [])
+
   // Handle an intake answer — calls context/turn, updates slots, flips phase when complete.
   const handleIntakeAnswer = useCallback(
     async (text: string) => {
@@ -269,6 +305,7 @@ export function WorkspaceLayout() {
           setPhase('chat')
           setIntakeStep(4)
           setSlotProgress({ total: 4, filled: 4 })
+          addMilestone('Context captured')
         }
         setSending(false)
         return
@@ -296,6 +333,7 @@ export function WorkspaceLayout() {
         if (resp.intake_complete) {
           setPhase('chat')
           setIntakeStep(4)
+          addMilestone('Context captured')
         }
       } catch (err) {
         lastFailedTurnRef.current = { endpoint: 'intake', text: trimmed }
@@ -304,7 +342,7 @@ export function WorkspaceLayout() {
         setSending(false)
       }
     },
-    [commitmentId, sending]
+    [commitmentId, sending, addMilestone]
   )
 
   // Handle open-chat send — workspace/turn endpoint.
@@ -461,10 +499,10 @@ export function WorkspaceLayout() {
   // 3.6: commitment failure — overlay the ending sequence instead of the normal workspace
   const isFailure = keyEvent === 'failure' && commitment !== null
 
-  const isLoading = openerLoading || viewSwitching
+  const isLoading = initializing || openerLoading || viewSwitching
 
   return (
-    <div className="workspace-root">
+    <div className={`workspace-root${tourActive ? ' workspace-root--tour' : ''}`}>
       {/* Header bar */}
       <div className="workspace-topbar">
         <button
@@ -517,8 +555,16 @@ export function WorkspaceLayout() {
           </div>
         )}
 
-        {/* Context island — top-right, always shown during intake and chat (never in failure) */}
-        {!isFailure && commitmentId && (
+        {/* 3.5: Win overlay — full-screen celebration + confetti after a Finish-Now completion */}
+        {winDateIso && commitment && (
+          <div className="workspace-win-overlay">
+            <Confetti />
+            <EndingSequence variant="win" commitment={commitment} winDateIso={winDateIso} />
+          </div>
+        )}
+
+        {/* Context island — top-right, always shown during intake and chat (never in failure/win) */}
+        {!isFailure && !winDateIso && commitmentId && (
           <div className="workspace-island-topright">
             <ContextIsland commitmentId={commitmentId} slotProgress={slotProgress} />
             {phase === 'chat' && (
@@ -528,17 +574,26 @@ export function WorkspaceLayout() {
                   commitmentId={commitmentId}
                   checkinStatus={checkinStatus}
                   variant={keyEvent === 'late-checkin' ? 'late-checkin' : keyEvent === 'checkin' ? 'checkin' : null}
+                  onKawanSay={sayAsKawan}
+                  onActivity={bumpActivity}
                 />
-                {commitment && <FinishIsland commitmentId={commitmentId} commitment={commitment} />}
+                {commitment && (
+                  <FinishIsland
+                    commitmentId={commitmentId}
+                    onKawanSay={sayAsKawan}
+                    onActivity={bumpActivity}
+                    onComplete={handleFinishComplete}
+                  />
+                )}
               </>
             )}
           </div>
         )}
 
         {/* Activity card — top-left, chat phase only */}
-        {phase === 'chat' && !isFailure && commitmentId && (
+        {phase === 'chat' && !isFailure && !winDateIso && commitmentId && (
           <div className="workspace-island-topleft">
-            <ActivityCard commitmentId={commitmentId} />
+            <ActivityCard commitmentId={commitmentId} milestones={milestones} refreshSignal={activitySignal} />
           </div>
         )}
       </div>

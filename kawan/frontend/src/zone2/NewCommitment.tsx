@@ -249,6 +249,7 @@ function ComposeSection({
             </label>
             <input
               id="nc-deliverable"
+              data-tour="commitment-deliverable"
               className="nc-madlib-input"
               type="text"
               placeholder="what you will deliver"
@@ -554,7 +555,7 @@ function CompanionSection({ selectedPersona, onSelect, startError, composeValid,
 export function NewCommitment() {
   const navigate = useNavigate()
   const { setPersona } = useAuth()
-  const { active: demoActive } = useDemoTour()
+  const { active: demoActive, setDemoCommitmentId } = useDemoTour()
 
   // Current step index (0 = Compose, 1 = Plan, 2 = Companion)
   const [stepIndex, setStepIndex] = useState(0)
@@ -700,6 +701,7 @@ export function NewCommitment() {
       let created: Awaited<ReturnType<typeof createCommitment>>
       try {
         created = await createCommitment({ action, deliverable, deadline: deadlineISO })
+        if (demoActive) setDemoCommitmentId(created.id)
       } catch (err) {
         const status = err instanceof Error ? (err as Error & { status?: number }).status : undefined
         const msg = err instanceof Error ? err.message : ''

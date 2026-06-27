@@ -349,7 +349,7 @@
   border: 1.5px solid rgba(244, 236, 225, 0.1);
   border-radius: var(--radius-card);
   backdrop-filter: blur(16px) saturate(160%);
-  padding: var(--space-4) var(--space-5);
+  padding: var(--space-5) var(--space-6);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
   animation: stage-fade-in var(--duration-panel) var(--ease-smooth) both;
 }
@@ -357,7 +357,7 @@
 .stage-dialogue-inner {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-3);
 }
 
 .stage-speaker-name {
@@ -491,7 +491,7 @@
 
 .message-bubble {
   max-width: 75%;
-  padding: var(--space-4) var(--space-5);
+  padding: var(--space-5) var(--space-6);
   border-radius: var(--radius-card);
 }
 
@@ -2701,6 +2701,72 @@ fieldset.messages-intake-menu {
   backdrop-filter: blur(8px);
 }
 
+/* 3.5: Win overlay — full-screen celebration after Finish-Now completes the commitment. */
+.workspace-win-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: rgba(22, 16, 9, 0.92);
+  backdrop-filter: blur(8px);
+}
+
+/* Confetti — decorative falling pieces over the win overlay; never blocks clicks. */
+.ws-confetti {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.ws-confetti-piece {
+  position: absolute;
+  top: -24px;
+  border-radius: 2px;
+  opacity: 0.92;
+  animation-name: ws-confetti-fall;
+  animation-timing-function: ease-in;
+  animation-iteration-count: 1;
+  animation-fill-mode: forwards;
+}
+
+@keyframes ws-confetti-fall {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(108vh) rotate(540deg);
+    opacity: 0.9;
+  }
+}
+
+/* Check-in island locked confirmation shown after a passing check-in. */
+.checkin-island-locked {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  font-size: var(--text-small);
+  color: rgba(127, 174, 143, 0.95);
+}
+
+/* #A: when the demo tour bar is on screen, push the workspace down so it never covers the topbar. */
+.workspace-root--tour {
+  box-sizing: border-box;
+  padding-top: 60px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-confetti {
+    display: none;
+  }
+}
+
 /* ── Shared island base ── */
 .ws-island {
   background: rgba(22, 16, 9, 0.82);
@@ -3344,6 +3410,12 @@ div.ws-island-header:hover {
   text-align: center;
 }
 
+/* Win overlay: lift the celebration content above the confetti layer. */
+.workspace-win-overlay .ending-sequence {
+  position: relative;
+  z-index: 2;
+}
+
 .ending-win-content,
 .ending-failure-content {
   display: flex;
@@ -3446,4 +3518,702 @@ div.ws-island-header:hover {
   .workspace-island-bottom {
     display: none;
   }
+}
+
+/* Light theme workspace overrides */
+[data-theme="light"] .workspace-root {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+[data-theme="light"] .workspace-topbar {
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  border-bottom-color: var(--line);
+}
+
+[data-theme="light"] .workspace-back-btn {
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .workspace-back-btn:hover {
+  color: var(--ink);
+  background: var(--surface-sunk);
+}
+
+[data-theme="light"] .workspace-mode-toggle {
+  background: var(--surface-sunk);
+  border-color: var(--line);
+}
+
+[data-theme="light"] .workspace-mode-btn {
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .workspace-mode-btn-active {
+  background: var(--surface-2);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+
+[data-theme="light"] .workspace-mode-btn:hover:not(.workspace-mode-btn-active) {
+  color: var(--ink);
+}
+
+[data-theme="light"] .nc-topbar-title {
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .workspace-spinner-ring {
+  border-color: color-mix(in srgb, var(--ink-faint) 30%, transparent);
+  border-top-color: var(--accent);
+}
+
+[data-theme="light"] .workspace-spinner-label {
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .stage-character-area {
+  background: radial-gradient(
+    ellipse 70% 80% at 50% 35%,
+    var(--surface-2) 0%,
+    var(--surface) 54%,
+    var(--surface-sunk) 100%
+  );
+}
+
+[data-theme="light"] .messages-mode {
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, var(--surface-2) 0%, var(--bg) 62%);
+}
+
+[data-theme="light"] .char-stage-label {
+  color: var(--ink-faint);
+}
+
+[data-theme="light"] .stage-dev-btn {
+  background: var(--accent-tint);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+  color: var(--ink);
+}
+
+[data-theme="light"] .stage-dev-btn:hover {
+  background: color-mix(in srgb, var(--accent-tint) 70%, var(--surface-2));
+}
+
+[data-theme="light"] .stage-option-card {
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+[data-theme="light"] .stage-option-card:hover {
+  background: var(--accent-tint);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+}
+
+[data-theme="light"] .stage-text-input {
+  background: color-mix(in srgb, var(--surface-2) 88%, transparent);
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+[data-theme="light"] .stage-text-input::placeholder {
+  color: var(--ink-faint);
+}
+
+[data-theme="light"] .stage-dialogue-box {
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  border-color: var(--line);
+  box-shadow: var(--shadow-lg);
+}
+
+[data-theme="light"] .stage-dialogue-box--refusal {
+  background: color-mix(in srgb, var(--accent-tint) 50%, var(--surface));
+}
+
+[data-theme="light"] .stage-dialogue-line {
+  color: var(--ink);
+}
+
+[data-theme="light"] .stage-speaker-name {
+  color: var(--accent-press);
+}
+
+[data-theme="light"] .stage-voice-btn {
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  border-color: var(--line);
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .stage-voice-btn:hover:not(:disabled) {
+  background: var(--surface-sunk);
+  color: var(--ink);
+}
+
+[data-theme="light"] .stage-mic-bar-btn {
+  background: var(--surface-sunk);
+  border-color: var(--line);
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .stage-mic-transcript {
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  border-color: var(--line);
+}
+
+[data-theme="light"] .stage-mic-text {
+  color: var(--ink);
+}
+
+[data-theme="light"] .stage-dev-text {
+  background: var(--surface-2);
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+[data-theme="light"] .messages-input-bar {
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  border-top-color: var(--line);
+}
+
+[data-theme="light"] .messages-input {
+  background: var(--surface-2);
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+[data-theme="light"] .messages-input::placeholder {
+  color: var(--ink-faint);
+}
+
+[data-theme="light"] .message-avatar-portrait {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+}
+
+[data-theme="light"] .message-avatar-fallback {
+  background: var(--accent-tint);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+}
+
+[data-theme="light"] .bubble-kawan {
+  background: color-mix(in srgb, var(--accent-tint) 70%, var(--surface));
+  border-color: color-mix(in srgb, var(--accent) 24%, var(--line));
+}
+
+[data-theme="light"] .bubble-user {
+  background: var(--surface-2);
+  border-color: var(--line);
+}
+
+[data-theme="light"] .bubble-kawan--refusal {
+  background: color-mix(in srgb, var(--accent-tint) 74%, var(--surface));
+  border-color: color-mix(in srgb, var(--accent) 36%, var(--line));
+}
+
+[data-theme="light"] .message-text {
+  color: var(--ink);
+}
+
+[data-theme="light"] .bubble-user .message-text {
+  color: var(--ink);
+}
+
+[data-theme="light"] .message-option-btn {
+  background: var(--surface);
+  border-color: var(--line);
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .proposal-card {
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  border-color: var(--line);
+}
+
+[data-theme="light"] .proposal-card--applied {
+  background: var(--surface-sunk);
+  border-color: var(--line);
+}
+
+[data-theme="light"] .proposal-card-applied-text {
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .proposal-card-field {
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .proposal-card-value {
+  color: var(--ink);
+}
+
+[data-theme="light"] .proposal-card-reason {
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .proposal-card-btn--dismiss {
+  border-color: var(--line);
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .proposal-card-btn--dismiss:hover:not(:disabled) {
+  background: var(--surface-sunk);
+  border-color: var(--line-strong);
+}
+
+[data-theme="light"] .stage-thinking {
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  border-color: var(--line);
+}
+
+[data-theme="light"] .stage-input {
+  background: color-mix(in srgb, var(--surface-2) 90%, transparent);
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+[data-theme="light"] .stage-input::placeholder {
+  color: var(--ink-faint);
+}
+
+[data-theme="light"] .stage-starter-chip {
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+[data-theme="light"] .stage-starter-chip:hover {
+  background: var(--accent-tint);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+  color: var(--ink);
+}
+
+[data-theme="light"] .messages-starter-chip {
+  background: var(--surface);
+  border-color: var(--line);
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .messages-starter-chip:hover {
+  background: var(--accent-tint);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+  color: var(--ink);
+}
+
+[data-theme="light"] .stage-intake-progress {
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  border-color: var(--line);
+}
+
+[data-theme="light"] .stage-intake-progress-label {
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .stage-intake-skip-ahead {
+  color: var(--ink-faint);
+}
+
+[data-theme="light"] .stage-intake-skip-ahead:hover {
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .stage-intake-dot {
+  background: var(--surface-sunk);
+  border-color: var(--line-strong);
+}
+
+[data-theme="light"] .messages-intake-progress {
+  background: var(--surface);
+  border-bottom-color: var(--line);
+}
+
+[data-theme="light"] .messages-intake-label {
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .messages-intake-skip-ahead {
+  color: var(--ink-faint);
+}
+
+[data-theme="light"] .messages-intake-skip-ahead:hover {
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .messages-intake-dot {
+  background: var(--surface-sunk);
+  border-color: var(--line-strong);
+}
+
+[data-theme="light"] .stage-intake-btn {
+  background: color-mix(in srgb, var(--surface) 84%, transparent);
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+[data-theme="light"] .stage-intake-btn:hover:not(:disabled) {
+  background: var(--surface-2);
+  border-color: var(--line-strong);
+}
+
+[data-theme="light"] .stage-intake-btn:focus-visible {
+  outline-color: var(--accent);
+}
+
+[data-theme="light"] .stage-intake-btn--secondary {
+  color: var(--ink-soft);
+  background: color-mix(in srgb, var(--surface) 60%, transparent);
+}
+
+[data-theme="light"] .stage-intake-btn--secondary:hover:not(:disabled) {
+  color: var(--ink);
+  background: var(--accent-tint);
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--line));
+}
+
+[data-theme="light"] .stage-intake-btn--skip {
+  color: var(--ink-faint);
+  border-color: var(--line);
+}
+
+[data-theme="light"] .stage-intake-btn--skip:hover:not(:disabled) {
+  color: var(--ink-soft);
+  background: var(--surface-sunk);
+}
+
+[data-theme="light"] .stage-intake-cancel-btn {
+  color: var(--ink-faint);
+}
+
+[data-theme="light"] .stage-intake-cancel-btn:hover {
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .messages-intake-menu {
+  background: var(--surface);
+  border-top-color: var(--line);
+}
+
+[data-theme="light"] .messages-intake-btn {
+  background: var(--surface-2);
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+[data-theme="light"] .messages-intake-btn:hover:not(:disabled) {
+  background: var(--accent-tint);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+}
+
+[data-theme="light"] .messages-intake-btn--secondary {
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .messages-intake-btn--secondary:hover:not(:disabled) {
+  color: var(--ink);
+  background: var(--surface-sunk);
+}
+
+[data-theme="light"] .messages-intake-btn--skip {
+  color: var(--ink-faint);
+  border-color: var(--line);
+}
+
+[data-theme="light"] .messages-intake-btn--skip:hover:not(:disabled) {
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .messages-intake-cancel {
+  color: var(--ink-faint);
+}
+
+[data-theme="light"] .messages-intake-cancel:hover {
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .messages-intake-own-bar {
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  border-top-color: var(--line);
+}
+
+[data-theme="light"] .stage-intake-skip-btn {
+  color: var(--ink-faint);
+}
+
+[data-theme="light"] .messages-intake-skip-btn {
+  color: var(--ink-faint);
+}
+
+[data-theme="light"] .stage-intake-skip-btn:hover:not(:disabled) {
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .messages-intake-skip-btn:hover:not(:disabled) {
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .typing-dot {
+  background: var(--ink-faint);
+}
+
+[data-theme="light"] .messages-mic-bar {
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  border-top-color: var(--line);
+}
+
+[data-theme="light"] .workspace-failure-overlay {
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+}
+
+[data-theme="light"] .workspace-win-overlay {
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+}
+
+[data-theme="light"] .ws-island {
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  border-color: var(--line);
+  box-shadow: var(--shadow-md);
+}
+
+[data-theme="light"] .ws-island-header {
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .ws-island-header:hover {
+  background: var(--surface-sunk);
+}
+
+[data-theme="light"] div.ws-island-header:hover {
+  background: none;
+}
+
+[data-theme="light"] .ws-island-body {
+  border-top-color: var(--line);
+}
+
+[data-theme="light"] .ws-island-empty {
+  color: var(--ink-faint);
+}
+
+[data-theme="light"] .ws-island-error {
+  color: var(--danger);
+}
+
+[data-theme="light"] .context-dot {
+  background: var(--surface-sunk);
+  border-color: var(--line-strong);
+}
+
+[data-theme="light"] .context-slot-row {
+  border-bottom-color: var(--line);
+}
+
+[data-theme="light"] .context-slot-value {
+  color: var(--ink);
+}
+
+[data-theme="light"] .plan-island-row {
+  border-bottom-color: var(--line);
+}
+
+[data-theme="light"] .plan-island-time {
+  color: var(--ink-faint);
+}
+
+[data-theme="light"] .plan-island-step-label {
+  color: var(--ink);
+}
+
+[data-theme="light"] .plan-island-step-note {
+  color: var(--ink-faint);
+}
+
+[data-theme="light"] .plan-island-note {
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .plan-island-readonly-notice {
+  color: var(--ink-faint);
+}
+
+[data-theme="light"] .checkin-island-brief {
+  color: var(--ink);
+}
+
+[data-theme="light"] .checkin-island-denial-text {
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .finish-island-denial-text {
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .checkin-island-retry-btn {
+  border-color: var(--line);
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .finish-island-retry-btn {
+  border-color: var(--line);
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .checkin-island-done-btn {
+  border-color: var(--line);
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .checkin-island-retry-btn:hover {
+  background: var(--surface-sunk);
+  color: var(--ink);
+}
+
+[data-theme="light"] .finish-island-retry-btn:hover {
+  background: var(--surface-sunk);
+  color: var(--ink);
+}
+
+[data-theme="light"] .checkin-island-done-btn:hover {
+  background: var(--surface-sunk);
+  color: var(--ink);
+}
+
+[data-theme="light"] .finish-island-sub {
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .activity-event-row {
+  border-bottom-color: var(--line);
+}
+
+[data-theme="light"] .activity-event-time {
+  color: var(--ink-faint);
+}
+
+[data-theme="light"] .activity-event-label {
+  color: var(--ink);
+}
+
+[data-theme="light"] .verdict-card--pass {
+  background: var(--sage-tint);
+  border-color: color-mix(in srgb, var(--success) 38%, var(--line));
+}
+
+[data-theme="light"] .verdict-card--fail {
+  background: color-mix(in srgb, var(--danger) 12%, var(--surface));
+  border-color: color-mix(in srgb, var(--danger) 38%, var(--line));
+}
+
+[data-theme="light"] .verdict-card--unclear {
+  background: var(--surface-sunk);
+  border-color: var(--line);
+}
+
+[data-theme="light"] .verdict-card--unclear .verdict-card-icon {
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .verdict-card--unclear .verdict-card-label {
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .verdict-card-reasoning {
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .submission-mode-btn {
+  background: var(--surface-2);
+  border-color: var(--line);
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .submission-mode-btn:hover {
+  background: var(--accent-tint);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+  color: var(--ink);
+}
+
+[data-theme="light"] .submission-mode-label {
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .submission-close-btn {
+  color: var(--ink-faint);
+}
+
+[data-theme="light"] .submission-close-btn:hover {
+  color: var(--ink-soft);
+  background: var(--surface-sunk);
+}
+
+[data-theme="light"] .submission-pick-btn {
+  background: var(--surface-2);
+  border-color: var(--line-strong);
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .submission-pick-btn:hover {
+  background: var(--accent-tint);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+}
+
+[data-theme="light"] .submission-img-preview {
+  background: var(--surface-sunk);
+}
+
+[data-theme="light"] .submission-filename {
+  color: var(--ink);
+}
+
+[data-theme="light"] .submission-filesize {
+  color: var(--ink-faint);
+}
+
+[data-theme="light"] .submission-url-input {
+  background: var(--surface-2);
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+[data-theme="light"] .submission-url-input::placeholder {
+  color: var(--ink-faint);
+}
+
+[data-theme="light"] .submission-cancel-text {
+  color: var(--ink-faint);
+}
+
+[data-theme="light"] .submission-cancel-text:hover:not(:disabled) {
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .ending-win-headline {
+  color: var(--ink);
+}
+
+[data-theme="light"] .ending-failure-headline {
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .ending-win-sub {
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .ending-failure-sub {
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .ending-btn--new {
+  background: var(--surface-2);
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+[data-theme="light"] .ending-btn--new:hover {
+  background: var(--surface-sunk);
+}
+
+[data-theme="light"] .ending-btn--ghost {
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .ending-btn--ghost:hover {
+  color: var(--ink);
 }

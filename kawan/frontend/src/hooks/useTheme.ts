@@ -1,4 +1,4 @@
-// useTheme — reads localStorage('kawan-theme') else prefers-color-scheme,
+// useTheme — reads localStorage('kawan-theme') else defaults to light,
 // applies [data-theme] to <html>, exposes theme + toggle.
 
 import { useCallback, useEffect, useState } from 'react'
@@ -12,9 +12,10 @@ function getInitialTheme(): Theme {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored === 'light' || stored === 'dark') return stored
   } catch {
-    // localStorage blocked — fall through to media query
+    // localStorage blocked — fall through to the default
   }
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  // Sitewide default is light (not system) until the user explicitly toggles.
+  return 'light'
 }
 
 function applyTheme(theme: Theme) {

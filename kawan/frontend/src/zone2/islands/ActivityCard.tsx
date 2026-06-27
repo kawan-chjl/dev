@@ -1,9 +1,10 @@
 // ActivityCard — top-left vertical card of recent notable timeline events.
-// Shows check-ins, verdicts, and applied proposals with MYT date+time.
-// Data: GET /{id}/timeline (useTimeline hook), filtered to notable events.
-// Empty state when no events.
+// Shows check-ins, verdicts, applied proposals, and client-side milestones with MYT date+time.
+// Data: GET /{id}/timeline (useTimeline hook) merged with client milestones (e.g. context captured).
+// Refreshes the timeline whenever refreshSignal changes. Empty state when no events.
 
 import { Activity } from 'lucide-react'
+import { useEffect } from 'react'
 import { useTimeline } from '../../timeline/useTimeline'
 import type { TimelineEvent } from '../../types/api'
 
@@ -48,18 +49,34 @@ function eventLabel(ev: TimelineEvent): string {
   return 'Activity'
 }
 
-interface ActivityCardProps {
-  commitmentId: string
+export interface ActivityMilestone {
+  at: string
+  label: string
 }
 
-export function ActivityCard({ commitmentId }: ActivityCardProps) {
-  const { state, timeline } = useTimeline(commitmentId)
+interface ActivityRow {
+  at: string
+  label: string
+}
 
-  const notableEvents =
-    timeline?.events
-      .filter(isNotable)
-      .slice(-6) // show latest 6 events
-      .reverse() ?? []
+interface ActivityCardProps {
+  commitmentId: string
+  milestones?: ActivityMilestone[]
+  refreshSignal?: number
+}
+
+export function ActivityCard({ commitmentId, milestones = [], refreshSignal = 0 }: ActivityCardProps) {
+  const { state, timeline, refresh } = useTimeline(commitmentId)
+
+  useEffect(() => {
+    if (refreshSignal > 0) void refresh()
+  }, [refreshSignal, refresh])
+
+  const backendRows: ActivityRow[] = (timeline?.events ?? [])
+    .filter(isNotable)
+    .map((ev) => ({ at: ev.at, label: eventLabel(ev) }))
+
+  const rows: ActivityRow[] = [...backendRows, ...milestones].sort((a, b) => b.at.localeCompare(a.at)).slice(0, 6)
 
   return (
     <div className="ws-island activity-card">
@@ -69,22 +86,22 @@ export function ActivityCard({ commitmentId }: ActivityCardProps) {
       </div>
 
       <div className="ws-island-body activity-card-body">
-        {state === 'loading' && (
+        {state === 'loading' && rows.length === 0 && (
           <p className="ws-island-empty" role="status" aria-live="polite">
             Loading...
           </p>
         )}
 
-        {state !== 'loading' && notableEvents.length === 0 && <p className="ws-island-empty">No activity yet.</p>}
+        {state !== 'loading' && rows.length === 0 && <p className="ws-island-empty">No activity yet.</p>}
 
-        {notableEvents.map((ev, i) => (
+        {rows.map((row, i) => (
           <div
-            // biome-ignore lint/suspicious/noArrayIndexKey: timeline events have no stable id in the union
+            // biome-ignore lint/suspicious/noArrayIndexKey: merged rows have no stable id
             key={i}
             className="activity-event-row"
           >
-            <span className="activity-event-time">{fmtMYT(ev.at)}</span>
-            <span className="activity-event-label">{eventLabel(ev)}</span>
+            <span className="activity-event-time">{fmtMYT(row.at)}</span>
+            <span className="activity-event-label">{row.label}</span>
           </div>
         ))}
       </div>

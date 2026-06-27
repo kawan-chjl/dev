@@ -6,6 +6,7 @@ import { useEffect } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { DemoStepBar } from './demo/DemoStepBar'
 import { DemoTourProvider, useDemoTour } from './demo/DemoTour'
+import { Spotlight } from './demo/Spotlight'
 import { isWelcomeDismissed } from './demo/welcomeFlag'
 import { AuthCallback } from './pages/AuthCallback'
 import { Landing } from './pages/Landing'
@@ -74,6 +75,7 @@ function AppRoutes() {
       <TourNavigator />
       {/* Floating step bar — rendered above all routes, only visible when tour is active */}
       <DemoStepBar />
+      <Spotlight />
 
       <Routes>
         {/* Zone 0 — public, no shell chrome */}
