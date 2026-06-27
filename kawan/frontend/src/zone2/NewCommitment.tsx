@@ -262,7 +262,6 @@ function ComposeSection({
             {demoMode ? (
               <span className="nc-demo-deadline">
                 <DatePicker value={deadlineLocal} onChange={setDeadlineLocal} aria-label="Demo deadline" disabled />
-                <span className="nc-demo-deadline-note">Set automatically for the demo</span>
               </span>
             ) : (
               <>
