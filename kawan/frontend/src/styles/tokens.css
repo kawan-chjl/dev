@@ -89,6 +89,9 @@
 
   /* ── Z-index scale ── */
   /* --z-modal sits above sidebar (60) and topbar (50) so backdrop covers all shell layers */
+  --z-topbar: 50;
+  --z-sidebar: 60;
+  --z-step-bar: 70;
   --z-modal: 400;
 
   /* ── Shell dims ── */

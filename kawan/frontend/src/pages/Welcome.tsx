@@ -21,11 +21,6 @@ export function Welcome() {
   // Seed from the persisted me.persona so returning users see their current choice.
   const [selected, setSelected] = useState<Persona>(me?.persona ?? 'kawan')
 
-  async function handleContinue() {
-    await setPersona(selected)
-    navigate('/home')
-  }
-
   function handleSkip() {
     navigate('/home')
   }
@@ -43,7 +38,8 @@ export function Welcome() {
   return (
     <div className="welcome-root">
       <header className="welcome-header">
-        <img src="/kawan-logo.png" alt="Kawan" className="welcome-logo" />
+        <img src="/kawan-logo.png" alt="" className="welcome-logo" />
+        <span className="welcome-wordmark">Kawan</span>
       </header>
 
       <main className="welcome-main">
@@ -79,15 +75,6 @@ export function Welcome() {
           aria-label="Start the guided walkthrough"
         >
           Start the walkthrough
-        </Button>
-
-        <Button
-          variant="secondary"
-          className="welcome-continue-btn"
-          onClick={handleContinue}
-          aria-label={`Continue with ${selected} companion`}
-        >
-          Continue with {personas.find((p) => p.id === selected)?.name}
         </Button>
 
         <div className="welcome-bottom-options">

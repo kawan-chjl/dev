@@ -492,7 +492,7 @@
   position: fixed;
   right: var(--space-6);
   bottom: var(--space-6);
-  z-index: var(--z-topbar);
+  z-index: 40;
   width: 52px;
   height: 52px;
   border-radius: 50%;
@@ -531,6 +531,34 @@
   }
 }
 
+/* ── Help confirm dialog ── */
+.help-confirm-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6);
+}
+
+.help-confirm-title {
+  font-size: var(--text-h3);
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;
+}
+
+.help-confirm-body {
+  font-size: var(--text-small);
+  color: var(--ink-soft);
+  margin: 0;
+  line-height: var(--lh-body);
+}
+
+.help-confirm-actions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+}
+
 /* ── Welcome tour scaffold ── */
 .welcome-bottom-options {
   display: flex;
@@ -564,7 +592,7 @@
   top: var(--space-4);
   left: 50%;
   transform: translateX(-50%);
-  z-index: calc(var(--z-topbar) + 10);
+  z-index: var(--z-step-bar);
   display: flex;
   align-items: center;
   gap: var(--space-4);
@@ -675,7 +703,7 @@
   bottom: var(--space-8);
   left: 50%;
   transform: translateX(-50%);
-  z-index: var(--z-topbar);
+  z-index: var(--z-step-bar);
   pointer-events: auto;
 }
 
