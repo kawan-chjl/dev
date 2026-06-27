@@ -31,6 +31,13 @@ class User(Base):
     access_token: Mapped[str]  # encrypted at rest (Fernet) — never the raw token
     refresh_token: Mapped[str]
     token_expiry: Mapped[datetime]
+    # X-NOTIF (ADR-0006): the linked Telegram chat + a transient deep-link token (short TTL)
+    # consumed once on /start to bind the chat to this user. No prefs table — "linked" ==
+    # telegram_chat_id is set.
+    telegram_chat_id: Mapped[str | None] = mapped_column(default=None)
+    # Indexed: the /start handler resolves a user by this token (keeps the lookup cheap).
+    telegram_link_token: Mapped[str | None] = mapped_column(default=None, index=True)
+    telegram_link_expires: Mapped[datetime | None] = mapped_column(default=None)
     created_at: Mapped[datetime] = mapped_column(default=now_utc)
 
 
@@ -51,6 +58,9 @@ class Commitment(Base):
     stake_enabled: Mapped[bool] = mapped_column(default=False)
     stake_contact_name: Mapped[str | None] = mapped_column(default=None)
     stake_contact_email: Mapped[str | None] = mapped_column(default=None)
+    # X-NOTIF (ADR-0006): the user's OWN reminder address — opt-in, per-Commitment,
+    # distinct from stake_contact_email (the witness). User-set only; the AI never reads it.
+    notify_email: Mapped[str | None] = mapped_column(default=None)
     skip_days_total: Mapped[int] = mapped_column(default=1)
     skip_days_used: Mapped[int] = mapped_column(default=0)
     status: Mapped[str] = mapped_column(default="draft")  # §5.3 enum

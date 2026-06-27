@@ -12,7 +12,21 @@ os.environ.setdefault("KAWAN_SESSION_SECRET", "test-secret-please-change")
 os.environ.setdefault("KAWAN_CHUTES_API_KEY", "")
 
 import httpx  # noqa: E402
+import pytest  # noqa: E402
 import pytest_asyncio  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _isolate_external_creds(monkeypatch):
+    """Force email + Telegram into their no-op/outbox paths so tests never depend on real
+    credentials that may live in the dev .env: a set KAWAN_RESEND_API_KEY would make
+    send_email hit the network, and a set bot token would make /link report configured.
+    Tests that need a channel "on" monkeypatch it back explicitly. (Keeps the harness's
+    "no network" guarantee even after the Resend/Telegram ops were configured locally.)"""
+    from app.config import settings
+    monkeypatch.setattr(settings, "resend_api_key", "")
+    monkeypatch.setattr(settings, "telegram_bot_token", "")
+    monkeypatch.setattr(settings, "telegram_bot_username", "")
 
 
 @pytest_asyncio.fixture(autouse=True)

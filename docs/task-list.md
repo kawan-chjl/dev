@@ -120,29 +120,38 @@ Status lists only — design lives in [`plan.md`](./plan.md). Each piece is also
 
 - [x] C6 frontend-held recent-turn transcript (no schema) + progress-state assembly into the workspace prompt (cross-lane: contracts.py ⇄ client.py ⇄ B5 REST ⇄ /ws) — shipped (PR #72)
 
-### X-NOTIF — Multi-channel check-in notifications + user preferences (PO, 26 Jun) `[deviation: replaces the spec's laddered WS→Push→timeline with a user-selectable PARALLEL fan-out; email-for-check-ins is new — spec reserved email for stake/win-back]`
+### X-NOTIF — Multi-channel reminder delivery: email + Telegram (PO 26 Jun; grilled 27 Jun → ADR-0006 + CONTEXT.md "Delivery") `[deviation: refines the single WS→Push→timeline ladder (TR-17) and reverses email-never-for-check-ins (TR-70)]`
 
-**For check-in reminders only.** Mandatory baseline = **in-app + email**; **Web Push + Telegram** are optional opt-ins added later. All ENABLED channels fire in parallel per check-in (daily cadence = one check-in event/day).
+**Design (ADR-0006).** Two tiers, applied to **reminder Check-ins only** (`cadence` + `winback`):
 
-**Why per-commitment email (PO, 26 Jun):** Kawan accounts are email-less (SIWC) or shared (Guest) — no account email exists to use. So the user provides their **own reminder email per commitment at creation** (sits beside the A6 stake field; no account-level storage; works for Guest). No SIWC email-claim dependency.
+- **Device tier** — the unchanged ladder, carries _every_ message: in-app while the tab is open → else Web Push (the closed-tab fallback, D3, already shipped) → else the timeline row.
+- **Off-device tier** — a reminder tick _additionally_ fans out in **parallel** to every enabled off-device channel: **email** + **Telegram**.
+- Outcomes (verdict / celebration / Miss / Grace) and `on_demand` stay device-tier only — no off-device fan-out.
+- **Email is opt-in per commitment** (supply `notify_email`), **not** mandatory — in-app is the only always-on channel (preserves Guest zero-friction). `[updated: 26-Jun "mandatory in-app+email baseline" → optional]`
+- **"Enabled" = the address / sub / link exists** — no prefs table. `[updated: drops the 26-Jun "notification-preferences store"]`
 
-**Baseline — in-app + per-commitment email (small; build-ready, NOT blocked by C5):**
+**Why per-commitment email:** Kawan accounts are email-less (SIWC) or shared (Guest) — no account email to use. The user gives their **own** reminder email per commitment (beside the A6 stake field; distinct from the witness `stake_contact_email`; works for Guest; no SIWC email-claim dep).
 
-- [ ] Backend: add `notify_email` to `Commitment` `[schema: additive]` — the user's own reminder address, distinct from `stake_contact_email` (the witness) — _agent crew._
-- [ ] Backend: **email check-in sender** — reuse the existing email infra (today stake/win-back only) to email a "time to check in" to `notify_email` on each check-in — _agent crew._ `[ops: needs the SMTP/email provider configured in Render — the stake email already requires this]`
-- [ ] Frontend: a **required reminder-email input** in the create wizard's Terms step (beside the A6 stake fields), validated like the witness email — _Lane A, agent crew._
+**Baseline — email reminders — DONE (27 Jun, local; PR pending). Tests: `test_notify_fanout.py`.**
 
-**Optional layer — Web Push + Telegram opt-ins (heavier; sequence AFTER C5; a teammate off the critical path). Needs a planner breakdown + Gate 1.** Ops deps: VAPID keys + a Telegram bot token (both human).
+- [x] Backend: nullable `notify_email` on `Commitment` `[schema: additive]` — the user's own reminder address, distinct from `stake_contact_email` (witness). Set via PATCH on create-on-Start; deliberately NOT AI-proposable.
+- [x] Backend: **reminder-email sender** (`app/notify.py`) — on a `cadence`/`winback` tick, if `notify_email` is set, emails the in-character `say` line + a `/workspace/:id` deep link + a footer, via the existing Resend/outbox infra (reverses TR-70). `on_demand` excluded.
+- [x] Frontend: **optional reminder-email input** in the wizard Terms step (beside the stake fields), email-validated, distinct from the witness email.
 
-- [ ] Backend: **notification-preferences store** (which optional channels each user enabled, account-level) + a **delivery fan-out** that sends in parallel to every enabled channel — _agent crew._
+**Telegram — full live linking — DONE + AUDITED (27 Jun, local; PR pending). Bot ops complete + live-verified. Tests: `test_telegram.py`.**
 
-- [ ] **Ops (human, like VAPID):** create a Telegram bot via BotFather → set `KAWAN_TELEGRAM_BOT_TOKEN` in Render. _Tuna/team._ **Blocks the rest.**
-- [ ] Backend: `telegram_chat_id` on `User` `[schema change]` + a Telegram sender (Bot API) — _agent crew._
-- [ ] Backend: account-linking flow — deep-link token + webhook (or long-poll) to capture the chat*id on `/start` — \_agent crew.*
-- [ ] Backend: wire Telegram into the check-in delivery ladder (alongside Web Push) — _agent crew._
-- [ ] Frontend: a **"Notifications" section in Settings** — in-app shown as always-on; Web Push + Telegram (+ future) as optional toggles/connect with status. (Email is configured per-commitment in the wizard, not here.) Concrete channels, NOT a generalized gateway abstraction. — _Lane A, agent crew._
-- [ ] Demo shortcut: pre-link a demo `chat_id` in the seed script so the stage demo shows a real Telegram ping without live linking — _agent crew._
-- Open Qs (Gate 1): webhook vs long-poll on Render; Telegram parallel-to vs after Web Push in the ladder.
+- [x] **Ops (human, like VAPID):** `KAWAN_TELEGRAM_BOT_TOKEN` + `KAWAN_TELEGRAM_BOT_USERNAME` set (27 Jun). **Verified live:** getMe ok → bot `@kawan_chjl_bot`; getUpdates 200, no webhook conflict. _Tuna/team._
+- [x] Backend: `telegram_chat_id` + transient link-token/expiry on `User` `[schema: additive]`.
+- [x] Backend: **Telegram sender** (`app/telegram.py`, Bot API `sendMessage`) wired into the off-device reminder fan-out alongside email; no-op without a token.
+- [x] Backend: **long-poll** `getUpdates` task in the FastAPI lifespan (starts only when a token is set) → on `/start <token>`, links the `chat_id` + confirms. `[resolved: long-poll over webhook]`
+- [x] Backend: `GET /api/telegram/status` + `POST /api/telegram/link|unlink` linking endpoints.
+- [x] Frontend: **"Connect Telegram"** in Settings → opens `t.me/<bot>?start=<token>`, polls status → "Connected" / Disconnect.
+- [x] Frontend: Settings **"Check-in notifications"** expanded to all four channels — in-app (always-on) · email (per-commitment note) · Web Push (toggle) · Telegram (connect/status).
+- [x] Demo: Telegram via live Connect (Settings) + email via the per-commitment reminder field — the real flow, no pre-seed env vars.
+
+> **Deploy gate (schema): ✅ APPLIED (27 Jun).** The 4 nullable columns — `commitments.notify_email` + `users.telegram_chat_id` / `telegram_link_token` / `telegram_link_expires` — were applied + verified directly on the live Supabase DB (idempotent `ADD COLUMN IF NOT EXISTS`; `create_all` keeps them on fresh DBs, so no migration framework is tracked). ✅ Resend env set. ✅ Single-instance long-poll handled by a Postgres advisory lock (`pg_try_advisory_lock`) — requires the **session pooler (5432)**, per DEPLOY.md. **Remaining: deploy the (still-uncommitted) code.**
+
+_Resolved open Qs (Gate 1): transport = **long-poll**; Telegram fires **parallel to** Web Push (independent channels, not laddered); prefs = **implicit-by-existence**._
 
 ### X-DEMO — Demo Mode (spec §6.4, §12.5) — on a DEDICATED account, never shared Guest
 

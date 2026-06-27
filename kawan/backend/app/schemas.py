@@ -3,6 +3,7 @@ the AI layer never does (it can only return slots for the soft_context UPSERT)."
 
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from typing import Any
 
@@ -36,6 +37,7 @@ class CommitmentPatch(BaseModel):
     stake_enabled: bool | None = None
     stake_contact_name: str | None = None
     stake_contact_email: str | None = None
+    notify_email: str | None = None  # X-NOTIF: the user's own reminder address (ADR-0006)
     skip_days_total: int | None = None
 
     @field_validator("deadline")
@@ -46,6 +48,16 @@ class CommitmentPatch(BaseModel):
         v = as_utc(v)
         if v <= now_utc():
             raise ValueError("deadline must be in the future")
+        return v
+
+    @field_validator("notify_email", "stake_contact_email")
+    @classmethod
+    def _valid_email(cls, v: str | None) -> str | None:
+        """Reject malformed addresses at the boundary — both reach the email senders."""
+        if v in (None, ""):
+            return v
+        if not re.match(r"\S+@\S+\.\S+", v):
+            raise ValueError("invalid email address")
         return v
 
 
@@ -104,6 +116,7 @@ class CommitmentOut(BaseModel):
     stake_enabled: bool
     stake_contact_name: str | None
     stake_contact_email: str | None
+    notify_email: str | None
     skip_days_total: int
     skip_days_used: int
     status: str

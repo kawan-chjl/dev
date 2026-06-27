@@ -54,6 +54,11 @@ class Settings(BaseSettings):
     resend_api_key: str = ""
     email_from: str = "Kawan <kawan@example.com>"
 
+    # Telegram check-in channel (Bot API, X-NOTIF/ADR-0006). No token → every send is a
+    # no-op and the long-poll linking loop never starts (mirrors Web Push without VAPID).
+    telegram_bot_token: str = ""
+    telegram_bot_username: str = ""  # e.g. "KawanBot" (no @) — for the t.me/<bot>?start= deep link
+
     @property
     def idp_authorize_url(self) -> str:
         return f"{self.chutes_api_base_url}/idp/authorize"

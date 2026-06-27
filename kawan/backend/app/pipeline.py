@@ -12,7 +12,7 @@ from datetime import timedelta
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import email, push, scheduler, state
+from app import email, notify, push, scheduler, state
 from app.contracts import EvidenceBundle
 from app.models import Checkin, Commitment, Evidence
 from app.util import as_utc, now_utc
@@ -145,6 +145,8 @@ async def run_checkin(db: AsyncSession, c: Commitment, kind: str) -> Checkin:
                "emotion": line.get("emotion"), "escalation": c.escalation, "evidence_id": evidence_id}
     ck.delivered_via = await deliver(db, c.user_id, payload)
     await db.commit()
+    if kind == "cadence":  # off-device reminder fan-out (ADR-0006); on_demand stays device-only
+        await notify.send_reminder(db, c, line["say"])
     return ck
 
 
@@ -171,6 +173,7 @@ async def send_winback(db: AsyncSession, c: Commitment) -> Checkin:
     await db.commit()
     ck.delivered_via = await deliver(db, c.user_id, {"type": "winback", "say": say})
     await db.commit()
+    await notify.send_reminder(db, c, say)  # winback is a reminder → off-device fan-out (ADR-0006)
     return ck
 
 

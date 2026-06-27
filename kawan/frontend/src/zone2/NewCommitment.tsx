@@ -56,6 +56,7 @@ interface DraftPlan {
   stake_enabled: boolean
   stake_contact_name: string
   stake_contact_email: string
+  notify_email: string // X-NOTIF: the user's own reminder email (optional)
 }
 
 const DEFAULT_DRAFT_PLAN: DraftPlan = {
@@ -65,8 +66,12 @@ const DEFAULT_DRAFT_PLAN: DraftPlan = {
   skip_days_total: 0,
   stake_enabled: false,
   stake_contact_name: '',
-  stake_contact_email: ''
+  stake_contact_email: '',
+  notify_email: ''
 }
+
+// Shared lenient email check (X-NOTIF): reminder email + stake witness email.
+const isValidEmail = (value: string): boolean => /\S+@\S+\.\S+/.test(value)
 
 // ── StepPanel: fade+rise animation on step entry ─────────────────────────────
 
@@ -421,6 +426,24 @@ function PlanSection({
               )}
             </div>
           )}
+
+          {/* X-NOTIF (ADR-0006): optional per-commitment reminder email — the user's OWN
+              address, distinct from the witness above. Blank = in-app only. */}
+          <div className="plan-setting-row plan-setting-repo">
+            <span className="plan-setting-label">Reminder email</span>
+            <p className="toggle-sub">Optional. We&apos;ll email you when it&apos;s time to check in.</p>
+            <input
+              className="plan-setting-input"
+              type="email"
+              placeholder="you@example.com"
+              aria-label="Your reminder email"
+              value={draft.notify_email}
+              onChange={(e) => onDraftChange({ ...draft, notify_email: e.target.value })}
+            />
+            {draft.notify_email.trim() !== '' && !isValidEmail(draft.notify_email) && (
+              <p className="compose-error">Enter a valid email, or leave this blank.</p>
+            )}
+          </div>
         </div>
       </div>
     </StepPanel>
@@ -554,11 +577,11 @@ export function NewCommitment() {
   const composeValid = isComposeValid()
 
   // Whether the stake witness contact is complete and valid (name + valid email).
-  const stakeContactValid = Boolean(
-    draftPlan.stake_contact_name.trim() && /\S+@\S+\.\S+/.test(draftPlan.stake_contact_email)
-  )
+  const stakeContactValid = Boolean(draftPlan.stake_contact_name.trim() && isValidEmail(draftPlan.stake_contact_email))
   // True when the toggle is on but the contact is incomplete — blocks Start.
   const stakeIncomplete = draftPlan.stake_enabled && !stakeContactValid
+  // Reminder email is optional; only a non-empty invalid value blocks Start (X-NOTIF).
+  const notifyEmailInvalid = draftPlan.notify_email.trim() !== '' && !isValidEmail(draftPlan.notify_email)
 
   // Island steps with completion state
   const islandSteps: IslandStep[] = [
@@ -635,11 +658,13 @@ export function NewCommitment() {
       // stakeContactValid is pre-checked above; stakeIncomplete blocks reaching here, so if toggle is on,
       // the contact is guaranteed valid.
       const stakeValid = Boolean(draftPlan.stake_enabled && stakeContactValid)
+      const notifyEmail = draftPlan.notify_email.trim()
       const needsPatch =
         draftPlan.cadence !== created.cadence ||
         draftPlan.evidence_type !== created.evidence_type ||
         draftPlan.skip_days_total !== created.skip_days_total ||
-        stakeValid
+        stakeValid ||
+        notifyEmail !== ''
       if (needsPatch) {
         const patchBody: Parameters<typeof patchCommitment>[1] = {
           cadence: draftPlan.cadence,
@@ -652,6 +677,7 @@ export function NewCommitment() {
           patchBody.stake_contact_name = draftPlan.stake_contact_name.trim()
           patchBody.stake_contact_email = draftPlan.stake_contact_email.trim()
         }
+        if (notifyEmail) patchBody.notify_email = notifyEmail
         await patchCommitment(created.id, patchBody)
       }
       // 3. Start the commitment (draft to active)
@@ -668,7 +694,8 @@ export function NewCommitment() {
   }
 
   // The final step's Continue becomes Start commitment; requires composeValid + companion selected + no incomplete stake.
-  const continueDisabled = isFinalStep && (!composeValid || selectedPersona === null || stakeIncomplete)
+  const continueDisabled =
+    isFinalStep && (!composeValid || selectedPersona === null || stakeIncomplete || notifyEmailInvalid)
 
   return (
     <div className="workspace-root nc-root">
