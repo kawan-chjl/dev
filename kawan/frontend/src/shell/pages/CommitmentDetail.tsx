@@ -4,11 +4,13 @@
 // Timeline section: event log using shared eventRows.tsx.
 // recordRecentCommitment called on mount so Home Recent Activity is updated.
 
-import { ExternalLink, Lock } from 'lucide-react'
-import { useEffect } from 'react'
+import { ExternalLink, Lock, Share2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useAuth } from '../../auth/AuthProvider'
 import { recordRecentCommitment } from '../../commitments/recent'
 import { useActiveCommitment } from '../../commitments/useActiveCommitment'
+import { ShareWinDialog } from '../../share/ShareWinDialog'
 import { CheckinEventRow, EvidenceEventRow, ProposalEventRow } from '../../timeline/eventRows'
 import { verifiedCount } from '../../timeline/metrics'
 import { useTimeline } from '../../timeline/useTimeline'
@@ -58,6 +60,8 @@ const DETAIL_SECTIONS: PageSection[] = [
 
 function OverviewSection({ commitment }: { commitment: Commitment }) {
   const { timeline } = useTimeline(commitment.id)
+  const { me } = useAuth()
+  const [shareOpen, setShareOpen] = useState(false)
   const events = timeline?.events ?? []
   const verified = verifiedCount(events)
   const totalCheckins = events.filter((e) => e.type === 'evidence').length
@@ -72,6 +76,16 @@ function OverviewSection({ commitment }: { commitment: Commitment }) {
         ? 'not sure yet'
         : 'no pass'
     : null
+
+  // Win date: latest pass-verdict evidence event (OQ-A9-DATE decision).
+  const latestPassEvent = [...events]
+    .reverse()
+    .find(
+      (e): e is Extract<(typeof events)[number], { type: 'evidence' }> => e.type === 'evidence' && e.verdict === 'pass'
+    )
+  const winDateIso = latestPassEvent?.at ?? new Date().toISOString()
+
+  const showShareButton = verified > 0 && me?.persona != null
 
   return (
     <section id="section-overview" className="detail-section">
@@ -97,7 +111,25 @@ function OverviewSection({ commitment }: { commitment: Commitment }) {
           </p>
         )}
         {events.length === 0 && <p className="detail-overview-empty">No check-ins yet. Open the workspace to start.</p>}
+        {showShareButton && (
+          <div className="share-win-entry">
+            <Button variant="primary" onClick={() => setShareOpen(true)}>
+              <Share2 size={16} aria-hidden="true" />
+              Share win
+            </Button>
+          </div>
+        )}
       </Card>
+
+      {showShareButton && me?.persona != null && (
+        <ShareWinDialog
+          open={shareOpen}
+          onClose={() => setShareOpen(false)}
+          commitment={commitment}
+          winDateIso={winDateIso}
+          persona={me.persona}
+        />
+      )}
     </section>
   )
 }

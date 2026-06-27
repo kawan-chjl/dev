@@ -7,6 +7,7 @@ import { TrendingUp } from 'lucide-react'
 import { useCommitments } from '../../commitments/useCommitments'
 import { AnalyticsPanel } from '../../timeline/AnalyticsPanel'
 import { IdentityTitle } from '../../timeline/IdentityTitle'
+import { ProductivityMeter } from '../../timeline/ProductivityMeter'
 import { useTimeline } from '../../timeline/useTimeline'
 import { Card } from '../../ui/Card'
 import { PageHeader } from '../PageHeader'
@@ -46,6 +47,7 @@ export function Analytics() {
     <div className="shell-page">
       <PageHeader title="Analytics" subtitle="Your check-ins and verdicts over time." />
       <IdentityTitle />
+      <ProductivityMeter />
 
       {state === 'loading' && <p className="timeline-loading">Loading...</p>}
 

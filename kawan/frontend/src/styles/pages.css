@@ -3439,3 +3439,175 @@
   color: var(--ink-soft);
   margin-left: auto;
 }
+
+/* ── Productivity meter (A8, spec §11.4, TR-75) ── */
+.productivity-meter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--sage-tint);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-5);
+}
+
+.productivity-meter-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.productivity-meter-icon {
+  color: var(--sage-deep);
+  flex-shrink: 0;
+}
+
+.productivity-meter-label {
+  font-family: var(--font-display);
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--sage-deep);
+  line-height: 1;
+}
+
+.productivity-meter-value {
+  font-family: var(--font-body);
+  font-size: var(--text-caption);
+  color: var(--ink-soft);
+  margin-left: auto;
+}
+
+.productivity-meter-track {
+  position: relative;
+  height: 8px;
+  background: var(--surface-sunk);
+  border-radius: var(--radius-pill);
+  overflow: visible;
+}
+
+.productivity-meter-fill {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  background: var(--sage-deep);
+  border-radius: var(--radius-pill);
+  transition: width 400ms var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .productivity-meter-fill {
+    transition: none;
+  }
+}
+
+.productivity-meter-tick {
+  position: absolute;
+  top: -2px;
+  width: 2px;
+  height: 12px;
+  background: var(--surface-sunk);
+  border-radius: 1px;
+  transform: translateX(-50%);
+}
+
+.productivity-meter-tick.is-reached {
+  background: var(--sage);
+}
+
+.productivity-meter-hint {
+  font-family: var(--font-body);
+  font-size: var(--text-caption);
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* ── Win-receipt share card (A9, spec §11.4, TR-75) ── */
+
+.share-win-entry {
+  margin-top: var(--space-4);
+  display: flex;
+  justify-content: flex-start;
+}
+
+.share-win-panel {
+  max-width: 560px;
+  width: 100%;
+}
+
+.share-win-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.share-win-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.share-win-dialog-title {
+  font-family: var(--font-display);
+  font-size: var(--text-h3);
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;
+}
+
+.share-win-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--ink-soft);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.share-win-close:hover {
+  background: var(--surface-sunk);
+  color: var(--ink);
+}
+
+.share-win-preview {
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-sunk);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.share-win-preview-img {
+  max-width: 100%;
+  display: block;
+  border-radius: var(--radius-md);
+}
+
+.share-win-status {
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+.share-win-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  text-align: center;
+  color: var(--ink-soft);
+  font-size: var(--text-small);
+}
+
+.share-win-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
