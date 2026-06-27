@@ -8,6 +8,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MOCK_AUTH } from '../../auth/api'
 import { deleteCommitment } from '../../commitments/api'
+import { statusLabel } from '../../commitments/statusLabel'
 import { useActiveCommitment } from '../../commitments/useActiveCommitment'
 import { useCommitments } from '../../commitments/useCommitments'
 import { useNotifications } from '../../notifications/NotificationProvider'
@@ -275,7 +276,7 @@ export function Commitments() {
                         <td className="commitments-table-action">{c.action}</td>
                         <td className="commitments-table-deliverable">{c.deliverable}</td>
                         <td>
-                          <Chip variant={c.status === 'active' ? 'sage' : 'default'}>{c.status}</Chip>
+                          <Chip variant={c.status === 'active' ? 'sage' : 'default'}>{statusLabel(c.status)}</Chip>
                         </td>
                         <td>
                           <Badge variant="muted">{formatDate(c.deadline)}</Badge>

@@ -3,6 +3,7 @@
 
 import { Plus, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { statusLabel } from '../commitments/statusLabel'
 import type { Commitment } from '../types/api'
 import { Button } from '../ui/Button'
 import { Chip } from '../ui/Chip'
@@ -60,7 +61,7 @@ export function WorkspacePickerModal({ open, commitments, onClose }: WorkspacePi
                   <span className="ws-modal-item-action">{c.action}</span>
                   <span className="ws-modal-item-deliverable">{c.deliverable}</span>
                 </div>
-                <Chip variant={formatStatus(c.status)}>{c.status}</Chip>
+                <Chip variant={formatStatus(c.status)}>{statusLabel(c.status)}</Chip>
               </button>
             </li>
           ))}

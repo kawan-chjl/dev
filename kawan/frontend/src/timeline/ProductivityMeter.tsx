@@ -45,9 +45,11 @@ export function ProductivityMeter() {
   const fillPct = info.nextThreshold === null ? 100 : Math.round((wins / 10) * 100)
 
   const nextHint =
-    info.nextThreshold !== null
-      ? `${info.nextThreshold - wins} more verified win${info.nextThreshold - wins === 1 ? '' : 's'} to ${deriveTitle(info.nextThreshold).label}`
-      : 'Top rank reached'
+    wins === 0
+      ? '1 verified win to get started'
+      : info.nextThreshold !== null
+        ? `${info.nextThreshold - wins} more verified win${info.nextThreshold - wins === 1 ? '' : 's'} to ${deriveTitle(info.nextThreshold).label}`
+        : 'Top rank reached'
 
   const pluralWins = wins === 1 ? 'verified win' : 'verified wins'
 

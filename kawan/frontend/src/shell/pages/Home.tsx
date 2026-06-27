@@ -6,6 +6,7 @@ import { BarChart2, Briefcase, ClipboardList, Clock } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getRecentCommitmentIds } from '../../commitments/recent'
+import { statusLabel } from '../../commitments/statusLabel'
 import { useCommitments } from '../../commitments/useCommitments'
 import { getMockActive, setMockActive } from '../../mock/provider'
 import type { Commitment } from '../../types/api'
@@ -90,7 +91,7 @@ function HomeLayout({ commitments }: { commitments: Commitment[] }) {
                 <li key={c.id} className="home-recent-item">
                   <button type="button" className="home-recent-btn" onClick={() => navigate(`/commitments/${c.id}`)}>
                     <span className="home-recent-action">{c.action}</span>
-                    <Chip variant={c.status === 'active' ? 'sage' : 'default'}>{c.status}</Chip>
+                    <Chip variant={c.status === 'active' ? 'sage' : 'default'}>{statusLabel(c.status)}</Chip>
                   </button>
                 </li>
               ))}

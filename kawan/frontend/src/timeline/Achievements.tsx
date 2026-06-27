@@ -98,7 +98,7 @@ export function Achievements() {
       <div className="achievements-header">
         <Award size={16} aria-hidden="true" className="achievements-header-icon" />
         <span className="achievements-header-label">Achievements</span>
-        <span className="achievements-count-chip" title={`${earnedCount} of ${total} earned`}>
+        <span className="achievements-count-chip">
           {earnedCount} of {total}
         </span>
       </div>
@@ -118,10 +118,7 @@ export function Achievements() {
           {ordered.map((achievement) => {
             const Icon = iconFor(achievement.code)
             return (
-              <li
-                key={achievement.code}
-                className={`achievements-tile${achievement.earned ? ' is-earned' : ' is-locked'}`}
-              >
+              <li key={achievement.code} className={`achievements-tile${achievement.earned ? '' : ' is-locked'}`}>
                 <div className="achievements-tile-icon" aria-hidden="true">
                   <Icon size={20} />
                 </div>
