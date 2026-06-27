@@ -28,7 +28,11 @@ export function FinishIsland({ commitmentId, commitment }: FinishIslandProps) {
 
   function handleVerdict(v: EvidenceVerdict) {
     setVerdict(v)
-    if (v.verdict === 'pass') {
+    // Gate the win sequence on the backend-confirmed 'completed' status, not merely on
+    // verdict === 'pass'. The backend returns status:'completed' only when ?finish=true
+    // was passed and the state machine successfully transitioned. This is the iron-rule-safe
+    // path: never fake completion in the UI.
+    if (v.status === 'completed') {
       setWinDate(new Date().toISOString())
       setPhase('complete')
     } else {
@@ -71,7 +75,12 @@ export function FinishIsland({ commitmentId, commitment }: FinishIslandProps) {
           )}
 
           {phase === 'submitting' && (
-            <SubmissionPanel commitmentId={commitmentId} onVerdict={handleVerdict} onCancel={() => setPhase('idle')} />
+            <SubmissionPanel
+              commitmentId={commitmentId}
+              onVerdict={handleVerdict}
+              onCancel={() => setPhase('idle')}
+              finish
+            />
           )}
 
           {phase === 'verdict' && verdict && (

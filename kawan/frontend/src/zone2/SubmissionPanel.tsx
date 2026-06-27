@@ -21,16 +21,20 @@ interface SubmissionPanelProps {
   commitmentId: string
   onVerdict: (verdict: EvidenceVerdict) => void
   onCancel: () => void
+  /** When true, passes ?finish=true to the evidence endpoints so a pass completes the commitment. */
+  finish?: boolean
 }
 
-/** Validate a GitHub URL looks like a github.com repo, PR or commit URL. */
+/** Validate a GitHub URL looks like a bare github.com repo URL (owner/repo only).
+ * PR and commit URLs are NOT accepted — the backend parser rejects them (returns unclear).
+ * Per docs/po-decisions.md §2: repo URLs only. */
 function isValidGithubUrl(url: string): boolean {
   try {
     const u = new URL(url)
     if (u.hostname !== 'github.com') return false
-    // path must have at least /owner/repo
+    // path must be exactly /owner/repo — no extra segments (no /pull/..., /commit/..., etc.)
     const parts = u.pathname.split('/').filter(Boolean)
-    return parts.length >= 2
+    return parts.length === 2
   } catch {
     return false
   }
@@ -40,7 +44,7 @@ function bytesToMB(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-export function SubmissionPanel({ commitmentId, onVerdict, onCancel }: SubmissionPanelProps) {
+export function SubmissionPanel({ commitmentId, onVerdict, onCancel, finish = false }: SubmissionPanelProps) {
   const [mode, setMode] = useState<SubmissionMode | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
@@ -96,7 +100,7 @@ export function SubmissionPanel({ commitmentId, onVerdict, onCancel }: Submissio
       }
       setSubmitting(true)
       try {
-        const verdict = await uploadEvidence(commitmentId, file)
+        const verdict = await uploadEvidence(commitmentId, file, finish)
         onVerdict(verdict)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Upload failed.')
@@ -110,7 +114,7 @@ export function SubmissionPanel({ commitmentId, onVerdict, onCancel }: Submissio
       }
       setSubmitting(true)
       try {
-        const verdict = await uploadFileEvidence(commitmentId, file)
+        const verdict = await uploadFileEvidence(commitmentId, file, finish)
         onVerdict(verdict)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Upload failed.')
@@ -119,16 +123,16 @@ export function SubmissionPanel({ commitmentId, onVerdict, onCancel }: Submissio
       }
     } else if (mode === 'github') {
       if (!githubUrl.trim()) {
-        setError('Please enter a GitHub URL.')
+        setError('Please enter a GitHub repo URL.')
         return
       }
       if (!isValidGithubUrl(githubUrl.trim())) {
-        setError('Enter a valid github.com repo, PR, or commit URL.')
+        setError('Enter a GitHub repo URL, e.g. https://github.com/owner/repo')
         return
       }
       setSubmitting(true)
       try {
-        const verdict = await submitGithubLink(commitmentId, githubUrl.trim())
+        const verdict = await submitGithubLink(commitmentId, githubUrl.trim(), finish)
         onVerdict(verdict)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Submission failed.')
@@ -283,11 +287,12 @@ export function SubmissionPanel({ commitmentId, onVerdict, onCancel }: Submissio
               <X size={14} aria-hidden="true" />
             </button>
           </div>
+          <p className="submission-github-hint">Paste your GitHub repo URL (e.g. https://github.com/owner/repo)</p>
           <input
             type="url"
             className="submission-url-input"
             placeholder="https://github.com/owner/repo"
-            aria-label="GitHub URL"
+            aria-label="GitHub repo URL"
             value={githubUrl}
             onChange={(e) => {
               setGithubUrl(e.target.value)

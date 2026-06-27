@@ -216,6 +216,72 @@ async def test_debrief_409_when_not_completed(client):
     assert r.status_code == 409
 
 
+# ── Finish-Now: ?finish=true on an ACTIVE commitment must complete it on pass ────
+
+async def test_finish_now_active_commitment_pass_completes(client, db):
+    """Finish-Now with ?finish=true on an active commitment: a pass verdict must
+    transition the commitment to 'completed' (not just return 'pass' and leave it active).
+    This is the MAJOR-1 QA fix: active/lapsed → verifying before judging, then
+    apply_final_verdict runs as in the normal deadline path."""
+    cid = (await client.post("/api/commitments",
+                             json={"action": "ship", "deliverable": "d", "deadline": _future()})).json()["id"]
+    await client.post(f"/api/commitments/{cid}/start")
+
+    # Confirm it's active before finishing.
+    r = await client.get(f"/api/commitments/{cid}")
+    assert r.json()["status"] == "active"
+
+    # Submit file evidence with ?finish=true — StubFileAdapter returns pass for any non-empty upload.
+    r = await client.post(
+        f"/api/commitments/{cid}/evidence/file?finish=true",
+        files={"file": ("proof.txt", b"shipped the feature", "text/plain")},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["verdict"] == "pass"
+    assert body["status"] == "completed"  # backend confirms completion
+
+    # Confirm DB is actually completed (not just a response field).
+    c = await db.get(Commitment, cid)
+    assert c.status == "completed"
+
+
+async def test_finish_now_fail_stays_active(client, db):
+    """Finish-Now with a fail verdict must NOT complete the commitment; it should
+    stay active (or lapsed) so the user can try again."""
+    import app.wiring as _wiring
+
+    class _FailFileAdapter:
+        type = "file"
+        trust = "medium"
+        async def fetch(self, c, since): ...
+        async def judge(self, c, b, llm):
+            from app.contracts import Verdict
+            return Verdict("fail", 0.8, ["not convincing"], "Evidence doesn't match.", None)
+
+    original = _wiring.ADAPTERS.get("file")
+    _wiring.ADAPTERS["file"] = _FailFileAdapter()
+    try:
+        cid = (await client.post("/api/commitments",
+                                 json={"action": "ship", "deliverable": "d", "deadline": _future()})).json()["id"]
+        await client.post(f"/api/commitments/{cid}/start")
+        r = await client.post(
+            f"/api/commitments/{cid}/evidence/file?finish=true",
+            files={"file": ("proof.txt", b"weak", "text/plain")},
+        )
+        assert r.status_code == 200
+        body = r.json()
+        assert body["verdict"] == "fail"
+        # On fail with no skip days the state machine transitions to missed (grace=0 by default)
+        # OR it stays in grace if skip days > 0. Either way it must NOT be completed.
+        assert body["status"] != "completed"
+        c = await db.get(Commitment, cid)
+        assert c.status != "completed"
+    finally:
+        if original is not None:
+            _wiring.ADAPTERS["file"] = original
+
+
 async def test_debrief_no_audit_log_row(client, db):
     """Debrief must not write an AuditLog row (no AI actor, no hard-field mutation)."""
     cid = (await client.post("/api/commitments",

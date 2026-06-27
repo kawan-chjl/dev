@@ -63,7 +63,7 @@ function makeMockIntakeMessage(text: string, emotion: Emotion = 'curious'): Work
 // Static canned mock intake — 4 turns then chat, zero network.
 const MOCK_INTAKE_TURNS = [
   {
-    say: "Before we dive in — I have 4 quick questions to get the full picture. First: what's the deeper reason this matters to you?",
+    say: "Before we dive in, I have 4 quick questions to get the full picture. First: what's the deeper reason this matters to you?",
     emotion: 'curious' as Emotion
   },
   { say: "And what's the main obstacle you're already expecting?", emotion: 'skeptical' as Emotion },

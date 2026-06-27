@@ -277,8 +277,8 @@ _DOC_LEGACY_TYPES = {"application/msword"}  # .doc -- rejected with a friendly m
 
 
 @router.post("/{commitment_id}/evidence")
-async def evidence(file: UploadFile = File(...), c: Commitment = Depends(_owned),
-                   db: AsyncSession = Depends(get_session)):
+async def evidence(file: UploadFile = File(...), finish: bool = Query(False),
+                   c: Commitment = Depends(_owned), db: AsyncSession = Depends(get_session)):
     import base64
     if file.content_type not in _ALLOWED_IMAGE_TYPES:
         raise HTTPException(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
@@ -288,13 +288,16 @@ async def evidence(file: UploadFile = File(...), c: Commitment = Depends(_owned)
         raise HTTPException(413, "evidence file exceeds the 8 MB limit")
     image_b64 = base64.b64encode(raw).decode()
     await record_contact(db, c)
+    if finish and c.status in ("active", "lapsed"):
+        await state.begin_verifying(db, c)
     ev = await pipeline.judge_upload(db, c, {"filename": file.filename}, image_b64=image_b64)
-    return {"verdict": ev.verdict, "confidence": ev.confidence, "reasoning": ev.reasoning, "evidence_id": ev.id}
+    return {"verdict": ev.verdict, "confidence": ev.confidence, "reasoning": ev.reasoning,
+            "evidence_id": ev.id, "status": c.status}
 
 
 @router.post("/{commitment_id}/evidence/file")
-async def evidence_file(file: UploadFile = File(...), c: Commitment = Depends(_owned),
-                        db: AsyncSession = Depends(get_session)):
+async def evidence_file(file: UploadFile = File(...), finish: bool = Query(False),
+                        c: Commitment = Depends(_owned), db: AsyncSession = Depends(get_session)):
     from app.adapters.file import _extract_text
     if file.content_type in _DOC_LEGACY_TYPES or (file.filename or "").lower().endswith(".doc"):
         raise HTTPException(
@@ -312,6 +315,8 @@ async def evidence_file(file: UploadFile = File(...), c: Commitment = Depends(_o
     filename = file.filename or "upload"
     text = _extract_text(filename, raw)
     await record_contact(db, c)
+    if finish and c.status in ("active", "lapsed"):
+        await state.begin_verifying(db, c)
     from app.contracts import EvidenceBundle
     from app.wiring import adapter_for
     adapter = adapter_for("file")
@@ -338,18 +343,21 @@ async def evidence_file(file: UploadFile = File(...), c: Commitment = Depends(_o
         await db.commit()
         from app.pipeline import _verdict_payload, deliver
         await deliver(db, c.user_id, _verdict_payload(ev, verdict))
-    return {"verdict": ev.verdict, "confidence": ev.confidence, "reasoning": ev.reasoning, "evidence_id": ev.id}
+    return {"verdict": ev.verdict, "confidence": ev.confidence, "reasoning": ev.reasoning,
+            "evidence_id": ev.id, "status": c.status}
 
 
 @router.post("/{commitment_id}/evidence/github-link")
-async def evidence_github_link(body: GitHubLinkIn, c: Commitment = Depends(_owned),
-                               db: AsyncSession = Depends(get_session)):
+async def evidence_github_link(body: GitHubLinkIn, finish: bool = Query(False),
+                               c: Commitment = Depends(_owned), db: AsyncSession = Depends(get_session)):
     from app.adapters.github import GitHubAdapter, fetch_repo_url
     from app.wiring import adapter_for
     adapter = adapter_for("github")
     # fetch_repo_url never raises -- returns empty bundle on unreachable/missing repo
     bundle = await fetch_repo_url(adapter, body.url, c)
     await record_contact(db, c)
+    if finish and c.status in ("active", "lapsed"):
+        await state.begin_verifying(db, c)
     verdict = await adapter.judge(c, bundle, LLM)
     from app.models import Evidence
     ev = Evidence(commitment_id=c.id, adapter="github", raw_ref=bundle.raw_ref,
@@ -367,7 +375,8 @@ async def evidence_github_link(body: GitHubLinkIn, c: Commitment = Depends(_owne
         await db.commit()
         from app.pipeline import _verdict_payload, deliver
         await deliver(db, c.user_id, _verdict_payload(ev, verdict))
-    return {"verdict": ev.verdict, "confidence": ev.confidence, "reasoning": ev.reasoning, "evidence_id": ev.id}
+    return {"verdict": ev.verdict, "confidence": ev.confidence, "reasoning": ev.reasoning,
+            "evidence_id": ev.id, "status": c.status}
 
 
 @router.post("/{commitment_id}/abandon", response_model=CommitmentOut)

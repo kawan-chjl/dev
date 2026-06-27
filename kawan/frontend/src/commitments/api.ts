@@ -230,12 +230,15 @@ export async function deleteMyData(): Promise<void> {
   throw new Error(`DELETE /api/me/data returned ${res.status}`)
 }
 
-/** Verdict response from evidence submission endpoints. */
+/** Verdict response from evidence submission endpoints.
+ * `status` is included when the endpoint was called with ?finish=true and reflects
+ * the commitment's status after any state transition (e.g. 'completed'). */
 export interface EvidenceVerdict {
   verdict: 'pass' | 'fail' | 'unclear'
   confidence: number | null
   reasoning: string | null
   evidence_id: string
+  status?: string
 }
 
 /** Client-side MIME type allow-list for screenshot uploads (mirrors backend _ALLOWED_IMAGE_TYPES). */
@@ -255,11 +258,16 @@ export const ALLOWED_FILE_TYPES = new Set([
 /**
  * POST /api/commitments/{id}/evidence  (multipart, screenshot)
  * Returns the 3-valued verdict from the AI judge.
+ * Pass `finish=true` to transition active/lapsed → verifying before judging so a pass
+ * results in `status: 'completed'` in the response (Finish-Now path).
  */
-export async function uploadEvidence(commitmentId: string, file: File): Promise<EvidenceVerdict> {
+export async function uploadEvidence(commitmentId: string, file: File, finish = false): Promise<EvidenceVerdict> {
   const form = new FormData()
   form.append('file', file)
-  const res = await fetch(`/api/commitments/${commitmentId}/evidence`, {
+  const url = finish
+    ? `/api/commitments/${commitmentId}/evidence?finish=true`
+    : `/api/commitments/${commitmentId}/evidence`
+  const res = await fetch(url, {
     method: 'POST',
     credentials: 'include',
     body: form
@@ -280,11 +288,16 @@ export async function uploadEvidence(commitmentId: string, file: File): Promise<
 /**
  * POST /api/commitments/{id}/evidence/file  (multipart, .txt/.md/.csv/.pdf/.docx)
  * Returns the 3-valued verdict from the AI judge.
+ * Pass `finish=true` to transition active/lapsed → verifying before judging so a pass
+ * results in `status: 'completed'` in the response (Finish-Now path).
  */
-export async function uploadFileEvidence(commitmentId: string, file: File): Promise<EvidenceVerdict> {
+export async function uploadFileEvidence(commitmentId: string, file: File, finish = false): Promise<EvidenceVerdict> {
   const form = new FormData()
   form.append('file', file)
-  const res = await fetch(`/api/commitments/${commitmentId}/evidence/file`, {
+  const url = finish
+    ? `/api/commitments/${commitmentId}/evidence/file?finish=true`
+    : `/api/commitments/${commitmentId}/evidence/file`
+  const res = await fetch(url, {
     method: 'POST',
     credentials: 'include',
     body: form
@@ -305,9 +318,14 @@ export async function uploadFileEvidence(commitmentId: string, file: File): Prom
 /**
  * POST /api/commitments/{id}/evidence/github-link  { url }
  * Returns the 3-valued verdict from the AI judge.
+ * Pass `finish=true` to transition active/lapsed → verifying before judging so a pass
+ * results in `status: 'completed'` in the response (Finish-Now path).
  */
-export async function submitGithubLink(commitmentId: string, url: string): Promise<EvidenceVerdict> {
-  const res = await fetch(`/api/commitments/${commitmentId}/evidence/github-link`, {
+export async function submitGithubLink(commitmentId: string, url: string, finish = false): Promise<EvidenceVerdict> {
+  const endpoint = finish
+    ? `/api/commitments/${commitmentId}/evidence/github-link?finish=true`
+    : `/api/commitments/${commitmentId}/evidence/github-link`
+  const res = await fetch(endpoint, {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
