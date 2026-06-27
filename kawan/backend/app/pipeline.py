@@ -8,6 +8,7 @@ moves through state.py. Delivery ladder: WS → Web Push → in-app timeline (TR
 from __future__ import annotations
 
 from datetime import timedelta
+import logging
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,6 +20,8 @@ from app.models import Checkin, Commitment, Evidence
 from app.util import as_utc, now_utc
 from app.wiring import LLM, adapter_for
 from app.ws import hub
+
+logger = logging.getLogger("kawan.pipeline")
 
 
 async def record_contact(db: AsyncSession, c: Commitment) -> None:
@@ -119,9 +122,29 @@ async def assemble_progress(db: AsyncSession, c: Commitment) -> dict:
     }
 
 
+async def _notify_witness_missed_retry(c: Commitment) -> None:
+    """Email the stake witness when the cadence check-in grace window is also missed.
+
+    Called only when kind='cadence' AND is_late=True at the moment the tick runs.
+    Guards: stake must be enabled with a valid contact email. Best-effort; never raises.
+    Does NOT fire _on_missed — that is reserved for the final-deadline miss path."""
+    if not (c.stake_enabled and c.stake_contact_email):
+        return
+    name = c.stake_contact_name or "Friend"
+    body = (
+        f"{name}, this is Kawan.\n\n"
+        f'"{c.action} {c.deliverable}" — {c.user_id} missed the check-in window today '
+        f"and hasn't submitted evidence. Just letting you know.\n\n-- Kawan"
+    )
+    sent = await email.send_email(c.stake_contact_email, f'Kawan — missed check-in on "{c.deliverable}"', body)
+    if not sent:
+        logger.warning("witness missed-retry email bounced for commitment %s", c.id)
+
+
 async def run_checkin(db: AsyncSession, c: Commitment, kind: str) -> Checkin:
+    last_tick = await _last_tick_time(db, c)
     adapter = adapter_for(c.evidence_type)
-    bundle = await adapter.fetch(c, await _last_tick_time(db, c))
+    bundle = await adapter.fetch(c, last_tick)
     had_new = bool(bundle.items)
 
     evidence_id = None
@@ -166,6 +189,12 @@ async def run_checkin(db: AsyncSession, c: Commitment, kind: str) -> Checkin:
     await db.commit()
     if kind == "cadence":  # off-device reminder fan-out (ADR-0006); on_demand stays device-only
         await notify.send_reminder(db, c, line["say"])
+        # Missed-retry witness email: if the cadence tick fires after the grace window has
+        # already passed, the user missed the check-in retry window — notify the witness.
+        deadline = as_utc(c.deadline)
+        remaining = max(deadline - now_utc(), timedelta(0))
+        if not had_new and is_checkin_late(now_utc(), last_tick, remaining):
+            await _notify_witness_missed_retry(c)
     return ck
 
 

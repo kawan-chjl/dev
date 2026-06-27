@@ -103,6 +103,67 @@ async def test_miss_path_sends_stake_email(db, monkeypatch):
     assert any(m["to"] == "brother@example.com" for m in email_mod.outbox)  # templated stake email landed
 
 
+# --- missed-retry witness email: cadence fires after grace window, no evidence ----
+
+class _SilentAdapter:
+    type = "github"
+    trust = "high"
+
+    async def fetch(self, c, since):
+        return EvidenceBundle(adapter="github", raw_ref={}, items=[], summary="nothing new")
+
+    async def judge(self, c, b, llm):
+        return Verdict("unclear", 0.5, [], "n/a", None)
+
+
+async def test_cadence_late_with_witness_emails_witness(db, monkeypatch):
+    """When a cadence tick fires after the grace window has elapsed (is_late=True)
+    and no evidence was submitted, the stake witness is emailed."""
+    import app.pipeline as pipeline_mod
+
+    monkeypatch.setitem(wiring.ADAPTERS, "github", _SilentAdapter())
+    # Patch is_checkin_late in the pipeline module's namespace (it was imported directly).
+    monkeypatch.setattr(pipeline_mod, "is_checkin_late", lambda now, tick, remaining: True)
+    email_mod.outbox.clear()
+
+    c = await _seed_active(db, evidence_type="github", skip_days_total=0,
+                           stake_enabled=True, stake_contact_name="Witness",
+                           stake_contact_email="witness@example.com")
+    await pipeline.run_checkin(db, c, "cadence")
+
+    assert any(m["to"] == "witness@example.com" for m in email_mod.outbox)
+
+
+async def test_cadence_late_without_witness_sends_nothing_extra(db, monkeypatch):
+    """Late cadence tick with no stake witness configured — no extra email sent."""
+    import app.pipeline as pipeline_mod
+
+    monkeypatch.setitem(wiring.ADAPTERS, "github", _SilentAdapter())
+    monkeypatch.setattr(pipeline_mod, "is_checkin_late", lambda now, tick, remaining: True)
+    email_mod.outbox.clear()
+
+    c = await _seed_active(db, evidence_type="github", skip_days_total=0)
+    await pipeline.run_checkin(db, c, "cadence")
+
+    assert email_mod.outbox == []
+
+
+async def test_cadence_not_late_does_not_email_witness(db, monkeypatch):
+    """A cadence tick that fires on-time (is_late=False) does NOT email the witness."""
+    import app.pipeline as pipeline_mod
+
+    monkeypatch.setitem(wiring.ADAPTERS, "github", _SilentAdapter())
+    monkeypatch.setattr(pipeline_mod, "is_checkin_late", lambda now, tick, remaining: False)
+    email_mod.outbox.clear()
+
+    c = await _seed_active(db, evidence_type="github", skip_days_total=0,
+                           stake_enabled=True, stake_contact_name="Witness",
+                           stake_contact_email="witness@example.com")
+    await pipeline.run_checkin(db, c, "cadence")
+
+    assert not any(m["to"] == "witness@example.com" for m in email_mod.outbox)
+
+
 # --- B4: proposal-apply is the user's action, audited as actor='user' -------------
 
 async def test_proposal_apply_user_session_audited(client, db):
