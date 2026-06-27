@@ -3,6 +3,7 @@ the AI layer never does (it can only return slots for the soft_context UPSERT)."
 
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from typing import Any
 
@@ -47,6 +48,16 @@ class CommitmentPatch(BaseModel):
         v = as_utc(v)
         if v <= now_utc():
             raise ValueError("deadline must be in the future")
+        return v
+
+    @field_validator("notify_email", "stake_contact_email")
+    @classmethod
+    def _valid_email(cls, v: str | None) -> str | None:
+        """Reject malformed addresses at the boundary — both reach the email senders."""
+        if v in (None, ""):
+            return v
+        if not re.match(r"\S+@\S+\.\S+", v):
+            raise ValueError("invalid email address")
         return v
 
 

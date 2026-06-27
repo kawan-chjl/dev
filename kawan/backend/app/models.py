@@ -35,7 +35,8 @@ class User(Base):
     # consumed once on /start to bind the chat to this user. No prefs table — "linked" ==
     # telegram_chat_id is set.
     telegram_chat_id: Mapped[str | None] = mapped_column(default=None)
-    telegram_link_token: Mapped[str | None] = mapped_column(default=None)
+    # Indexed: the /start handler resolves a user by this token (keeps the lookup cheap).
+    telegram_link_token: Mapped[str | None] = mapped_column(default=None, index=True)
     telegram_link_expires: Mapped[datetime | None] = mapped_column(default=None)
     created_at: Mapped[datetime] = mapped_column(default=now_utc)
 

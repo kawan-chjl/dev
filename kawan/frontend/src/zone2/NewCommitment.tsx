@@ -76,6 +76,9 @@ const DEFAULT_DRAFT_PLAN: DraftPlan = {
   notify_email: ''
 }
 
+// Shared lenient email check (X-NOTIF): reminder email + stake witness email.
+const isValidEmail = (value: string): boolean => /\S+@\S+\.\S+/.test(value)
+
 // ── StepPanel: fade+rise animation on step entry ─────────────────────────────
 
 function StepPanel({ children, id, active }: { children: React.ReactNode; id: StepId; active: boolean }) {
@@ -457,7 +460,7 @@ function PlanSection({
               value={draft.notify_email}
               onChange={(e) => onDraftChange({ ...draft, notify_email: e.target.value })}
             />
-            {draft.notify_email.trim() !== '' && !/\S+@\S+\.\S+/.test(draft.notify_email) && (
+            {draft.notify_email.trim() !== '' && !isValidEmail(draft.notify_email) && (
               <p className="compose-error">Enter a valid email, or leave this blank.</p>
             )}
           </div>
@@ -594,13 +597,11 @@ export function NewCommitment() {
   const composeValid = isComposeValid()
 
   // Whether the stake witness contact is complete and valid (name + valid email).
-  const stakeContactValid = Boolean(
-    draftPlan.stake_contact_name.trim() && /\S+@\S+\.\S+/.test(draftPlan.stake_contact_email)
-  )
+  const stakeContactValid = Boolean(draftPlan.stake_contact_name.trim() && isValidEmail(draftPlan.stake_contact_email))
   // True when the toggle is on but the contact is incomplete — blocks Start.
   const stakeIncomplete = draftPlan.stake_enabled && !stakeContactValid
   // Reminder email is optional; only a non-empty invalid value blocks Start (X-NOTIF).
-  const notifyEmailInvalid = draftPlan.notify_email.trim() !== '' && !/\S+@\S+\.\S+/.test(draftPlan.notify_email)
+  const notifyEmailInvalid = draftPlan.notify_email.trim() !== '' && !isValidEmail(draftPlan.notify_email)
 
   // Island steps with completion state
   const islandSteps: IslandStep[] = [

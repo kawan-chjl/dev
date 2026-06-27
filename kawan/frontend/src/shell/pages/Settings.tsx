@@ -4,7 +4,7 @@
 // Persona is sourced from me.persona (single source of truth via AuthContext).
 
 import { Check } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthProvider'
 import { MOCK_AUTH } from '../../auth/api'
@@ -32,6 +32,8 @@ export function Settings() {
   const [deleting, setDeleting] = useState(false)
   const [tgLinked, setTgLinked] = useState<boolean | null>(null)
   const [tgBusy, setTgBusy] = useState(false)
+  const pollTimer = useRef<number | null>(null)
+  const polling = useRef(false)
 
   // Reflect the server's Telegram link state (X-NOTIF). MOCK_AUTH dev has no backend.
   useEffect(() => {
@@ -51,6 +53,14 @@ export function Settings() {
       cancelled = true
     }
   }, [])
+
+  // Stop any in-flight link poll when leaving Settings.
+  useEffect(
+    () => () => {
+      if (pollTimer.current !== null) window.clearTimeout(pollTimer.current)
+    },
+    []
+  )
 
   // Source of truth for the selected persona is me.persona.
   // setPersona does an optimistic update so the selector re-renders immediately.
@@ -78,6 +88,7 @@ export function Settings() {
       setTgLinked(true)
       return
     }
+    if (polling.current) return // a link attempt is already in flight
     setTgBusy(true)
     try {
       const link = await linkTelegram()
@@ -88,18 +99,25 @@ export function Settings() {
       window.open(link.url, '_blank', 'noopener')
       notify('Opening Telegram — tap Start to finish linking.', { kind: 'info' })
       // Poll for the /start to land (the user taps Start in Telegram), up to ~2 min.
+      polling.current = true
       const deadline = Date.now() + 120_000
       const poll = async () => {
-        if (Date.now() > deadline) return
+        if (Date.now() > deadline) {
+          polling.current = false
+          return
+        }
         const s = await getTelegramStatus().catch(() => null)
         if (s?.linked) {
+          polling.current = false
           setTgLinked(true)
           notify('Telegram connected.', { kind: 'success' })
           return
         }
-        window.setTimeout(poll, 3000)
+        pollTimer.current = window.setTimeout(poll, 3000)
       }
-      window.setTimeout(poll, 3000)
+      pollTimer.current = window.setTimeout(poll, 3000)
+    } catch {
+      notify('Could not start Telegram linking. Please try again.', { kind: 'error' })
     } finally {
       setTgBusy(false)
     }
@@ -114,6 +132,8 @@ export function Settings() {
     try {
       await unlinkTelegram()
       setTgLinked(false)
+    } catch {
+      notify('Could not disconnect Telegram. Please try again.', { kind: 'error' })
     } finally {
       setTgBusy(false)
     }

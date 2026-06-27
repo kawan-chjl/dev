@@ -67,11 +67,13 @@ async def bot_username() -> str:
     try:
         async with httpx.AsyncClient(timeout=15) as client:
             r = await client.get(_api("getMe"))
-        _bot_username_cache = (r.json().get("result") or {}).get("username", "") if r.status_code == 200 else ""
+        if r.status_code == 200:
+            _bot_username_cache = (r.json().get("result") or {}).get("username", "")
+            return _bot_username_cache
+        logger.warning("telegram getMe HTTP %s", r.status_code)
     except (httpx.HTTPError, ValueError) as exc:
         logger.warning("telegram getMe failed: %s", exc)
-        _bot_username_cache = ""
-    return _bot_username_cache
+    return ""  # don't cache a transient failure — a later call can retry
 
 
 async def mint_link_token(db: AsyncSession, user: User) -> str:
