@@ -45,9 +45,11 @@ export function IdentityTitle() {
   if (info === null) return null
 
   const nextHint =
-    info.nextThreshold !== null
-      ? `${info.nextThreshold - info.wins} more verified win${info.nextThreshold - info.wins === 1 ? '' : 's'} to ${deriveTitle(info.nextThreshold).label}`
-      : null
+    info.wins === 0
+      ? '1 verified win to get started'
+      : info.nextThreshold !== null
+        ? `${info.nextThreshold - info.wins} more verified win${info.nextThreshold - info.wins === 1 ? '' : 's'} to ${deriveTitle(info.nextThreshold).label}`
+        : null
 
   return (
     <div className="identity-title-block">
