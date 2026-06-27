@@ -3521,6 +3521,117 @@
   margin: 0;
 }
 
+/* ── Achievements collection (A10, spec §11.4, B6, ADR-0004) ── */
+.achievements-section {
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4);
+}
+
+.achievements-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.achievements-header-icon {
+  color: var(--sage-deep);
+  flex-shrink: 0;
+}
+
+.achievements-header-label {
+  font-family: var(--font-display);
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--sage-deep);
+  line-height: 1;
+}
+
+.achievements-count-chip {
+  margin-left: auto;
+  font-family: var(--font-body);
+  font-size: var(--text-caption);
+  color: var(--sage-deep);
+  background: var(--sage-tint);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  line-height: 1.4;
+}
+
+.achievements-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--space-4) 0;
+  gap: var(--space-3);
+}
+
+.achievements-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--space-3);
+}
+
+.achievements-tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.achievements-tile.is-locked {
+  opacity: 0.55;
+}
+
+.achievements-tile-icon {
+  color: var(--sage-deep);
+  margin-bottom: var(--space-1);
+}
+
+.achievements-tile.is-locked .achievements-tile-icon {
+  color: var(--ink-faint);
+}
+
+.achievements-tile-label {
+  font-family: var(--font-display);
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.achievements-tile-desc {
+  font-family: var(--font-body);
+  font-size: var(--text-caption);
+  color: var(--ink-soft);
+  line-height: 1.4;
+}
+
+.achievements-tile-date {
+  font-family: var(--font-body);
+  font-size: var(--text-caption);
+  color: var(--ink-faint);
+  margin-top: var(--space-1);
+}
+
+.achievements-tile-locked-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--ink-faint);
+  margin-top: var(--space-1);
+}
+
 /* ── Win-receipt share card (A9, spec §11.4, TR-75) ── */
 
 .share-win-entry {
