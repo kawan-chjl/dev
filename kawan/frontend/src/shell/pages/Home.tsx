@@ -12,8 +12,43 @@ import { getMockActive, setMockActive } from '../../mock/provider'
 import type { Commitment } from '../../types/api'
 import { Card } from '../../ui/Card'
 import { Chip } from '../../ui/Chip'
+import { Skeleton } from '../../ui/Skeleton'
 import { PageHeader } from '../PageHeader'
 import { WorkspacePickerModal } from '../WorkspacePickerModal'
+
+function HomeSkeleton() {
+  return (
+    <div className="home-bento-v5" aria-hidden="true">
+      <div className="home-left-col">
+        <Card className="home-card-commitment">
+          <div className="skeleton-card-content">
+            <Skeleton variant="circle" width={36} height={36} />
+            <Skeleton variant="text" width="38%" height={18} />
+            <Skeleton variant="text" width="76%" />
+          </div>
+        </Card>
+        <div className="home-left-bottom-row">
+          {[0, 1].map((index) => (
+            <Card key={index} className="home-card-small">
+              <div className="skeleton-card-content">
+                <Skeleton variant="circle" width={36} height={36} />
+                <Skeleton variant="text" width="52%" height={18} />
+                <Skeleton variant="text" width="88%" />
+              </div>
+            </Card>
+          ))}
+        </div>
+      </div>
+      <aside className="home-right-rail-v5">
+        <Card className="home-rail-card-v5">
+          <Skeleton variant="circle" width={36} height={36} />
+          <Skeleton variant="text" width="58%" height={18} />
+          <Skeleton variant="text" count={5} />
+        </Card>
+      </aside>
+    </div>
+  )
+}
 
 function HomeLayout({ commitments }: { commitments: Commitment[] }) {
   const navigate = useNavigate()
@@ -128,13 +163,7 @@ export function Home() {
         </div>
       )}
 
-      {state === 'loading' ? (
-        <div className="home-loading">
-          <p className="home-loading-text">Loading...</p>
-        </div>
-      ) : (
-        <HomeLayout commitments={commitments} />
-      )}
+      {state === 'loading' ? <HomeSkeleton /> : <HomeLayout commitments={commitments} />}
     </div>
   )
 }

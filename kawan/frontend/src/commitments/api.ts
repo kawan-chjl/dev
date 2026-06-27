@@ -64,6 +64,28 @@ export async function fetchCommitments(limit: number, offset: number): Promise<C
 }
 
 /**
+ * GET /api/commitments/{id} — fetch a single commitment by id.
+ * 200 → Commitment. 404/401 → null. Other non-OK → throws.
+ * Falls back to fetching the list and finding by id if the by-id route is unavailable.
+ */
+export async function fetchCommitmentById(id: string): Promise<Commitment | null> {
+  const res = await fetch(`/api/commitments/${id}`, { credentials: 'include' })
+  if (res.ok) return (await res.json()) as Commitment
+  if (res.status === 401 || res.status === 404) return null
+  // 405 = route exists but GET not registered; fall back to listing and filtering.
+  // Also fall back for unexpected server errors to keep the UI resilient.
+  if (res.status === 405 || res.status >= 500) {
+    try {
+      const page = await fetchCommitments(100, 0)
+      return page.items.find((c) => c.id === id) ?? null
+    } catch {
+      return null
+    }
+  }
+  throw new Error(`GET /api/commitments/${id} returned ${res.status}`)
+}
+
+/**
  * GET /api/commitments/active
  * 200 → Commitment, 404 → null (idle — not an error), 401 → null, other non-OK → throws.
  */

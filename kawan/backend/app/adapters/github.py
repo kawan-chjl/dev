@@ -2,10 +2,15 @@
 API (no auth, 60 req/h/IP — ample for the demo) and drops trivial commits
 (stats.total < 3); judge runs one text LLM call relating the kept commits to the
 deliverable. The verdict is a structured call the adapter owns via its own
-ChutesClient — the `llm` param (contracts.LLMClient) is unused here."""
+ChutesClient -- the `llm` param (contracts.LLMClient) is unused here.
+
+Also provides fetch_repo_url() for the github-link submission route: the user
+pastes any GitHub repo URL (not PR/commit -- per docs/po-decisions.md §2) and
+the adapter fetches recent non-trivial commits from it, then runs the same judge."""
 
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from typing import TYPE_CHECKING
 
@@ -73,6 +78,27 @@ class GitHubAdapter:
         return EvidenceBundle(adapter="github", raw_ref={"shas": [i["sha"] for i in items]},
                               items=items, summary=summary)
 
+    async def _fetch_commits_for_repo(self, repo: str) -> list[dict]:
+        """Fetch recent non-trivial commits from a repo slug (owner/name)."""
+        owns = self._http is None
+        http = self._http or httpx.AsyncClient(timeout=30)
+        items: list[dict] = []
+        try:
+            resp = await http.get(f"{self._api}/repos/{repo}/commits")
+            if resp.status_code != 200:
+                return items
+            commits = resp.json()
+            for commit in commits[:_MAX_DETAIL]:
+                sha = commit["sha"]
+                detail = await http.get(f"{self._api}/repos/{repo}/commits/{sha}")
+                total = detail.json().get("stats", {}).get("total", 0) if detail.status_code == 200 else 0
+                if total >= _TRIVIAL_TOTAL:
+                    items.append({"sha": sha[:7], "message": commit["commit"]["message"], "total": total})
+        finally:
+            if owns:
+                await http.aclose()
+        return items
+
     async def judge(self, commitment: "Commitment", bundle: EvidenceBundle, llm) -> Verdict:
         if not bundle.items:  # deterministic pre-check — no LLM spend (spec §10.2)
             return Verdict("unclear", 0.5, ["no new non-trivial commits in window"],
@@ -93,3 +119,34 @@ class GitHubAdapter:
         )
         return Verdict(r["verdict"], r["confidence"], r["observations"], r["reasoning"],
                        r.get("follow_up_request"))
+
+
+# ── github-link paste path (4.2) ─────────────────────────────────────────────
+
+_GITHUB_REPO_RE = re.compile(
+    r"^https?://github\.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(?:\.git)?/?$"
+)
+
+
+def parse_github_repo_url(url: str) -> str | None:
+    """Return 'owner/repo' from a GitHub repo URL, or None if invalid.
+    Accepts REPO URLs only (not PR/commit), per docs/po-decisions.md §2."""
+    m = _GITHUB_REPO_RE.match(url.strip())
+    if not m:
+        return None
+    return f"{m.group(1)}/{m.group(2)}"
+
+
+async def fetch_repo_url(adapter: "GitHubAdapter", url: str, commitment: "Commitment") -> EvidenceBundle:
+    """Fetch recent non-trivial commits from a pasted repo URL.
+    Returns an empty bundle (never raises) when the URL is invalid or the repo is unreachable."""
+    repo = parse_github_repo_url(url)
+    if repo is None:
+        return EvidenceBundle(adapter="github", raw_ref={"url": url, "shas": []}, items=[],
+                              summary="invalid or non-GitHub URL -- not a github.com repo URL")
+    items = await adapter._fetch_commits_for_repo(repo)
+    summary = (f"{len(items)} non-trivial commit(s): "
+               + "; ".join(f"'{_first_line(i['message'])}'" for i in items)) if items \
+        else f"no non-trivial commits found in {repo}"
+    return EvidenceBundle(adapter="github", raw_ref={"url": url, "shas": [i["sha"] for i in items]},
+                          items=items, summary=summary)

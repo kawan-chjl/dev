@@ -72,6 +72,33 @@ const DEFAULT_DRAFT_PLAN: DraftPlan = {
 
 // Shared lenient email check (X-NOTIF): reminder email + stake witness email.
 const isValidEmail = (value: string): boolean => /\S+@\S+\.\S+/.test(value)
+const MYT_OFFSET_HOURS = 8
+
+function mytWallClockToUtcInstant(value: string): Date | null {
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/)
+  if (!match) return null
+
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  const hour = Number(match[4])
+  const minute = Number(match[5])
+
+  if (month < 1 || month > 12 || hour > 23 || minute > 59) return null
+
+  const wallDate = new Date(Date.UTC(year, month - 1, day, hour, minute))
+  if (
+    wallDate.getUTCFullYear() !== year ||
+    wallDate.getUTCMonth() !== month - 1 ||
+    wallDate.getUTCDate() !== day ||
+    wallDate.getUTCHours() !== hour ||
+    wallDate.getUTCMinutes() !== minute
+  ) {
+    return null
+  }
+
+  return new Date(Date.UTC(year, month - 1, day, hour - MYT_OFFSET_HOURS, minute))
+}
 
 // ── StepPanel: fade+rise animation on step entry ─────────────────────────────
 
@@ -245,7 +272,12 @@ function ComposeSection({
         <p className="nc-sentence-preview">
           I will <em>{action}</em> {deliverable || 'the deliverable'}{' '}
           {deadlineLocal
-            ? `by ${new Date(deadlineLocal).toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric' })}`
+            ? `by ${new Date(deadlineLocal).toLocaleDateString('en-MY', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+                timeZone: 'Asia/Kuala_Lumpur'
+              })}`
             : 'by the deadline'}
         </p>
       </div>
@@ -283,7 +315,9 @@ function PlanSection({
       : ''
 
   const trustLabel = EVIDENCE_OPTIONS_FULL.find((o) => o.value === evidenceType)?.trust ?? ''
-  const deadlineDisplay = deadlineLocal ? new Date(deadlineLocal).toLocaleString('en-MY') : ''
+  const deadlineDisplay = deadlineLocal
+    ? new Date(deadlineLocal).toLocaleString('en-MY', { timeZone: 'Asia/Kuala_Lumpur' })
+    : ''
 
   return (
     <StepPanel id="nc-plan" active={active}>
@@ -568,8 +602,8 @@ export function NewCommitment() {
   function isComposeValid(): boolean {
     if (!deliverable.trim()) return false
     if (!deadlineLocal) return false
-    const dl = new Date(deadlineLocal)
-    if (Number.isNaN(dl.getTime())) return false
+    const dl = mytWallClockToUtcInstant(deadlineLocal)
+    if (dl === null) return false
     if (dl <= new Date()) return false
     return true
   }
@@ -626,7 +660,12 @@ export function NewCommitment() {
       setStepIndex(0)
       return
     }
-    const deadlineDate = new Date(deadlineLocal)
+    const deadlineDate = mytWallClockToUtcInstant(deadlineLocal)
+    if (deadlineDate === null) {
+      setComposeError('Please pick a valid deadline.')
+      setStepIndex(0)
+      return
+    }
     if (deadlineDate <= new Date()) {
       setComposeError('Deadline must be in the future.')
       setStepIndex(0)

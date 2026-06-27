@@ -54,6 +54,7 @@ from app.models import (  # noqa: E402
     Checkin,
     Commitment,
     Evidence,
+    Message,
     Plan,
     Proposal,
     PushSubscription,
@@ -110,6 +111,7 @@ async def _wipe_demo_user(db) -> None:
     cids = [row[0] for row in result.fetchall()]
 
     for cid in cids:
+        await db.execute(delete(Message).where(Message.commitment_id == cid))
         await db.execute(delete(Checkin).where(Checkin.commitment_id == cid))
         await db.execute(delete(Evidence).where(Evidence.commitment_id == cid))
         await db.execute(delete(SoftContext).where(SoftContext.commitment_id == cid))

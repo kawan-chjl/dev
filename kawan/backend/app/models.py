@@ -188,3 +188,20 @@ class PushSubscription(Base):
     endpoint: Mapped[str | None] = mapped_column(default=None, unique=True)
     subscription: Mapped[dict[str, Any]] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(default=now_utc)
+
+
+class Message(Base):
+    """Per-commitment AI output transcript (Task 1.1). AI transcript rows only; the AI
+    may never write hard fields. role is 'user'|'assistant'. Indexed on commitment_id
+    for history hydration. Mirrors Evidence column conventions; TIMESTAMPTZ via
+    Base.type_annotation_map."""
+
+    __tablename__ = "messages"
+
+    id: Mapped[str] = mapped_column(primary_key=True, default=new_id)
+    commitment_id: Mapped[str] = mapped_column(ForeignKey("commitments.id"), index=True)
+    role: Mapped[str]  # 'user' | 'assistant'
+    content: Mapped[str]
+    emotion: Mapped[str | None] = mapped_column(default=None)
+    response_type: Mapped[str | None] = mapped_column(default=None)
+    created_at: Mapped[datetime] = mapped_column(default=now_utc)

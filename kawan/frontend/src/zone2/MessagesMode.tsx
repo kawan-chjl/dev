@@ -1,18 +1,24 @@
 // MessagesMode — iMessage/Messenger-style thread over real WorkspaceMessage state.
-// A3: input bar enabled; refusal styling; proposal card inline; mic populates input.
-// T4: phase-aware — intake phase shows VN action menu; chat shows input bar + contextual starters.
+// A3: input bar enabled; refusal styling; proposal card inline.
+// T4: phase-aware — intake shows VN glassmorphism options; chat shows input bar + starters.
+// 2.2: mic/mute/stop/Skip removed. 2.3: intake input hidden; glassmorphism options rendered.
+// 2.5: persona portrait replaces lucide MessageCircle avatar.
 // Layout fix: centered ~720px max-width column, thread anchored near the input.
 // Kawan = serif on terracotta-tinted bubble. User = sans on --surface-sunk.
 
-import { MessageCircle, Mic, MicOff, Send, ShieldX } from 'lucide-react'
+import { Send, ShieldX } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import type { Commitment } from '../types/api'
+import { useAuth } from '../auth/AuthProvider'
+import type { Commitment, Persona } from '../types/api'
 import type { WorkspaceMessage } from '../workspace/api'
+import { type IntakeSlot, optionsForStep } from './intakeOptions'
 import { renderMarkdown } from './markdown'
 import { ProposalCard } from './ProposalCard'
+import { PERSONA_PORTRAITS } from './personaPortraits'
 import { starterChipsForState } from './starterChips'
-import { useSpeechInput } from './voice/useSpeechInput'
-import type { SlotProgress, WorkspacePhase } from './WorkspaceLayout'
+import type { IntakeSlotName, SlotProgress, WorkspacePhase } from './WorkspaceLayout'
+
+const INTAKE_SLOTS: IntakeSlotName[] = ['why', 'obstacles', 'time_constraints', 'skill']
 
 interface MessagesModeProps {
   messages: WorkspaceMessage[]
@@ -22,13 +28,33 @@ interface MessagesModeProps {
   phase: WorkspacePhase
   slotProgress: SlotProgress
   commitment: Commitment | null
+  intakeStep: number
   openerLoading: boolean
   onSend: (text: string) => Promise<void>
   onIntakeAnswer: (text: string) => Promise<void>
   onRetry: () => void
-  onSkipIntake: () => void
   onProposalApplied: (messageId: string) => void
   onProposalDismissed: (messageId: string) => void
+}
+
+// 2.5: Persona avatar with initial-letter fallback on image error
+function KawanAvatar({ persona }: { persona: Persona }) {
+  const [failed, setFailed] = useState(false)
+  const src = PERSONA_PORTRAITS[persona]
+  const initial = persona.charAt(0).toUpperCase()
+
+  if (failed) {
+    return (
+      <div className="message-avatar message-avatar-fallback" aria-hidden="true">
+        {initial}
+      </div>
+    )
+  }
+  return (
+    <div className="message-avatar message-avatar-portrait" aria-hidden="true">
+      <img src={src} alt={persona} className="message-avatar-img" onError={() => setFailed(true)} />
+    </div>
+  )
 }
 
 export function MessagesMode({
@@ -39,24 +65,22 @@ export function MessagesMode({
   phase,
   slotProgress,
   commitment,
+  intakeStep,
   openerLoading,
   onSend,
   onIntakeAnswer,
   onRetry,
-  onSkipIntake,
   onProposalApplied,
   onProposalDismissed
 }: MessagesModeProps) {
-  const [inputText, setInputText] = useState('')
-  const threadRef = useRef<HTMLDivElement>(null)
-  const mic = useSpeechInput()
+  const { me } = useAuth()
+  const persona: Persona = me?.persona ?? 'kawan'
 
-  useEffect(() => {
-    if (!mic.listening && mic.transcript) {
-      setInputText(mic.transcript)
-      mic.clearTranscript()
-    }
-  }, [mic.listening, mic.transcript, mic.clearTranscript])
+  const [inputText, setInputText] = useState('')
+  // Inline input for "type own words" during intake
+  const [showTypeOwn, setShowTypeOwn] = useState(false)
+  const [typeOwnText, setTypeOwnText] = useState('')
+  const threadRef = useRef<HTMLDivElement>(null)
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: threadRef.current is a DOM ref, not a reactive dep
   useEffect(() => {
@@ -78,29 +102,31 @@ export function MessagesMode({
     }
   }
 
-  function handleIntakeKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+  // Intake option tap — submits text or reveals the type-own inline input
+  function handleOptionTap(text: string, isOpenEnded?: boolean) {
+    if (isOpenEnded) {
+      setShowTypeOwn(true)
+      return
+    }
+    void onIntakeAnswer(text)
+  }
+
+  function handleTypeOwnSend() {
+    const text = typeOwnText.trim()
+    if (!text || sending) return
+    setTypeOwnText('')
+    setShowTypeOwn(false)
+    void onIntakeAnswer(text)
+  }
+
+  function handleTypeOwnKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleTypeOwnSend()
     }
-  }
-
-  function handleTypeOwnSend() {
-    const text = inputText.trim()
-    if (!text || sending) return
-    setInputText('')
-    void onIntakeAnswer(text)
-  }
-
-  function handleSkip() {
-    void onIntakeAnswer('(skip)')
-  }
-
-  function handleMicToggle() {
-    if (mic.listening) {
-      mic.stop()
-    } else {
-      mic.start()
+    if (e.key === 'Escape') {
+      setShowTypeOwn(false)
+      setTypeOwnText('')
     }
   }
 
@@ -108,9 +134,21 @@ export function MessagesMode({
   const showStarterChips = phase === 'chat' && messages.filter((m) => m.from === 'user').length === 0
   const starterChips = starterChipsForState(commitment)
 
+  // Intake VN options — current slot derived from intakeStep
+  const currentSlot: IntakeSlotName | null =
+    phase === 'intake' && intakeStep < INTAKE_SLOTS.length ? INTAKE_SLOTS[intakeStep] : null
+  const intakeOptions =
+    currentSlot && commitment
+      ? optionsForStep(currentSlot as IntakeSlot, {
+          action: commitment.action,
+          deliverable: commitment.deliverable,
+          deadline: commitment.deadline
+        })
+      : null
+
   return (
     <div className="messages-mode">
-      {/* Slot progress bar + skip-ahead escape hatch — intake phase only, not while opener loads */}
+      {/* Slot progress bar — intake phase only, not while opener loads */}
       {phase === 'intake' && !openerLoading && (
         <div className="messages-intake-progress" role="status" aria-live="polite" aria-atomic="true">
           <span className="messages-intake-label">Context</span>
@@ -121,9 +159,6 @@ export function MessagesMode({
               className={`messages-intake-dot${i < slotProgress.filled ? ' messages-intake-dot--filled' : ''}`}
             />
           ))}
-          <button type="button" className="messages-intake-skip-ahead" onClick={onSkipIntake}>
-            Skip ahead — let's just talk
-          </button>
         </div>
       )}
 
@@ -142,11 +177,8 @@ export function MessagesMode({
 
             return (
               <div key={msg.id} className={`message-row ${isKawan ? 'message-row-kawan' : 'message-row-user'}`}>
-                {isKawan && (
-                  <div className="message-avatar" aria-hidden="true">
-                    <MessageCircle size={18} />
-                  </div>
-                )}
+                {/* 2.5: persona portrait avatar */}
+                {isKawan && <KawanAvatar persona={persona} />}
                 <div className="message-col">
                   <div
                     className={[
@@ -200,12 +232,10 @@ export function MessagesMode({
             </div>
           )}
 
-          {/* Typing indicator bubble */}
+          {/* Typing indicator bubble — 2.5: persona portrait avatar */}
           {sending && (
             <div className="message-row message-row-kawan">
-              <div className="message-avatar" aria-hidden="true">
-                <MessageCircle size={18} />
-              </div>
+              <KawanAvatar persona={persona} />
               <div className="message-col">
                 <div className="message-bubble bubble-kawan">
                   <div className="message-typing-indicator" role="status" aria-label="Kawan is thinking">
@@ -230,85 +260,79 @@ export function MessagesMode({
         </div>
       </div>
 
-      {/* Mic transcript display */}
-      {mic.listening && (
-        <div className="messages-mic-bar" role="status" aria-live="polite">
-          <span className="stage-mic-label">Listening…</span>
-          <span className="stage-mic-text">{mic.transcript}</span>
-        </div>
+      {/* 2.3: Intake VN glassmorphism options — rendered below thread during intake */}
+      {phase === 'intake' && !openerLoading && !sending && intakeOptions && !showTypeOwn && (
+        <fieldset className="messages-intake-menu" aria-label={`Question ${intakeStep + 1} of 4`}>
+          <legend className="sr-only">Intake options</legend>
+          {intakeOptions.map((opt) => (
+            <button
+              key={opt.text}
+              type="button"
+              className={`messages-intake-btn${opt.isOpenEnded ? ' messages-intake-btn--secondary' : ''}`}
+              onClick={() => handleOptionTap(opt.text, opt.isOpenEnded)}
+              disabled={sending}
+            >
+              {opt.text}
+            </button>
+          ))}
+        </fieldset>
       )}
 
-      {/* Phase 1 — intake input bar (primary control) + skip this question */}
-      {phase === 'intake' && !openerLoading && (
+      {/* Inline type-own input — shown when "Answer in my own words" is tapped */}
+      {phase === 'intake' && showTypeOwn && (
         <div className="messages-input-bar">
           <input
             className="messages-input"
             type="text"
-            placeholder="Type your answer…"
-            aria-label="Intake answer"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={handleIntakeKeyDown}
+            placeholder="Type your answer..."
+            aria-label="Your answer"
+            value={typeOwnText}
+            onChange={(e) => setTypeOwnText(e.target.value)}
+            onKeyDown={handleTypeOwnKeyDown}
             disabled={sending}
           />
           <button
             type="button"
             className="messages-send-btn"
             onClick={handleTypeOwnSend}
-            disabled={sending || !inputText.trim()}
-            aria-label={sending ? 'Sending…' : 'Send answer'}
+            disabled={sending || !typeOwnText.trim()}
+            aria-label={sending ? 'Sending...' : 'Send answer'}
           >
             <Send size={18} aria-hidden="true" />
           </button>
           <button
             type="button"
-            className="messages-intake-skip-btn"
-            onClick={handleSkip}
-            disabled={sending}
-            aria-label="Skip this question"
+            className="messages-intake-cancel"
+            onClick={() => {
+              setShowTypeOwn(false)
+              setTypeOwnText('')
+            }}
+            aria-label="Cancel"
           >
-            Skip
+            x
           </button>
         </div>
       )}
 
-      {/* Phase 2 — open chat input bar */}
+      {/* Chat input bar — only shown in chat phase (hidden during intake per 2.3) */}
       {phase === 'chat' && (
         <div className="messages-input-bar">
-          <button
-            type="button"
-            className="messages-mic-btn stage-voice-btn"
-            onClick={handleMicToggle}
-            aria-label={
-              !mic.supported
-                ? 'Voice input not supported in this browser'
-                : mic.listening
-                  ? 'Stop listening'
-                  : 'Start voice input'
-            }
-            aria-pressed={mic.listening}
-            disabled={!mic.supported || sending}
-            title={!mic.supported ? 'Voice input needs Chrome or a supported browser' : undefined}
-          >
-            {mic.listening ? <MicOff size={16} aria-hidden="true" /> : <Mic size={16} aria-hidden="true" />}
-          </button>
           <input
             className="messages-input"
             type="text"
-            placeholder={sending ? 'Kawan is thinking…' : 'Message Kawan…'}
+            placeholder={sending ? 'Kawan is thinking...' : 'Message Kawan...'}
             aria-label="Message input"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
             disabled={sending}
-            readOnly={mic.listening}
           />
           <button
             type="button"
             className="messages-send-btn"
             onClick={handleSend}
             disabled={sending || !inputText.trim()}
-            aria-label={sending ? 'Sending…' : 'Send message'}
+            aria-label={sending ? 'Sending...' : 'Send message'}
           >
             <Send size={18} aria-hidden="true" />
           </button>

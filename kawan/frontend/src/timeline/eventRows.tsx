@@ -18,7 +18,8 @@ function formatAt(iso: string): string {
     day: 'numeric',
     month: 'short',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
+    timeZone: 'Asia/Kuala_Lumpur'
   })
 }
 

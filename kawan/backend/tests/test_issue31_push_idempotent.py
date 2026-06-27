@@ -58,7 +58,7 @@ async def test_dead_subscription_pruned_on_delivery(db, monkeypatch):
     # Patch _send_one so it reports the subscription as gone (is_gone=True).
     # asyncio.to_thread runs _send_one in a thread; patch the module-level function
     # so the thread picks up the mock.
-    monkeypatch.setattr(push_mod, "_send_one", lambda sub, headline: (False, True))
+    monkeypatch.setattr(push_mod, "_send_one", lambda sub, headline, url="/home": (False, True))
 
     await push_mod.push_to_user(db, user_id, "test headline")
 

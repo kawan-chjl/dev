@@ -5,6 +5,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { setWelcomeDismissed } from '../demo/welcomeFlag'
 import { listPersonas } from '../mock/provider'
 import type { Persona } from '../types/api'
 import { Button } from '../ui/Button'
@@ -19,6 +20,15 @@ export function Welcome() {
 
   async function handleContinue() {
     await setPersona(selected)
+    navigate('/home')
+  }
+
+  function handleSkip() {
+    navigate('/home')
+  }
+
+  function handleDontShowAgain() {
+    setWelcomeDismissed()
     navigate('/home')
   }
 
@@ -62,6 +72,14 @@ export function Welcome() {
         >
           Continue with {personas.find((p) => p.id === selected)?.name}
         </Button>
+        <div className="welcome-bottom-options">
+          <button type="button" className="welcome-option-btn" onClick={handleSkip}>
+            Skip to home
+          </button>
+          <button type="button" className="welcome-option-btn" onClick={handleDontShowAgain}>
+            Don&apos;t show again
+          </button>
+        </div>
       </main>
     </div>
   )

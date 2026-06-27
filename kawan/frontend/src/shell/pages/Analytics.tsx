@@ -11,14 +11,42 @@ import { IdentityTitle } from '../../timeline/IdentityTitle'
 import { ProductivityMeter } from '../../timeline/ProductivityMeter'
 import { useTimeline } from '../../timeline/useTimeline'
 import { Card } from '../../ui/Card'
+import { Skeleton } from '../../ui/Skeleton'
 import { PageHeader } from '../PageHeader'
+
+function AnalyticsSkeleton() {
+  return (
+    <div className="skeleton-card-content" aria-hidden="true">
+      <div className="skeleton-chart-grid">
+        <Card>
+          <div className="skeleton-card-content">
+            <Skeleton variant="text" width="36%" height={22} />
+            <Skeleton variant="block" width="100%" height={240} />
+          </div>
+        </Card>
+        <Card>
+          <div className="skeleton-card-content">
+            <Skeleton variant="text" width="54%" height={22} />
+            <Skeleton variant="text" count={5} />
+          </div>
+        </Card>
+      </div>
+      <Card>
+        <div className="skeleton-card-content">
+          <Skeleton variant="text" width="28%" height={22} />
+          <Skeleton variant="text" count={4} />
+        </div>
+      </Card>
+    </div>
+  )
+}
 
 function AnalyticsContent({ commitmentId }: { commitmentId: string }) {
   const { state, timeline } = useTimeline(commitmentId)
   const events = timeline?.events ?? []
 
   if (state === 'loading') {
-    return <p className="timeline-loading">Loading...</p>
+    return <AnalyticsSkeleton />
   }
 
   if (state === 'empty' || events.length === 0) {
@@ -50,7 +78,7 @@ export function Analytics() {
       <IdentityTitle />
       <ProductivityMeter />
 
-      {state === 'loading' && <p className="timeline-loading">Loading...</p>}
+      {state === 'loading' && <AnalyticsSkeleton />}
 
       {noRecords && (
         <Card className="empty-state-card">
@@ -64,7 +92,7 @@ export function Analytics() {
 
       {!noRecords && commitment !== null && <AnalyticsContent commitmentId={commitment.id} />}
 
-      <Achievements />
+      {state !== 'loading' && <Achievements />}
     </div>
   )
 }

@@ -30,6 +30,21 @@ class StubGitHubAdapter:
                        "New non-trivial commit found in window.")
 
 
+class StubFileAdapter:
+    type = "file"
+    trust = "medium"
+
+    async def fetch(self, commitment: Commitment, since: datetime | None) -> EvidenceBundle:
+        return EvidenceBundle(adapter="file", raw_ref={"filename": "(stub)"}, items=[],
+                              summary="no file")
+
+    async def judge(self, commitment: Commitment, bundle: EvidenceBundle, llm) -> Verdict:
+        if not bundle.items:
+            return Verdict("unclear", 0.4, ["no file received"], "No file supplied.", None)
+        return Verdict("pass", 0.85, ["document content relates to the deliverable"],
+                       "File content matches the commitment.")
+
+
 class StubScreenshotAdapter:
     type = "screenshot"
     trust = "medium"

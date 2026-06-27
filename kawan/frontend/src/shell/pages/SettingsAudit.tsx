@@ -13,6 +13,7 @@ import { Badge } from '../../ui/Badge'
 import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
 import { Modal } from '../../ui/Modal'
+import { Skeleton } from '../../ui/Skeleton'
 import { PageHeader } from '../PageHeader'
 
 function formatAt(iso: string): string {
@@ -20,7 +21,8 @@ function formatAt(iso: string): string {
     day: 'numeric',
     month: 'short',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
+    timeZone: 'Asia/Kuala_Lumpur'
   })
 }
 
@@ -30,6 +32,30 @@ function formatValue(value: string): string {
     if (!Number.isNaN(d.getTime())) return formatAt(value)
   }
   return value
+}
+
+function SettingsAuditSkeleton() {
+  return (
+    <Card aria-hidden="true">
+      <section className="audit-table-wrapper" aria-label="Change history loading">
+        <div className="skeleton-table">
+          {Array.from({ length: 7 }).map((_, index) => (
+            <div
+              // biome-ignore lint/suspicious/noArrayIndexKey: fixed decorative loading rows
+              key={index}
+              className="skeleton-audit-row"
+            >
+              <Skeleton variant="text" width="100%" />
+              <Skeleton variant="text" width="100%" />
+              <Skeleton variant="text" width="100%" />
+              <Skeleton variant="block" width={52} height={24} radius="var(--radius-pill)" />
+              <Skeleton variant="text" width="100%" />
+            </div>
+          ))}
+        </div>
+      </section>
+    </Card>
+  )
 }
 
 export function SettingsAudit() {
@@ -87,7 +113,7 @@ export function SettingsAudit() {
     <div className="shell-page">
       <PageHeader title="History" subtitle="Every change you made, and when." actions={headerActions} />
 
-      {loading && <p className="home-loading-text">Loading...</p>}
+      {loading && <SettingsAuditSkeleton />}
 
       {/* Confirm dialog — portaled above all shell layers via Modal */}
       <Modal

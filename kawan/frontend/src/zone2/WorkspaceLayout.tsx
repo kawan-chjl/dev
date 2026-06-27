@@ -8,12 +8,14 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { MOCK_AUTH } from '../auth/api'
 import type { ContextTurnResponse } from '../commitments/api'
-import { contextTurn } from '../commitments/api'
+import { contextTurn, fetchCommitmentById } from '../commitments/api'
 import { mockConversation } from '../mock/fixtures'
 import type { Commitment, Emotion } from '../types/api'
 import type { WorkspaceMessage } from '../workspace/api'
 import { workspaceTurn } from '../workspace/api'
+import { fetchMessages } from '../workspace/messagesApi'
 import { MessagesMode } from './MessagesMode'
+import { generatePlan, type PlanResult } from './planApi'
 import { StageMode } from './StageMode'
 
 type ViewMode = 'stage' | 'messages'
@@ -24,6 +26,9 @@ export interface SlotProgress {
   total: number
   filled: number
 }
+
+// The 4 intake slots in order — each answer advances the counter.
+export type IntakeSlotName = 'why' | 'obstacles' | 'time_constraints' | 'skill'
 
 function slotCount(slots: ContextTurnResponse['slots']): number {
   return [slots.why, slots.obstacles, slots.time_constraints, slots.skill].filter((v) => v !== null).length
@@ -39,10 +44,15 @@ function makeMockIntakeMessage(text: string, emotion: Emotion = 'curious'): Work
   }
 }
 
-// Static canned mock intake — 2 turns then chat, zero network.
+// Static canned mock intake — 4 turns then chat, zero network.
 const MOCK_INTAKE_TURNS = [
-  { say: "Before we dive in — what's the deeper reason this matters to you?", emotion: 'curious' as Emotion },
-  { say: "And what's the main obstacle you're already expecting?", emotion: 'skeptical' as Emotion }
+  {
+    say: "Before we dive in — I have 4 quick questions to get the full picture. First: what's the deeper reason this matters to you?",
+    emotion: 'curious' as Emotion
+  },
+  { say: "And what's the main obstacle you're already expecting?", emotion: 'skeptical' as Emotion },
+  { say: 'How tight is your timeline for this?', emotion: 'curious' as Emotion },
+  { say: 'How confident are you in your skills for this task?', emotion: 'curious' as Emotion }
 ]
 
 function mockChatReply(userText: string): WorkspaceMessage {
@@ -61,30 +71,37 @@ export function WorkspaceLayout() {
   const navigate = useNavigate()
   const { id: commitmentId } = useParams<{ id: string }>()
   const [viewMode, setViewMode] = useState<ViewMode>('stage')
+  const [viewSwitching, setViewSwitching] = useState(false)
   const [messages, setMessages] = useState<WorkspaceMessage[]>([])
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [phase, setPhase] = useState<WorkspacePhase>('intake')
   const [slotProgress, setSlotProgress] = useState<SlotProgress>({ total: 4, filled: 0 })
-  // commitment passed to starters (T5) — null until fetched; starters fall back gracefully
-  const commitment = null as Commitment | null
+  // Current intake slot index (0–3); 4 means all done.
+  const [intakeStep, setIntakeStep] = useState(0)
+  // Commitment fetched on mount for intake options + starters
+  const [commitment, setCommitment] = useState<Commitment | null>(null)
+  // Plan result — generated once after intake completes
+  const [plan, setPlan] = useState<PlanResult | null>(null)
 
   // Mock intake turn tracker (MOCK_AUTH only)
   const mockIntakeTurnRef = useRef(0)
   // Guard: fire the intake opener only once on mount
   const intakeOpenerFired = useRef(false)
+  // Guard: generatePlan fires only once after intake completes
+  const planFiredRef = useRef(false)
   // Last failed turn — used by handleRetry to re-fire.
   const lastFailedTurnRef = useRef<{ endpoint: 'intake' | 'chat'; text: string } | null>(null)
 
-  // On mount: determine entry phase and fire the intake opener (or start in chat if slots exist).
-  // OQ-INTAKE-ENTRY: start intake only when 0 slots captured; otherwise chat.
-  // OQ-INTAKE-OPENER: auto-fire one context/turn with empty say to get the first question.
+  // On mount: fetch the commitment + load persisted history, then decide phase.
+  // 1.3: hydrate messages from backend; if non-empty + intake done → chat; else opener.
+  // 2.4: fetch commitment for intakeOptions/starters.
   useEffect(() => {
     if (intakeOpenerFired.current) return
     intakeOpenerFired.current = true
 
     if (MOCK_AUTH) {
-      // MOCK path: canned 2-question intake then flip to chat
+      // MOCK path: canned 4-question intake then flip to chat
       const opener = MOCK_INTAKE_TURNS[0]
       if (opener) {
         setMessages([makeMockIntakeMessage(opener.say, opener.emotion)])
@@ -95,38 +112,96 @@ export function WorkspaceLayout() {
 
     if (!commitmentId) return
 
-    // Fire opener turn — empty say, backend prompt handles it.
-    setSending(true)
-    contextTurn(commitmentId, '')
-      .then((resp) => {
-        const msg: WorkspaceMessage = {
-          id: crypto.randomUUID(),
-          from: 'kawan',
-          text: resp.say,
-          emotion: resp.emotion,
-          responseType: 'coaching'
-        }
-        setMessages([msg])
-        setSlotProgress({ total: 4, filled: slotCount(resp.slots) })
-        if (resp.intake_complete) {
+    async function init() {
+      if (!commitmentId) return
+
+      // Fetch the commitment for intakeOptions + starters (2.4)
+      try {
+        const c = await fetchCommitmentById(commitmentId)
+        setCommitment(c)
+      } catch {
+        // Non-fatal — starters + options fall back gracefully
+      }
+
+      // 1.3: load persisted history
+      let history: WorkspaceMessage[] = []
+      try {
+        history = await fetchMessages(commitmentId)
+      } catch {
+        // Non-fatal — treat as empty history, run opener
+      }
+
+      if (history.length > 0) {
+        // History exists — determine phase from slot count
+        // Count how many slots look filled by examining message count heuristic.
+        // A robust signal: if messages include 4+ user turns, intake is complete.
+        const userTurns = history.filter((m) => m.from === 'user').length
+        setMessages(history)
+        if (userTurns >= 4) {
           setPhase('chat')
+          setSlotProgress({ total: 4, filled: 4 })
+          setIntakeStep(4)
+        } else {
+          // Partial intake — resume from where we left off
+          setPhase('intake')
+          setSlotProgress({ total: 4, filled: userTurns })
+          setIntakeStep(userTurns)
         }
-      })
-      .catch(() => {
-        // If opener fails, go straight to chat with the static greeting
-        setMessages([
-          {
+        // Don't re-fire the opener when history exists
+        return
+      }
+
+      // No history — fire opener turn
+      setSending(true)
+      contextTurn(commitmentId, '')
+        .then((resp) => {
+          const msg: WorkspaceMessage = {
             id: crypto.randomUUID(),
             from: 'kawan',
-            text: 'So — what are we actually doing here?',
-            emotion: 'neutral',
+            text: resp.say,
+            emotion: resp.emotion,
             responseType: 'coaching'
           }
-        ])
-        setPhase('chat')
-      })
-      .finally(() => setSending(false))
+          setMessages([msg])
+          setSlotProgress({ total: 4, filled: slotCount(resp.slots) })
+          if (resp.intake_complete) {
+            setPhase('chat')
+            setIntakeStep(4)
+          }
+        })
+        .catch(() => {
+          setMessages([
+            {
+              id: crypto.randomUUID(),
+              from: 'kawan',
+              text: 'So — what are we actually doing here?',
+              emotion: 'neutral',
+              responseType: 'coaching'
+            }
+          ])
+          setPhase('chat')
+        })
+        .finally(() => setSending(false))
+    }
+
+    void init()
   }, [commitmentId])
+
+  // 1.6: fire generatePlan ONCE when phase flips to 'chat'
+  useEffect(() => {
+    if (phase !== 'chat') return
+    if (planFiredRef.current) return
+    if (!commitmentId || MOCK_AUTH) return
+    planFiredRef.current = true
+
+    generatePlan(commitmentId)
+      .then((result) => {
+        if (result) setPlan(result)
+      })
+      .catch(() => {
+        // Non-fatal — no plan, no crash
+      })
+  }, [phase, commitmentId])
 
   // Handle an intake answer — calls context/turn, updates slots, flips phase when complete.
   const handleIntakeAnswer = useCallback(
@@ -146,13 +221,16 @@ export function WorkspaceLayout() {
         if (next) {
           mockIntakeTurnRef.current = nextIdx + 1
           setMessages((prev) => [...prev, makeMockIntakeMessage(next.say, next.emotion)])
+          setIntakeStep(nextIdx + 1)
+          setSlotProgress({ total: 4, filled: nextIdx + 1 })
         } else {
-          // All mock turns done — flip to chat
           setMessages((prev) => [
             ...prev,
             makeMockIntakeMessage("Got it — let's work through this together.", 'pleased')
           ])
           setPhase('chat')
+          setIntakeStep(4)
+          setSlotProgress({ total: 4, filled: 4 })
         }
         setSending(false)
         return
@@ -174,10 +252,12 @@ export function WorkspaceLayout() {
           responseType: 'coaching'
         }
         setMessages((prev) => [...prev, kawanMsg])
-        setSlotProgress({ total: 4, filled: slotCount(resp.slots) })
-        // OQ-INTAKE-SIGNAL: flip on intake_complete flag, NOT slot count
+        const filled = slotCount(resp.slots)
+        setSlotProgress({ total: 4, filled })
+        setIntakeStep(filled)
         if (resp.intake_complete) {
           setPhase('chat')
+          setIntakeStep(4)
         }
       } catch (err) {
         lastFailedTurnRef.current = { endpoint: 'intake', text: trimmed }
@@ -214,7 +294,6 @@ export function WorkspaceLayout() {
       }
 
       try {
-        // C6: send the recent transcript (prior turns; the current message rides as `say`).
         const recentTurns = messages.map((m) => ({
           role: m.from === 'user' ? ('user' as const) : ('assistant' as const),
           content: m.text
@@ -249,8 +328,6 @@ export function WorkspaceLayout() {
     }
     setError(null)
     lastFailedTurnRef.current = null
-    // Re-fire the API call only (user message is already in the thread).
-    // Do not call handleIntakeAnswer/handleSend to avoid re-appending the user bubble.
     setSending(true)
     if (failed.endpoint === 'intake' && commitmentId) {
       contextTurn(commitmentId, failed.text)
@@ -263,8 +340,13 @@ export function WorkspaceLayout() {
             responseType: 'coaching'
           }
           setMessages((prev) => [...prev, kawanMsg])
-          setSlotProgress({ total: 4, filled: slotCount(resp.slots) })
-          if (resp.intake_complete) setPhase('chat')
+          const filled = slotCount(resp.slots)
+          setSlotProgress({ total: 4, filled })
+          setIntakeStep(filled)
+          if (resp.intake_complete) {
+            setPhase('chat')
+            setIntakeStep(4)
+          }
         })
         .catch((err) => {
           lastFailedTurnRef.current = failed
@@ -304,31 +386,42 @@ export function WorkspaceLayout() {
     setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, proposalState: 'dismissed' } : m)))
   }
 
-  function handleSkipIntake() {
-    setPhase('chat')
+  // 2.1: openerLoading — true while the very first Kawan message is fetching.
+  // Once messages.length > 0 it clears (catch path always sets a message too).
+  const openerLoading = phase === 'intake' && messages.length === 0 && sending
+
+  // 2.1: brief loading state on viewMode switch — clears on next paint via requestAnimationFrame.
+  function handleViewModeSwitch(next: ViewMode) {
+    if (next === viewMode) return
+    setViewSwitching(true)
+    setViewMode(next)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => setViewSwitching(false))
+    })
   }
 
-  // I2: single gate — opener is loading when intake phase, no messages yet, and sending.
-  // Once the first Kawan message lands (messages.length > 0) the spinner clears.
-  // The catch path sets a static greeting message, so messages.length > 0 always clears it.
-  const openerLoading = phase === 'intake' && messages.length === 0 && sending
+  // plan is held in state for Phase 3 islands; views don't consume it directly yet.
+  void plan
 
   const sharedProps = {
     messages,
-    sending,
+    // 2.1: suppress typing-dots in views while openerLoading is true
+    sending: openerLoading ? false : sending,
     error,
     commitmentId: commitmentId ?? '',
     phase,
     slotProgress,
     commitment,
+    intakeStep,
     openerLoading,
     onSend: handleSend,
     onIntakeAnswer: handleIntakeAnswer,
     onRetry: handleRetry,
-    onSkipIntake: handleSkipIntake,
     onProposalApplied: handleProposalApplied,
     onProposalDismissed: handleProposalDismissed
   }
+
+  const isLoading = openerLoading || viewSwitching
 
   return (
     <div className="workspace-root">
@@ -348,7 +441,7 @@ export function WorkspaceLayout() {
             type="button"
             className={`workspace-mode-btn ${viewMode === 'stage' ? 'workspace-mode-btn-active' : ''}`}
             aria-pressed={viewMode === 'stage'}
-            onClick={() => setViewMode('stage')}
+            onClick={() => handleViewModeSwitch('stage')}
           >
             Stage
           </button>
@@ -356,7 +449,7 @@ export function WorkspaceLayout() {
             type="button"
             className={`workspace-mode-btn ${viewMode === 'messages' ? 'workspace-mode-btn-active' : ''}`}
             aria-pressed={viewMode === 'messages'}
-            onClick={() => setViewMode('messages')}
+            onClick={() => handleViewModeSwitch('messages')}
           >
             Messages
           </button>
@@ -364,14 +457,14 @@ export function WorkspaceLayout() {
         <div className="workspace-spacer" aria-hidden="true" />
       </div>
 
-      {/* Main stage area — wrapper gets blur class while opener loads; stage never remounts */}
-      <div className={`workspace-stage${openerLoading ? ' workspace-loading' : ''}`} aria-busy={openerLoading}>
+      {/* Main stage area — wrapper gets blur class while loading; stage never remounts */}
+      <div className={`workspace-stage${isLoading ? ' workspace-loading' : ''}`} aria-busy={isLoading}>
         {viewMode === 'stage' ? <StageMode {...sharedProps} /> : <MessagesMode {...sharedProps} />}
-        {openerLoading && (
-          <div className="workspace-loading-spinner" role="status" aria-label="Waiting for Kawan">
-            <span className="workspace-loading-dot" />
-            <span className="workspace-loading-dot" />
-            <span className="workspace-loading-dot" />
+        {/* 2.1: single labeled spinner ABOVE the blur layer, explicit z-index */}
+        {isLoading && (
+          <div className="workspace-loading-spinner" role="status" aria-label="Loading">
+            <span className="workspace-spinner-ring" aria-hidden="true" />
+            <span className="workspace-spinner-label">Loading...</span>
           </div>
         )}
       </div>

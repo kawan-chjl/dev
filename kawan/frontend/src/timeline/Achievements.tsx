@@ -65,7 +65,12 @@ const MOCK_ACHIEVEMENTS: Achievement[] = [
 ]
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric' })
+  return new Date(iso).toLocaleDateString('en-MY', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'Asia/Kuala_Lumpur'
+  })
 }
 
 export function Achievements() {

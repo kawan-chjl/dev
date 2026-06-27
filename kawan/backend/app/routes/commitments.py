@@ -14,9 +14,9 @@ from app import pipeline, scheduler, state
 from app.chutes import ChutesError
 from app.db import get_session
 from app.deps import current_user
-from app.models import Checkin, Commitment, Evidence, Plan, Proposal, SoftContext, SuccessPattern, User
+from app.models import Checkin, Commitment, Evidence, Message, Plan, Proposal, SoftContext, SuccessPattern, User
 from app.pipeline import record_contact
-from app.schemas import CommitmentCreate, CommitmentListOut, CommitmentOut, CommitmentPatch, ContextTurnIn, DebriefIn, WorkspaceTurnIn
+from app.schemas import CommitmentCreate, CommitmentListOut, CommitmentOut, CommitmentPatch, ContextTurnIn, DebriefIn, GitHubLinkIn, MessageOut, WorkspaceTurnIn
 from app.util import as_utc, now_utc, to_jsonable
 from app.wiring import LLM
 
@@ -27,6 +27,9 @@ router = APIRouter(prefix="/commitments")
 
 _SOFT_SLOTS = ("why", "obstacles", "time_constraints", "skill")
 _OPEN_STATUSES = ("draft", "active", "lapsed", "verifying", "grace")
+# In-flight statuses count against the 3-active cap (PO override; excludes draft and terminal).
+_IN_FLIGHT_STATUSES = ("active", "lapsed", "verifying", "grace")
+_MAX_ACTIVE = 3
 _PROPOSAL_FIELDS = ("deadline", "deliverable", "cadence", "evidence_type", "stake")  # TR-37 enum
 
 
@@ -38,8 +41,22 @@ async def _owned(commitment_id: str, user: User = Depends(current_user),
     return c
 
 
+async def _count_in_flight(db: AsyncSession, user_id: str) -> int:
+    """Count commitments in in-flight statuses (active/lapsed/verifying/grace) for a user."""
+    return await db.scalar(
+        select(func.count())
+        .select_from(Commitment)
+        .where(Commitment.user_id == user_id, Commitment.status.in_(_IN_FLIGHT_STATUSES))
+    ) or 0
+
+
 @router.post("", response_model=CommitmentOut, status_code=status.HTTP_201_CREATED)
 async def create(body: CommitmentCreate, user: User = Depends(current_user), db: AsyncSession = Depends(get_session)):
+    if await _count_in_flight(db, user.id) >= _MAX_ACTIVE:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "You can have at most 3 active commitments at once. Complete or end one first.",
+        )
     c = Commitment(user_id=user.id, action=body.action, deliverable=body.deliverable, deadline=body.deadline)
     db.add(c)
     await db.commit()
@@ -74,9 +91,14 @@ async def list_commitments(
 
 @router.get("/active", response_model=CommitmentOut)
 async def active(user: User = Depends(current_user), db: AsyncSession = Depends(get_session)):
+    """Return the single most-recently-active open commitment for backward compatibility.
+    Ordered by last_contact_at desc (nulls last) then created_at desc.
+    When multiple are active, callers should switch to GET /commitments for the full list."""
     c = await db.scalar(
-        select(Commitment).where(Commitment.user_id == user.id, Commitment.status.in_(_OPEN_STATUSES))
-        .order_by(Commitment.created_at.desc()).limit(1)
+        select(Commitment)
+        .where(Commitment.user_id == user.id, Commitment.status.in_(_OPEN_STATUSES))
+        .order_by(Commitment.last_contact_at.desc().nulls_last(), Commitment.created_at.desc())
+        .limit(1)
     )
     if c is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "no active commitment")
@@ -117,6 +139,12 @@ async def context_turn(body: ContextTurnIn, c: Commitment = Depends(_owned), db:
             setattr(sc, k, v)
     sc.updated_at = now_utc()
     await db.commit()
+    # Persist transcript: skip the empty opener user turn so history starts with the AI message.
+    if body.say:
+        db.add(Message(commitment_id=c.id, role="user", content=body.say))
+    db.add(Message(commitment_id=c.id, role="assistant", content=result["say"],
+                   emotion=result.get("emotion"), response_type="coaching"))
+    await db.commit()
     await record_contact(db, c)
     return result
 
@@ -127,9 +155,15 @@ async def workspace_turn(body: WorkspaceTurnIn, c: Commitment = Depends(_owned),
     sc = await db.get(SoftContext, c.id)
     soft = {k: getattr(sc, k) for k in _SOFT_SLOTS} if sc else {}
     progress = await pipeline.assemble_progress(db, c)
+    plan_row = await db.get(Plan, c.id)
+    if plan_row and plan_row.roadmap_json:
+        # Fold the advice-only roadmap into the progress digest so the LLM call signature
+        # stays unchanged (spec §8.1: plan is advice only, never written by AI).
+        progress = {**progress, "plan_roadmap": plan_row.roadmap_json}
     try:
         result = await LLM.workspace_turn(c, soft, body.say,
-                                          recent_turns=pipeline.clamp_turns(body.recent_turns), progress=progress)
+                                          recent_turns=pipeline.clamp_turns(body.recent_turns),
+                                          progress=progress)
     except ChutesError:
         return {**_INFERENCE_ERROR_BODY, "proposal": None, "emotion": "neutral"}
     if result.get("response_type") == "proposal" and result.get("proposal"):
@@ -139,6 +173,11 @@ async def workspace_turn(body: WorkspaceTurnIn, c: Commitment = Depends(_owned),
         db.add(prop)
         await db.commit()
         result["proposal_id"] = prop.id
+    # Persist transcript rows after any proposal write (ordering guarantee).
+    db.add(Message(commitment_id=c.id, role="user", content=body.say))
+    db.add(Message(commitment_id=c.id, role="assistant", content=result["say"],
+                   emotion=result.get("emotion"), response_type=result.get("response_type")))
+    await db.commit()
     return result
 
 
@@ -163,6 +202,11 @@ async def plan(c: Commitment = Depends(_owned), db: AsyncSession = Depends(get_s
 
 @router.post("/{commitment_id}/start", response_model=CommitmentOut)
 async def start(request: Request, c: Commitment = Depends(_owned), db: AsyncSession = Depends(get_session)):
+    if await _count_in_flight(db, c.user_id) >= _MAX_ACTIVE:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "You can have at most 3 active commitments at once. Complete or end one first.",
+        )
     demo = request.query_params.get("demo_deadline")  # e.g. +5m — sets the REAL deadline (TR-67)
     if demo and demo.startswith("+") and demo.endswith("m"):
         try:
@@ -196,6 +240,18 @@ async def check(c: Commitment = Depends(_owned), db: AsyncSession = Depends(get_
 _ALLOWED_IMAGE_TYPES = {"image/png", "image/jpeg", "image/webp"}
 _MAX_EVIDENCE_BYTES = 8 * 1024 * 1024  # 8 MB (TR-46)
 
+# Allowed MIME types for file evidence. Legacy .doc (application/msword) is deliberately
+# excluded -- binary format requires disproportionate effort; the route returns 415 with
+# a friendly message directing the user to .docx or a screenshot.
+_ALLOWED_FILE_TYPES = {
+    "text/plain",
+    "text/markdown",
+    "text/csv",
+    "application/pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",  # .docx
+}
+_DOC_LEGACY_TYPES = {"application/msword"}  # .doc -- rejected with a friendly message
+
 
 @router.post("/{commitment_id}/evidence")
 async def evidence(file: UploadFile = File(...), c: Commitment = Depends(_owned),
@@ -210,6 +266,84 @@ async def evidence(file: UploadFile = File(...), c: Commitment = Depends(_owned)
     image_b64 = base64.b64encode(raw).decode()
     await record_contact(db, c)
     ev = await pipeline.judge_upload(db, c, {"filename": file.filename}, image_b64=image_b64)
+    return {"verdict": ev.verdict, "confidence": ev.confidence, "reasoning": ev.reasoning, "evidence_id": ev.id}
+
+
+@router.post("/{commitment_id}/evidence/file")
+async def evidence_file(file: UploadFile = File(...), c: Commitment = Depends(_owned),
+                        db: AsyncSession = Depends(get_session)):
+    from app.adapters.file import _extract_text
+    if file.content_type in _DOC_LEGACY_TYPES or (file.filename or "").lower().endswith(".doc"):
+        raise HTTPException(
+            status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            "Legacy .doc files are not supported. Please save as .docx or submit a screenshot instead.",
+        )
+    if file.content_type not in _ALLOWED_FILE_TYPES:
+        raise HTTPException(
+            status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            f"unsupported file type '{file.content_type}'; allowed: txt, md, csv, pdf, docx",
+        )
+    raw = await file.read(_MAX_EVIDENCE_BYTES + 1)
+    if len(raw) > _MAX_EVIDENCE_BYTES:
+        raise HTTPException(413, "evidence file exceeds the 8 MB limit")
+    filename = file.filename or "upload"
+    text = _extract_text(filename, raw)
+    await record_contact(db, c)
+    from app.contracts import EvidenceBundle
+    from app.wiring import adapter_for
+    adapter = adapter_for("file")
+    bundle = EvidenceBundle(
+        adapter="file",
+        raw_ref={"filename": filename},
+        items=[{"filename": filename, "text": text}],
+        summary=f"file: {filename}",
+    )
+    verdict = await adapter.judge(c, bundle, LLM)
+    from app.models import Evidence
+    ev = Evidence(commitment_id=c.id, adapter="file", raw_ref={"filename": filename},
+                  verdict=verdict.verdict, confidence=verdict.confidence, reasoning=verdict.reasoning)
+    db.add(ev)
+    await db.flush()
+    if c.status in ("verifying", "grace"):
+        from app import state as _state
+        outcome = await _state.apply_final_verdict(db, c, verdict.verdict)
+        from app.pipeline import _after_outcome
+        await _after_outcome(db, c, ev, verdict, outcome)
+    else:
+        if verdict.verdict == "pass":
+            c.escalation = 0
+        await db.commit()
+        from app.pipeline import _verdict_payload, deliver
+        await deliver(db, c.user_id, _verdict_payload(ev, verdict))
+    return {"verdict": ev.verdict, "confidence": ev.confidence, "reasoning": ev.reasoning, "evidence_id": ev.id}
+
+
+@router.post("/{commitment_id}/evidence/github-link")
+async def evidence_github_link(body: GitHubLinkIn, c: Commitment = Depends(_owned),
+                               db: AsyncSession = Depends(get_session)):
+    from app.adapters.github import GitHubAdapter, fetch_repo_url
+    from app.wiring import adapter_for
+    adapter = adapter_for("github")
+    # fetch_repo_url never raises -- returns empty bundle on unreachable/missing repo
+    bundle = await fetch_repo_url(adapter, body.url, c)
+    await record_contact(db, c)
+    verdict = await adapter.judge(c, bundle, LLM)
+    from app.models import Evidence
+    ev = Evidence(commitment_id=c.id, adapter="github", raw_ref=bundle.raw_ref,
+                  verdict=verdict.verdict, confidence=verdict.confidence, reasoning=verdict.reasoning)
+    db.add(ev)
+    await db.flush()
+    if c.status in ("verifying", "grace"):
+        from app import state as _state
+        outcome = await _state.apply_final_verdict(db, c, verdict.verdict)
+        from app.pipeline import _after_outcome
+        await _after_outcome(db, c, ev, verdict, outcome)
+    else:
+        if verdict.verdict == "pass":
+            c.escalation = 0
+        await db.commit()
+        from app.pipeline import _verdict_payload, deliver
+        await deliver(db, c.user_id, _verdict_payload(ev, verdict))
     return {"verdict": ev.verdict, "confidence": ev.confidence, "reasoning": ev.reasoning, "evidence_id": ev.id}
 
 
@@ -286,14 +420,26 @@ async def timeline(c: Commitment = Depends(_owned), db: AsyncSession = Depends(g
     return {"status": c.status, "escalation": c.escalation, "events": events}
 
 
+@router.get("/{commitment_id}/messages", response_model=list[MessageOut])
+async def get_messages(c: Commitment = Depends(_owned), db: AsyncSession = Depends(get_session)):
+    """Return the full message history for a commitment, newest-last (ascending created_at)."""
+    rows = (
+        await db.scalars(
+            select(Message).where(Message.commitment_id == c.id).order_by(Message.created_at)
+        )
+    ).all()
+    return [MessageOut.model_validate(m) for m in rows]
+
+
 @router.delete("/{commitment_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_commitment(c: Commitment = Depends(_owned), db: AsyncSession = Depends(get_session)):
     """Permanently delete a commitment and all its related rows (cascade order:
-    evidence -> checkins -> proposals -> soft_context -> plan -> success_patterns -> audit_log -> commitment).
+    messages -> evidence -> checkins -> proposals -> soft_context -> plan -> success_patterns -> audit_log -> commitment).
     Current-user scoped via _owned. No undo."""
     from sqlalchemy import delete as sql_delete, update as sql_update
-    from app.models import Achievement, AuditLog, Checkin, Evidence, Plan, Proposal, SoftContext, SuccessPattern
+    from app.models import Achievement, AuditLog, Checkin, Evidence, Message, Plan, Proposal, SoftContext, SuccessPattern
     cid = c.id
+    await db.execute(sql_delete(Message).where(Message.commitment_id == cid))
     await db.execute(sql_delete(Evidence).where(Evidence.commitment_id == cid))
     await db.execute(sql_delete(Checkin).where(Checkin.commitment_id == cid))
     await db.execute(sql_delete(Proposal).where(Proposal.commitment_id == cid))

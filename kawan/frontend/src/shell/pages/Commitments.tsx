@@ -20,6 +20,7 @@ import { Card } from '../../ui/Card'
 import { Checkbox } from '../../ui/Checkbox'
 import { Chip } from '../../ui/Chip'
 import { Modal } from '../../ui/Modal'
+import { Skeleton } from '../../ui/Skeleton'
 import { PageHeader } from '../PageHeader'
 
 type Filter = 'All' | 'Ongoing' | 'Completed'
@@ -34,12 +35,17 @@ function matchesFilter(c: Commitment, filter: Filter): boolean {
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric' })
+  return new Date(iso).toLocaleDateString('en-MY', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'Asia/Kuala_Lumpur'
+  })
 }
 
 // Stats row uses the active commitment's timeline
 function useActiveStats(commitment: Commitment | null) {
-  const { timeline } = useTimeline(commitment?.id ?? null)
+  const { state, timeline } = useTimeline(commitment?.id ?? null)
   const events = timeline?.events ?? []
   const verified = events.filter((e) => e.type === 'evidence' && e.verdict === 'pass').length
   const checkins = events.filter((e) => e.type === 'evidence').length
@@ -48,7 +54,55 @@ function useActiveStats(commitment: Commitment | null) {
       ? null
       : Math.round((events.filter((e) => e.type === 'evidence' && e.verdict === 'pass').length / checkins) * 100)
   const restDaysLeft = commitment ? commitment.skip_days_total - commitment.skip_days_used : 0
-  return { verified, checkins, passRate, restDaysLeft }
+  return { state, verified, checkins, passRate, restDaysLeft }
+}
+
+function CommitmentsSkeleton() {
+  return (
+    <>
+      <div className="commitments-stats-row" aria-hidden="true">
+        {[0, 1, 2, 3].map((index) => (
+          <Card key={index} className="commitments-stat-card">
+            <Skeleton variant="text" width="42%" height={36} />
+            <Skeleton variant="text" width="68%" />
+          </Card>
+        ))}
+      </div>
+      <div className="commitments-dashboard-body" aria-hidden="true">
+        <Card className="commitments-main-card">
+          <div className="commitments-main">
+            <div className="skeleton-row">
+              <Skeleton variant="block" width={72} height={32} radius="var(--radius-pill)" />
+              <Skeleton variant="block" width={96} height={32} radius="var(--radius-pill)" />
+              <Skeleton variant="block" width={112} height={32} radius="var(--radius-pill)" />
+            </div>
+            <div className="skeleton-table">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <div
+                  // biome-ignore lint/suspicious/noArrayIndexKey: fixed decorative loading rows
+                  key={index}
+                  className="skeleton-table-row"
+                >
+                  <Skeleton variant="block" width={18} height={18} radius="var(--radius-sm)" />
+                  <Skeleton variant="text" width="100%" />
+                  <Skeleton variant="text" width="100%" />
+                  <Skeleton variant="block" width={68} height={24} radius="var(--radius-pill)" />
+                  <Skeleton variant="block" width={86} height={24} radius="var(--radius-pill)" />
+                  <Skeleton variant="text" width={52} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
+        <Card className="pipeline-rail-card">
+          <div className="pipeline-rail">
+            <Skeleton variant="text" width="48%" />
+            <Skeleton variant="text" count={5} />
+          </div>
+        </Card>
+      </div>
+    </>
+  )
 }
 
 // Pipeline rail — static lifecycle explainer (OQ-6)
@@ -84,7 +138,7 @@ function PipelineRail() {
 export function Commitments() {
   const navigate = useNavigate()
   const { notify } = useNotifications()
-  const { commitments, refresh, total, page, pageSize, setPage, hasPrev, hasNext } = useCommitments()
+  const { state, commitments, refresh, total, page, pageSize, setPage, hasPrev, hasNext } = useCommitments()
   const [filter, setFilter] = useState<Filter>('All')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [deleting, setDeleting] = useState(false)
@@ -92,8 +146,27 @@ export function Commitments() {
 
   // Stat row uses the most-recent active commitment ("light current" per the selection model),
   // not commitments[0] from the current page, so figures do not shift as the user pages.
-  const { commitment: activeCommitment } = useActiveCommitment()
+  const { state: activeState, commitment: activeCommitment } = useActiveCommitment()
   const stats = useActiveStats(activeCommitment)
+  const loading =
+    state === 'loading' || activeState === 'loading' || (activeCommitment !== null && stats.state === 'loading')
+
+  if (loading) {
+    return (
+      <div className="shell-page">
+        <PageHeader
+          title="Commitments"
+          subtitle="All your commitments, active and finished."
+          actions={
+            <Button variant="accent" onClick={() => navigate('/commitments/new')}>
+              Make a commitment
+            </Button>
+          }
+        />
+        <CommitmentsSkeleton />
+      </div>
+    )
+  }
 
   const totalPages = Math.ceil(total / pageSize)
 

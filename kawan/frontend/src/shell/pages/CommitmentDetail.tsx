@@ -20,6 +20,7 @@ import { Badge } from '../../ui/Badge'
 import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
 import { Chip } from '../../ui/Chip'
+import { Skeleton } from '../../ui/Skeleton'
 import { Tooltip } from '../../ui/Tooltip'
 import type { PageSection } from '../OnThisPage'
 import { OnThisPage } from '../OnThisPage'
@@ -142,7 +143,15 @@ function TimelineSection({ commitmentId }: { commitmentId: string }) {
   return (
     <section id="section-timeline" className="detail-section">
       <h2 className="detail-section-heading">Timeline</h2>
-      {state === 'loading' && <p className="timeline-loading">Loading...</p>}
+      {state === 'loading' && (
+        <Card>
+          <div className="skeleton-card-content" aria-hidden="true">
+            <Skeleton variant="text" width="62%" />
+            <Skeleton variant="text" width="48%" />
+            <Skeleton variant="text" width="72%" />
+          </div>
+        </Card>
+      )}
       {(state === 'empty' || (state === 'ready' && events.length === 0)) && (
         <p className="detail-timeline-empty">No check-ins yet.</p>
       )}
@@ -160,9 +169,42 @@ function TimelineSection({ commitmentId }: { commitmentId: string }) {
   )
 }
 
+function CommitmentDetailSkeleton() {
+  return (
+    <div className="detail-two-col" aria-hidden="true">
+      <div className="detail-content">
+        <div className="detail-status-header">
+          <Skeleton variant="text" width={48} />
+          <Skeleton variant="block" width={72} height={24} radius="var(--radius-pill)" />
+          <Skeleton variant="block" width={110} height={24} radius="var(--radius-pill)" />
+        </div>
+        {[0, 1, 2, 3, 4].map((index) => (
+          <section key={index} className="detail-section">
+            <Skeleton variant="text" width="24%" height={22} />
+            <Card className="detail-card">
+              <div className="skeleton-card-content">
+                <Skeleton variant="text" width="100%" />
+                <Skeleton variant="text" width="76%" />
+              </div>
+            </Card>
+          </section>
+        ))}
+      </div>
+      <div className="detail-index-col">
+        <Card>
+          <div className="skeleton-card-content">
+            <Skeleton variant="text" width="70%" />
+            <Skeleton variant="text" count={6} />
+          </div>
+        </Card>
+      </div>
+    </div>
+  )
+}
+
 export function CommitmentDetail() {
   const { id } = useParams<{ id: string }>()
-  const { commitment } = useActiveCommitment()
+  const { state, commitment } = useActiveCommitment()
   const navigate = useNavigate()
 
   const match = commitment?.id === id ? commitment : null
@@ -175,7 +217,7 @@ export function CommitmentDetail() {
     return (
       <div className="shell-page">
         <PageHeader title="Commitment" subtitle="Details and settings." />
-        <p className="page-not-found">Commitment not found.</p>
+        {state === 'loading' ? <CommitmentDetailSkeleton /> : <p className="page-not-found">Commitment not found.</p>}
       </div>
     )
   }
@@ -228,7 +270,10 @@ export function CommitmentDetail() {
           <section id="section-deadline" className="detail-section">
             <h2 className="detail-section-heading">Deadline</h2>
             <Card className="detail-card">
-              <ReadOnlyField label="Deadline" value={new Date(match.deadline).toLocaleString('en-MY')} />
+              <ReadOnlyField
+                label="Deadline"
+                value={new Date(match.deadline).toLocaleString('en-MY', { timeZone: 'Asia/Kuala_Lumpur' })}
+              />
             </Card>
           </section>
 

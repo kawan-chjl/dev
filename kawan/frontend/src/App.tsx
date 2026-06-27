@@ -1,7 +1,8 @@
 // App — router root. Declares all routes; Zone 2 and public pages are outside ShellLayout.
 // Q1 resolution: repurpose this file as real app shell (spike intent preserved in spike/ dir).
 
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { isWelcomeDismissed } from './demo/welcomeFlag'
 import { AuthCallback } from './pages/AuthCallback'
 import { Landing } from './pages/Landing'
 import { NotFound } from './pages/NotFound'
@@ -16,43 +17,55 @@ import { Home } from './shell/pages/Home'
 import { Settings } from './shell/pages/Settings'
 import { SettingsAudit } from './shell/pages/SettingsAudit'
 import { ShellLayout } from './shell/ShellLayout'
+import { HelpButton } from './ui/HelpButton'
 import { NewCommitment } from './zone2/NewCommitment'
 import { WorkspaceLayout } from './zone2/WorkspaceLayout'
 
 export default function App() {
+  const location = useLocation()
+  const helpButtonRoutes = new Set(['/home', '/commitments', '/analytics'])
+  const showHelpButton = helpButtonRoutes.has(location.pathname)
+
+  function handleHelpClick() {
+    return undefined
+  }
+
   return (
-    <Routes>
-      {/* Zone 0 — public, no shell chrome */}
-      <Route path="/" element={<Landing />} />
-      <Route path="/sign-in" element={<SignIn />} />
-      <Route path="/sign-up" element={<SignUp />} />
-      <Route path="/welcome" element={<Welcome />} />
-      <Route path="/auth/callback" element={<AuthCallback />} />
+    <>
+      <Routes>
+        {/* Zone 0 — public, no shell chrome */}
+        <Route path="/" element={<Landing />} />
+        <Route path="/sign-in" element={<SignIn />} />
+        <Route path="/sign-up" element={<SignUp />} />
+        <Route path="/welcome" element={isWelcomeDismissed() ? <Navigate to="/home" replace /> : <Welcome />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
 
-      {/* Zone 2 — full-screen AI workspace, no shell chrome */}
-      {/* /commitments/new is Zone 2 (compose/persona full-screen flow, no shell chrome) */}
-      <Route path="/commitments/new" element={<NewCommitment />} />
-      {/* /new kept as a redirect so in-flight links don't break */}
-      <Route path="/new" element={<Navigate to="/commitments/new" replace />} />
-      <Route path="/workspace/:id" element={<WorkspaceLayout />} />
+        {/* Zone 2 — full-screen AI workspace, no shell chrome */}
+        {/* /commitments/new is Zone 2 (compose/persona full-screen flow, no shell chrome) */}
+        <Route path="/commitments/new" element={<NewCommitment />} />
+        {/* /new kept as a redirect so in-flight links don't break */}
+        <Route path="/new" element={<Navigate to="/commitments/new" replace />} />
+        <Route path="/workspace/:id" element={<WorkspaceLayout />} />
 
-      {/* Zone 1 — SaaS shell (topbar + drawer + footer) */}
-      <Route element={<ShellLayout />}>
-        <Route path="/home" element={<Home />} />
-        <Route path="/commitments" element={<Commitments />} />
-        <Route path="/commitments/:id" element={<CommitmentDetail />} />
-        {/* /timeline redirects to /analytics (v4 rename) */}
-        <Route path="/timeline" element={<Navigate to="/analytics" replace />} />
-        <Route path="/analytics" element={<Analytics />} />
-        <Route path="/settings" element={<Settings />} />
-        {/* /history is the canonical route; /settings/audit redirects to it */}
-        <Route path="/history" element={<SettingsAudit />} />
-        <Route path="/settings/audit" element={<Navigate to="/history" replace />} />
-        <Route path="/faq" element={<Faq />} />
-      </Route>
+        {/* Zone 1 — SaaS shell (topbar + drawer + footer) */}
+        <Route element={<ShellLayout />}>
+          <Route path="/home" element={<Home />} />
+          <Route path="/commitments" element={<Commitments />} />
+          <Route path="/commitments/:id" element={<CommitmentDetail />} />
+          {/* /timeline redirects to /analytics (v4 rename) */}
+          <Route path="/timeline" element={<Navigate to="/analytics" replace />} />
+          <Route path="/analytics" element={<Analytics />} />
+          <Route path="/settings" element={<Settings />} />
+          {/* /history is the canonical route; /settings/audit redirects to it */}
+          <Route path="/history" element={<SettingsAudit />} />
+          <Route path="/settings/audit" element={<Navigate to="/history" replace />} />
+          <Route path="/faq" element={<Faq />} />
+        </Route>
 
-      {/* 404 */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+        {/* 404 */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+      {showHelpButton && <HelpButton onClick={handleHelpClick} />}
+    </>
   )
 }
