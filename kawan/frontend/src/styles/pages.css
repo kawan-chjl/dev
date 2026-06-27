@@ -3078,11 +3078,6 @@
   display: inline-block;
 }
 
-.kawan-datepicker-disabled {
-  opacity: 0.5;
-  pointer-events: none;
-}
-
 .kawan-datepicker-trigger {
   display: inline-flex;
   align-items: center;
@@ -3109,6 +3104,10 @@
 .kawan-datepicker-open .kawan-datepicker-trigger {
   border-color: var(--accent);
   border-style: solid;
+}
+.kawan-datepicker-disabled .kawan-datepicker-trigger {
+  opacity: 0.72;
+  cursor: not-allowed;
 }
 
 .kawan-datepicker-value {

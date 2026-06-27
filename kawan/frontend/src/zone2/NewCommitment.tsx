@@ -261,18 +261,8 @@ function ComposeSection({
           <span className="nc-madlib-field">
             {demoMode ? (
               <span className="nc-demo-deadline">
-                <span className="nc-demo-deadline-value">
-                  {deadlineLocal
-                    ? new Date(deadlineLocal).toLocaleString('en-MY', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        day: 'numeric',
-                        month: 'short',
-                        timeZone: 'Asia/Kuala_Lumpur'
-                      })
-                    : '1 hour from now'}
-                </span>
-                <span className="nc-demo-deadline-note">Demo deadline set automatically</span>
+                <DatePicker value={deadlineLocal} onChange={setDeadlineLocal} aria-label="Demo deadline" disabled />
+                <span className="nc-demo-deadline-note">Set automatically for the demo</span>
               </span>
             ) : (
               <>
