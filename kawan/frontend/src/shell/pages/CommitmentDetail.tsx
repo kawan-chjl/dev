@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthProvider'
 import { recordRecentCommitment } from '../../commitments/recent'
+import { statusLabel } from '../../commitments/statusLabel'
 import { useActiveCommitment } from '../../commitments/useActiveCommitment'
 import { ShareWinDialog } from '../../share/ShareWinDialog'
 import { CheckinEventRow, EvidenceEventRow, ProposalEventRow } from '../../timeline/eventRows'
@@ -200,7 +201,7 @@ export function CommitmentDetail() {
         <div className="detail-content">
           <div className="detail-status-header">
             <span className="detail-status-label">Status</span>
-            <Chip variant={match.status === 'active' ? 'sage' : 'default'}>{match.status}</Chip>
+            <Chip variant={match.status === 'active' ? 'sage' : 'default'}>{statusLabel(match.status)}</Chip>
             <Badge variant="muted">{match.id}</Badge>
           </div>
 
