@@ -103,6 +103,67 @@ async def test_miss_path_sends_stake_email(db, monkeypatch):
     assert any(m["to"] == "brother@example.com" for m in email_mod.outbox)  # templated stake email landed
 
 
+# --- missed-retry witness email: cadence fires after grace window, no evidence ----
+
+class _SilentAdapter:
+    type = "github"
+    trust = "high"
+
+    async def fetch(self, c, since):
+        return EvidenceBundle(adapter="github", raw_ref={}, items=[], summary="nothing new")
+
+    async def judge(self, c, b, llm):
+        return Verdict("unclear", 0.5, [], "n/a", None)
+
+
+async def test_cadence_late_with_witness_emails_witness(db, monkeypatch):
+    """When a cadence tick fires after the grace window has elapsed (is_late=True)
+    and no evidence was submitted, the stake witness is emailed."""
+    import app.pipeline as pipeline_mod
+
+    monkeypatch.setitem(wiring.ADAPTERS, "github", _SilentAdapter())
+    # Patch is_checkin_late in the pipeline module's namespace (it was imported directly).
+    monkeypatch.setattr(pipeline_mod, "is_checkin_late", lambda now, tick, remaining: True)
+    email_mod.outbox.clear()
+
+    c = await _seed_active(db, evidence_type="github", skip_days_total=0,
+                           stake_enabled=True, stake_contact_name="Witness",
+                           stake_contact_email="witness@example.com")
+    await pipeline.run_checkin(db, c, "cadence")
+
+    assert any(m["to"] == "witness@example.com" for m in email_mod.outbox)
+
+
+async def test_cadence_late_without_witness_sends_nothing_extra(db, monkeypatch):
+    """Late cadence tick with no stake witness configured — no extra email sent."""
+    import app.pipeline as pipeline_mod
+
+    monkeypatch.setitem(wiring.ADAPTERS, "github", _SilentAdapter())
+    monkeypatch.setattr(pipeline_mod, "is_checkin_late", lambda now, tick, remaining: True)
+    email_mod.outbox.clear()
+
+    c = await _seed_active(db, evidence_type="github", skip_days_total=0)
+    await pipeline.run_checkin(db, c, "cadence")
+
+    assert email_mod.outbox == []
+
+
+async def test_cadence_not_late_does_not_email_witness(db, monkeypatch):
+    """A cadence tick that fires on-time (is_late=False) does NOT email the witness."""
+    import app.pipeline as pipeline_mod
+
+    monkeypatch.setitem(wiring.ADAPTERS, "github", _SilentAdapter())
+    monkeypatch.setattr(pipeline_mod, "is_checkin_late", lambda now, tick, remaining: False)
+    email_mod.outbox.clear()
+
+    c = await _seed_active(db, evidence_type="github", skip_days_total=0,
+                           stake_enabled=True, stake_contact_name="Witness",
+                           stake_contact_email="witness@example.com")
+    await pipeline.run_checkin(db, c, "cadence")
+
+    assert not any(m["to"] == "witness@example.com" for m in email_mod.outbox)
+
+
 # --- B4: proposal-apply is the user's action, audited as actor='user' -------------
 
 async def test_proposal_apply_user_session_audited(client, db):
@@ -214,6 +275,72 @@ async def test_debrief_409_when_not_completed(client):
                              json={"action": "ship", "deliverable": "d", "deadline": _future()})).json()["id"]
     r = await client.post(f"/api/commitments/{cid}/debrief", json={"note": "too early"})
     assert r.status_code == 409
+
+
+# ── Finish-Now: ?finish=true on an ACTIVE commitment must complete it on pass ────
+
+async def test_finish_now_active_commitment_pass_completes(client, db):
+    """Finish-Now with ?finish=true on an active commitment: a pass verdict must
+    transition the commitment to 'completed' (not just return 'pass' and leave it active).
+    This is the MAJOR-1 QA fix: active/lapsed → verifying before judging, then
+    apply_final_verdict runs as in the normal deadline path."""
+    cid = (await client.post("/api/commitments",
+                             json={"action": "ship", "deliverable": "d", "deadline": _future()})).json()["id"]
+    await client.post(f"/api/commitments/{cid}/start")
+
+    # Confirm it's active before finishing.
+    r = await client.get(f"/api/commitments/{cid}")
+    assert r.json()["status"] == "active"
+
+    # Submit file evidence with ?finish=true — StubFileAdapter returns pass for any non-empty upload.
+    r = await client.post(
+        f"/api/commitments/{cid}/evidence/file?finish=true",
+        files={"file": ("proof.txt", b"shipped the feature", "text/plain")},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["verdict"] == "pass"
+    assert body["status"] == "completed"  # backend confirms completion
+
+    # Confirm DB is actually completed (not just a response field).
+    c = await db.get(Commitment, cid)
+    assert c.status == "completed"
+
+
+async def test_finish_now_fail_stays_active(client, db):
+    """Finish-Now with a fail verdict must NOT complete the commitment; it should
+    stay active (or lapsed) so the user can try again."""
+    import app.wiring as _wiring
+
+    class _FailFileAdapter:
+        type = "file"
+        trust = "medium"
+        async def fetch(self, c, since): ...
+        async def judge(self, c, b, llm):
+            from app.contracts import Verdict
+            return Verdict("fail", 0.8, ["not convincing"], "Evidence doesn't match.", None)
+
+    original = _wiring.ADAPTERS.get("file")
+    _wiring.ADAPTERS["file"] = _FailFileAdapter()
+    try:
+        cid = (await client.post("/api/commitments",
+                                 json={"action": "ship", "deliverable": "d", "deadline": _future()})).json()["id"]
+        await client.post(f"/api/commitments/{cid}/start")
+        r = await client.post(
+            f"/api/commitments/{cid}/evidence/file?finish=true",
+            files={"file": ("proof.txt", b"weak", "text/plain")},
+        )
+        assert r.status_code == 200
+        body = r.json()
+        assert body["verdict"] == "fail"
+        # On fail with no skip days the state machine transitions to missed (grace=0 by default)
+        # OR it stays in grace if skip days > 0. Either way it must NOT be completed.
+        assert body["status"] != "completed"
+        c = await db.get(Commitment, cid)
+        assert c.status != "completed"
+    finally:
+        if original is not None:
+            _wiring.ADAPTERS["file"] = original
 
 
 async def test_debrief_no_audit_log_row(client, db):

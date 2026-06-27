@@ -43,12 +43,14 @@ export function ShareWinDialog({ open, onClose, commitment, winDateIso, persona 
   const deadlineLabel = new Date(commitment.deadline).toLocaleDateString('en-MY', {
     day: 'numeric',
     month: 'short',
-    year: 'numeric'
+    year: 'numeric',
+    timeZone: 'Asia/Kuala_Lumpur'
   })
   const dateLabel = new Date(winDateIso).toLocaleDateString('en-MY', {
     day: 'numeric',
     month: 'short',
-    year: 'numeric'
+    year: 'numeric',
+    timeZone: 'Asia/Kuala_Lumpur'
   })
 
   const revokePreview = useCallback(() => {

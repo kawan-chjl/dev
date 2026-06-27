@@ -30,6 +30,21 @@ class StubGitHubAdapter:
                        "New non-trivial commit found in window.")
 
 
+class StubFileAdapter:
+    type = "file"
+    trust = "medium"
+
+    async def fetch(self, commitment: Commitment, since: datetime | None) -> EvidenceBundle:
+        return EvidenceBundle(adapter="file", raw_ref={"filename": "(stub)"}, items=[],
+                              summary="no file")
+
+    async def judge(self, commitment: Commitment, bundle: EvidenceBundle, llm) -> Verdict:
+        if not bundle.items:
+            return Verdict("unclear", 0.4, ["no file received"], "No file supplied.", None)
+        return Verdict("pass", 0.85, ["document content relates to the deliverable"],
+                       "File content matches the commitment.")
+
+
 class StubScreenshotAdapter:
     type = "screenshot"
     trust = "medium"
@@ -47,10 +62,24 @@ class StubLLMClient:
     """Canned, schema-shaped responses for the four §9.2 calls."""
 
     async def intake_turn(self, commitment: Commitment, soft_context: dict, user_says: str) -> dict:
-        slots = {k: (soft_context.get(k) or (user_says if k == "why" else None))
-                 for k in ("why", "obstacles", "time_constraints", "skill")}
+        _slot_order = ("why", "obstacles", "time_constraints", "skill")
+        _slot_questions = {
+            "why": "Why now? What's the deeper reason this matters?",
+            "obstacles": "And what's the main obstacle you're already expecting?",
+            "time_constraints": "How tight is your timeline for this?",
+            "skill": "How confident are you in your skills for this task?",
+        }
+        # Copy existing filled slots, then fill the next unfilled one with user_says.
+        slots = {k: soft_context.get(k) for k in _slot_order}
+        if user_says:
+            for k in _slot_order:
+                if not slots[k]:
+                    slots[k] = user_says
+                    break
         complete = all(slots.values())
-        say = "Got it." if complete else "Why now — what's driving this one?"
+        # Ask the question for the next unfilled slot, or acknowledge completion.
+        next_slot = next((k for k in _slot_order if not slots[k]), None)
+        say = "Got it. Let's get to work." if complete else _slot_questions.get(next_slot or "why", "Tell me more.")
         return {"say": say, "slots": slots, "intake_complete": complete, "emotion": "curious"}
 
     async def plan(self, commitment: Commitment, soft_context: dict) -> dict:

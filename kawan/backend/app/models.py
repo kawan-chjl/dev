@@ -61,7 +61,7 @@ class Commitment(Base):
     # X-NOTIF (ADR-0006): the user's OWN reminder address — opt-in, per-Commitment,
     # distinct from stake_contact_email (the witness). User-set only; the AI never reads it.
     notify_email: Mapped[str | None] = mapped_column(default=None)
-    skip_days_total: Mapped[int] = mapped_column(default=1)
+    skip_days_total: Mapped[int] = mapped_column(default=0)
     skip_days_used: Mapped[int] = mapped_column(default=0)
     status: Mapped[str] = mapped_column(default="draft")  # §5.3 enum
     escalation: Mapped[int] = mapped_column(default=0)  # 0|1|2
@@ -187,4 +187,21 @@ class PushSubscription(Base):
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
     endpoint: Mapped[str | None] = mapped_column(default=None, unique=True)
     subscription: Mapped[dict[str, Any]] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(default=now_utc)
+
+
+class Message(Base):
+    """Per-commitment AI output transcript (Task 1.1). AI transcript rows only; the AI
+    may never write hard fields. role is 'user'|'assistant'. Indexed on commitment_id
+    for history hydration. Mirrors Evidence column conventions; TIMESTAMPTZ via
+    Base.type_annotation_map."""
+
+    __tablename__ = "messages"
+
+    id: Mapped[str] = mapped_column(primary_key=True, default=new_id)
+    commitment_id: Mapped[str] = mapped_column(ForeignKey("commitments.id"), index=True)
+    role: Mapped[str]  # 'user' | 'assistant'
+    content: Mapped[str]
+    emotion: Mapped[str | None] = mapped_column(default=None)
+    response_type: Mapped[str | None] = mapped_column(default=None)
     created_at: Mapped[datetime] = mapped_column(default=now_utc)

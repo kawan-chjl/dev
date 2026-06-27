@@ -1,10 +1,13 @@
-// Welcome — /welcome (first-run persona picker, no shell chrome)
+// Welcome — /welcome (tour intro + first-run persona picker, no shell chrome)
 // 3 preset cards: kawan / adik / cik_maid. Selected = filled --ink/inverted.
 // "Continue" → persists choice via setPersona (local + best-effort backend) → /home.
+// "Start the walkthrough" → starts the DemoTour → /welcome/commitments.
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { useDemoTour } from '../demo/DemoTour'
+import { setWelcomeDismissed } from '../demo/welcomeFlag'
 import { listPersonas } from '../mock/provider'
 import type { Persona } from '../types/api'
 import { Button } from '../ui/Button'
@@ -13,19 +16,30 @@ import { Card } from '../ui/Card'
 export function Welcome() {
   const navigate = useNavigate()
   const { me, setPersona } = useAuth()
+  const { start } = useDemoTour()
   const personas = listPersonas()
   // Seed from the persisted me.persona so returning users see their current choice.
   const [selected, setSelected] = useState<Persona>(me?.persona ?? 'kawan')
 
-  async function handleContinue() {
-    await setPersona(selected)
+  function handleSkip() {
     navigate('/home')
+  }
+
+  function handleDontShowAgain() {
+    setWelcomeDismissed()
+    navigate('/home')
+  }
+
+  async function handleStartWalkthrough() {
+    await setPersona(selected)
+    start()
   }
 
   return (
     <div className="welcome-root">
       <header className="welcome-header">
-        <img src="/kawan-logo.png" alt="Kawan" className="welcome-logo" />
+        <img src="/kawan-logo.png" alt="" className="welcome-logo" />
+        <span className="welcome-wordmark">Kawan</span>
       </header>
 
       <main className="welcome-main">
@@ -57,11 +71,20 @@ export function Welcome() {
         <Button
           variant="primary"
           className="welcome-continue-btn"
-          onClick={handleContinue}
-          aria-label={`Continue with ${selected} companion`}
+          onClick={handleStartWalkthrough}
+          aria-label="Start the guided walkthrough"
         >
-          Continue with {personas.find((p) => p.id === selected)?.name}
+          Start the walkthrough
         </Button>
+
+        <div className="welcome-bottom-options">
+          <button type="button" className="welcome-option-btn" onClick={handleSkip}>
+            Skip to home
+          </button>
+          <button type="button" className="welcome-option-btn" onClick={handleDontShowAgain}>
+            Don&apos;t show again
+          </button>
+        </div>
       </main>
     </div>
   )

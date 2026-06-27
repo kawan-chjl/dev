@@ -103,6 +103,23 @@ class DebriefIn(BaseModel):
         return v
 
 
+class GitHubLinkIn(BaseModel):
+    url: str
+
+    @field_validator("url")
+    @classmethod
+    def _github_repo_url(cls, v: str) -> str:
+        from app.adapters.github import parse_github_repo_url
+        v = v.strip()
+        if not v:
+            raise ValueError("url must not be empty")
+        if parse_github_repo_url(v) is None:
+            raise ValueError(
+                "must be a valid GitHub repo URL (e.g. https://github.com/owner/repo)"
+            )
+        return v
+
+
 class CommitmentOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -131,3 +148,33 @@ class CommitmentListOut(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class MessageOut(BaseModel):
+    """Per-commitment chat message returned by GET /{id}/messages."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    role: str
+    content: str
+    emotion: str | None
+    response_type: str | None
+    created_at: datetime
+
+
+class SoftContextOut(BaseModel):
+    """Soft-context slots returned by GET /{id}/soft-context."""
+
+    why: str | None
+    obstacles: str | None
+    time_constraints: str | None
+    skill: str | None
+
+
+class CheckinStatusOut(BaseModel):
+    """Check-in lateness status returned by GET /{id}/checkin-status."""
+
+    due_at: str | None
+    is_late: bool
+    escalation: int

@@ -1,22 +1,24 @@
 // StageMode — VN/RPG dialogue box + input bar + Live2D face reactive to real Kawan turns.
 // A3: accepts WorkspaceMessage[] from WorkspaceLayout instead of mock ConversationTurn[].
-// T4: phase-aware — intake phase shows VN action menu; chat phase shows input bar + starters.
+// T4: phase-aware — intake phase shows VN glassmorphism options; chat phase shows input bar + starters.
 // Emotion effect keys on the latest Kawan message id (not currentIndex).
 // Do NOT remount the stage — Live2DStageView mounts once here (see a3-workspace-chat-design.md §4).
 
-import { Mic, MicOff, Play, ShieldX, Square, Volume2, VolumeX } from 'lucide-react'
+import { Play, ShieldX, Square } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '../auth/AuthProvider'
 import type { Commitment, Emotion, Persona } from '../types/api'
 import type { WorkspaceMessage } from '../workspace/api'
+import { type IntakeSlot, optionsForStep } from './intakeOptions'
 import type { Live2DStageHandle } from './live2d/Live2DStageView'
 import { Live2DStageView } from './live2d/Live2DStageView'
 import { renderMarkdown } from './markdown'
 import { ProposalCard } from './ProposalCard'
 import { starterChipsForState } from './starterChips'
-import { useSpeechInput } from './voice/useSpeechInput'
 import { speakLine } from './voice/useVoice'
-import type { SlotProgress, WorkspacePhase } from './WorkspaceLayout'
+import type { IntakeSlotName, SlotProgress, WorkspacePhase } from './WorkspaceLayout'
+
+const INTAKE_SLOTS: IntakeSlotName[] = ['why', 'obstacles', 'time_constraints', 'skill']
 
 interface StageModeProps {
   messages: WorkspaceMessage[]
@@ -26,11 +28,14 @@ interface StageModeProps {
   phase: WorkspacePhase
   slotProgress: SlotProgress
   commitment: Commitment | null
+  intakeStep: number
   openerLoading: boolean
+  // Phase 3: passed from WorkspaceLayout for key-event routing (islands handle the UI, not Stage)
+  keyEvent?: string | null
+  checkinStatus?: unknown
   onSend: (text: string) => Promise<void>
   onIntakeAnswer: (text: string) => Promise<void>
   onRetry: () => void
-  onSkipIntake: () => void
   onProposalApplied: (messageId: string) => void
   onProposalDismissed: (messageId: string) => void
 }
@@ -38,38 +43,18 @@ interface StageModeProps {
 // TR-34 emotion enum — matches the expressionMap keys in modelRegistry.
 const EMOTIONS: Emotion[] = ['neutral', 'curious', 'pleased', 'skeptical', 'concerned', 'proud']
 
-const MUTE_KEY = 'kawan_voice_muted'
-
-function readMuted(): boolean {
-  try {
-    const stored = localStorage.getItem(MUTE_KEY)
-    return stored === null ? true : stored === 'true'
-  } catch {
-    return true
-  }
-}
-
-function writeMuted(v: boolean) {
-  try {
-    localStorage.setItem(MUTE_KEY, String(v))
-  } catch {
-    // ignore
-  }
-}
-
 export function StageMode({
   messages,
   sending,
   error,
   commitmentId,
   phase,
-  slotProgress,
   commitment,
+  intakeStep,
   openerLoading,
   onSend,
   onIntakeAnswer,
   onRetry,
-  onSkipIntake,
   onProposalApplied,
   onProposalDismissed
 }: StageModeProps) {
@@ -77,7 +62,6 @@ export function StageMode({
   const persona: Persona = me?.persona ?? 'kawan'
 
   const stageRef = useRef<Live2DStageHandle>(null)
-  const [muted, setMuted] = useState(readMuted)
   const [gestureUnlocked, setGestureUnlocked] = useState(false)
   const lastSpokenId = useRef<string | null>(null)
 
@@ -86,17 +70,11 @@ export function StageMode({
   const [devPersona, setDevPersona] = useState<Persona>(persona)
   const [devEmotion, setDevEmotion] = useState<Emotion>('neutral')
 
-  // Controlled input for the dialogue bar (chat phase) and intake answer
+  // Controlled input for open chat
   const [inputText, setInputText] = useState('')
-
-  const mic = useSpeechInput()
-
-  useEffect(() => {
-    if (!mic.listening && mic.transcript) {
-      setInputText(mic.transcript)
-      mic.clearTranscript()
-    }
-  }, [mic.listening, mic.transcript, mic.clearTranscript])
+  // Inline input for "type own words" during intake
+  const [showTypeOwn, setShowTypeOwn] = useState(false)
+  const [typeOwnText, setTypeOwnText] = useState('')
 
   const latestKawan = useMemo(() => {
     for (let i = messages.length - 1; i >= 0; i--) {
@@ -115,11 +93,7 @@ export function StageMode({
     if (latestKawan.emotion) {
       stageRef.current?.setExpression(latestKawan.emotion)
     }
-
-    if (!muted && gestureUnlocked) {
-      void speakLine(stageRef.current, latestKawan.text, persona)
-    }
-  }, [latestKawan, muted, gestureUnlocked, persona])
+  }, [latestKawan])
 
   function handleSendClick() {
     if (!gestureUnlocked) setGestureUnlocked(true)
@@ -135,38 +109,33 @@ export function StageMode({
     }
   }
 
-  function handleIntakeKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+  // Intake option tap — submits the option text as the answer
+  function handleOptionTap(text: string, isOpenEnded?: boolean) {
+    if (!gestureUnlocked) setGestureUnlocked(true)
+    if (isOpenEnded) {
+      setShowTypeOwn(true)
+      return
+    }
+    void onIntakeAnswer(text)
+  }
+
+  function handleTypeOwnSend() {
+    const text = typeOwnText.trim()
+    if (!text || sending) return
+    if (!gestureUnlocked) setGestureUnlocked(true)
+    setTypeOwnText('')
+    setShowTypeOwn(false)
+    void onIntakeAnswer(text)
+  }
+
+  function handleTypeOwnKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleTypeOwnSend()
     }
-  }
-
-  function handleTypeOwnSend() {
-    if (!gestureUnlocked) setGestureUnlocked(true)
-    const text = inputText.trim()
-    if (!text || sending) return
-    setInputText('')
-    void onIntakeAnswer(text)
-  }
-
-  function handleSkip() {
-    if (!gestureUnlocked) setGestureUnlocked(true)
-    void onIntakeAnswer('(skip)')
-  }
-
-  function toggleMute() {
-    const next = !muted
-    setMuted(next)
-    writeMuted(next)
-    if (next) stageRef.current?.stopSpeaking()
-  }
-
-  function handleMicToggle() {
-    if (mic.listening) {
-      mic.stop()
-    } else {
-      mic.start()
+    if (e.key === 'Escape') {
+      setShowTypeOwn(false)
+      setTypeOwnText('')
     }
   }
 
@@ -194,35 +163,24 @@ export function StageMode({
   const showStarterChips = phase === 'chat' && messages.filter((m) => m.from === 'user').length === 0
   const starterChips = starterChipsForState(commitment)
 
+  // Intake VN options — derive from current slot and commitment
+  const currentSlot: IntakeSlotName | null =
+    phase === 'intake' && intakeStep < INTAKE_SLOTS.length ? INTAKE_SLOTS[intakeStep] : null
+  const intakeOptions =
+    currentSlot && commitment
+      ? optionsForStep(currentSlot as IntakeSlot, {
+          action: commitment.action,
+          deliverable: commitment.deliverable,
+          deadline: commitment.deadline
+        })
+      : null
+
   return (
     <div className="stage-mode">
       {/* Character stage area — single mount, never remounts (A3 design §4) */}
       <div className="stage-character-area">
         <Live2DStageView ref={stageRef} persona={persona} />
       </div>
-
-      {/* Mute toggle + Stop — always visible in workspace */}
-      <fieldset className="stage-voice-controls">
-        <legend className="sr-only">Voice controls</legend>
-        <button
-          type="button"
-          className="stage-voice-btn"
-          onClick={toggleMute}
-          aria-label={muted ? 'Unmute voice' : 'Mute voice'}
-          title={muted ? 'Unmute voice' : 'Mute voice'}
-        >
-          {muted ? <VolumeX size={16} aria-hidden="true" /> : <Volume2 size={16} aria-hidden="true" />}
-        </button>
-        <button
-          type="button"
-          className="stage-voice-btn"
-          onClick={() => stageRef.current?.stopSpeaking()}
-          aria-label="Stop speaking"
-          title="Stop speaking"
-        >
-          <Square size={14} aria-hidden="true" />
-        </button>
-      </fieldset>
 
       {/* DEV-only: extended harness with persona, emotion, text, and original spike */}
       {import.meta.env.DEV && (
@@ -287,22 +245,7 @@ export function StageMode({
         </div>
       )}
 
-      {/* Intake phase: slot progress indicator + skip-ahead escape hatch */}
-      {phase === 'intake' && !openerLoading && (
-        <div className="stage-intake-progress" role="status" aria-live="polite" aria-atomic="true">
-          <span className="stage-intake-progress-label">Context</span>
-          {Array.from({ length: slotProgress.total }).map((_, i) => (
-            <span
-              // biome-ignore lint/suspicious/noArrayIndexKey: static fixed-length array
-              key={i}
-              className={`stage-intake-dot${i < slotProgress.filled ? ' stage-intake-dot--filled' : ''}`}
-            />
-          ))}
-          <button type="button" className="stage-intake-skip-ahead" onClick={onSkipIntake}>
-            Skip ahead — let's just talk
-          </button>
-        </div>
-      )}
+      {/* Slot progress is shown in the top-right ContextIsland (ITEM 1) — not duplicated here */}
 
       {/* Starter chips — chat phase empty state */}
       {showStarterChips && !openerLoading && (
@@ -320,6 +263,93 @@ export function StageMode({
         </div>
       )}
 
+      {/* 2.3: Intake VN glassmorphism options — rendered OVER the L2D stage during intake */}
+      {phase === 'intake' && !openerLoading && !sending && intakeOptions && !showTypeOwn && (
+        <fieldset className="stage-intake-menu" aria-label={`Question ${intakeStep + 1} of 4`}>
+          <legend className="sr-only">Intake options</legend>
+          {intakeOptions.map((opt) => (
+            <button
+              key={opt.text}
+              type="button"
+              className={`stage-intake-btn${opt.isOpenEnded ? ' stage-intake-btn--secondary' : ''}`}
+              onClick={() => handleOptionTap(opt.text, opt.isOpenEnded)}
+              disabled={sending}
+            >
+              {opt.text}
+            </button>
+          ))}
+        </fieldset>
+      )}
+
+      {/* Fix A: INTAKE DEAD-END FIX — when commitment/options are unavailable, show the
+          open-ended input directly so intake can never dead-end. This is independent of
+          the VN options: if options are present the user can tap them or "Answer in my
+          own words"; if options are absent (commitment not yet loaded) this input is the
+          only path. The open-ended input is ALWAYS available during intake. */}
+      {phase === 'intake' && !openerLoading && !sending && !intakeOptions && !showTypeOwn && (
+        <div className="stage-intake-own-bar" style={{ zIndex: 20 }}>
+          <div className="stage-intake-own-field">
+            <input
+              className="stage-input stage-input--with-send"
+              type="text"
+              placeholder="Type your answer..."
+              aria-label="Your answer"
+              value={typeOwnText}
+              onChange={(e) => setTypeOwnText(e.target.value)}
+              onKeyDown={handleTypeOwnKeyDown}
+              disabled={sending}
+            />
+            <button
+              type="button"
+              className="stage-intake-send-inline"
+              onClick={handleTypeOwnSend}
+              disabled={sending || !typeOwnText.trim()}
+              aria-label={sending ? 'Sending...' : 'Send answer'}
+            >
+              {sending ? '...' : '>'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Inline type-own input — shown when "Answer in my own words" is tapped */}
+      {phase === 'intake' && showTypeOwn && (
+        <div className="stage-intake-own-bar" style={{ zIndex: 20 }}>
+          <div className="stage-intake-own-field">
+            <input
+              className="stage-input stage-input--with-send"
+              type="text"
+              placeholder="Type your answer..."
+              aria-label="Your answer"
+              value={typeOwnText}
+              onChange={(e) => setTypeOwnText(e.target.value)}
+              onKeyDown={handleTypeOwnKeyDown}
+              disabled={sending}
+            />
+            <button
+              type="button"
+              className="stage-intake-send-inline"
+              onClick={handleTypeOwnSend}
+              disabled={sending || !typeOwnText.trim()}
+              aria-label={sending ? 'Sending...' : 'Send answer'}
+            >
+              {sending ? '...' : '>'}
+            </button>
+          </div>
+          <button
+            type="button"
+            className="stage-intake-cancel-btn"
+            onClick={() => {
+              setShowTypeOwn(false)
+              setTypeOwnText('')
+            }}
+            aria-label="Cancel"
+          >
+            x
+          </button>
+        </div>
+      )}
+
       {/* Inline proposal card — shown below VN box when latest Kawan turn is a proposal */}
       {hasProposal && latestKawan?.proposal && latestKawan.proposalId && (
         <div className="stage-proposal-area">
@@ -334,7 +364,7 @@ export function StageMode({
         </div>
       )}
 
-      {/* Typing / thinking indicator */}
+      {/* Typing / thinking indicator — suppressed while openerLoading (2.1) */}
       {sending && (
         <div className="stage-thinking" role="status" aria-live="polite" aria-label="Kawan is thinking">
           <span className="stage-thinking-dot" />
@@ -370,94 +400,31 @@ export function StageMode({
             <p className="stage-speaker-name">{latestMsg?.from === 'user' ? 'You' : 'Kawan'}</p>
             <div className="stage-dialogue-line">{renderMarkdown(latestMsg?.text ?? '')}</div>
           </div>
-
-          {/* Mic button in the dialogue bar */}
-          <button
-            type="button"
-            className="stage-voice-btn stage-mic-bar-btn"
-            onClick={handleMicToggle}
-            aria-label={
-              !mic.supported
-                ? 'Voice input not supported in this browser'
-                : mic.listening
-                  ? 'Stop listening'
-                  : 'Start voice input'
-            }
-            aria-pressed={mic.listening}
-            disabled={!mic.supported || sending}
-            title={!mic.supported ? 'Voice input needs Chrome or a supported browser' : undefined}
-          >
-            {mic.listening ? <MicOff size={14} aria-hidden="true" /> : <Mic size={14} aria-hidden="true" />}
-          </button>
         </section>
       )}
 
-      {/* Phase 1 — intake input bar (primary control) + skip this question */}
-      {phase === 'intake' && !openerLoading && (
-        <div className="stage-input-bar">
-          <input
-            className="stage-input"
-            type="text"
-            placeholder="Type your answer…"
-            aria-label="Intake answer"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={handleIntakeKeyDown}
-            disabled={sending}
-          />
-          <button
-            type="button"
-            className="stage-send-btn"
-            onClick={handleTypeOwnSend}
-            disabled={sending || !inputText.trim()}
-            aria-label={sending ? 'Sending…' : 'Send answer'}
-          >
-            {sending ? '…' : '›'}
-          </button>
-          <button
-            type="button"
-            className="stage-intake-skip-btn"
-            onClick={handleSkip}
-            disabled={sending}
-            aria-label="Skip this question"
-            title="Skip this question"
-          >
-            Skip
-          </button>
-        </div>
-      )}
-
-      {/* Phase 2 — open chat input bar */}
+      {/* Chat input bar — only shown in chat phase (input hidden during intake per 2.3) */}
       {phase === 'chat' && (
         <div className="stage-input-bar">
           <input
             className="stage-input"
             type="text"
-            placeholder={sending ? 'Kawan is thinking…' : 'Say something…'}
+            placeholder={sending ? 'Kawan is thinking...' : 'Say something...'}
             aria-label="Message input"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
             disabled={sending}
-            readOnly={mic.listening}
           />
           <button
             type="button"
             className="stage-send-btn"
             onClick={handleSendClick}
             disabled={sending || !inputText.trim()}
-            aria-label={sending ? 'Sending…' : 'Send message'}
+            aria-label={sending ? 'Sending...' : 'Send message'}
           >
-            {sending ? '…' : '›'}
+            {sending ? '...' : '>'}
           </button>
-        </div>
-      )}
-
-      {/* Mic transcript display (shown while listening) */}
-      {mic.listening && (
-        <div className="stage-mic-transcript" role="status" aria-live="polite">
-          <span className="stage-mic-label">Listening…</span>
-          <span className="stage-mic-text">{mic.transcript}</span>
         </div>
       )}
     </div>

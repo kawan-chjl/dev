@@ -8,16 +8,20 @@ moves through state.py. Delivery ladder: WS → Web Push → in-app timeline (TR
 from __future__ import annotations
 
 from datetime import timedelta
+import logging
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import email, notify, push, scheduler, state
 from app.contracts import EvidenceBundle
+from app.lateness import checkin_grace, is_checkin_late
 from app.models import Checkin, Commitment, Evidence
 from app.util import as_utc, now_utc
 from app.wiring import LLM, adapter_for
 from app.ws import hub
+
+logger = logging.getLogger("kawan.pipeline")
 
 
 async def record_contact(db: AsyncSession, c: Commitment) -> None:
@@ -30,10 +34,14 @@ async def record_contact(db: AsyncSession, c: Commitment) -> None:
 
 
 async def deliver(db: AsyncSession, user_id: str, payload: dict) -> str:
-    """WS if connected → else Web Push → else in-app timeline (the persisted row)."""
+    """WS if connected -> else Web Push -> else in-app timeline (the persisted row).
+    payload may carry 'commitment_url' (a /workspace/:id deep-link) which is passed to
+    push_to_user as the data.url in the push payload (plan §4.4, TR-17)."""
     if hub.is_connected(user_id) and await hub.send(user_id, payload):
         return "ws"
-    if await push.push_to_user(db, user_id, payload.get("say") or payload.get("headline", "Kawan")):
+    headline = payload.get("say") or payload.get("headline", "Kawan")
+    url = payload.get("commitment_url", "/home")
+    if await push.push_to_user(db, user_id, headline, url=url):
         return "webpush"
     return "timeline"
 
@@ -75,7 +83,9 @@ def clamp_turns(raw: list[dict] | None) -> list[dict]:
 async def assemble_progress(db: AsyncSession, c: Commitment) -> dict:
     """A compact, read-only snapshot of real progress for the workspace prompt (spec
     §4.5): status, time-to-deadline, escalation, skip-days, last few check-ins, latest
-    verdict. Derived on demand — never stored, never writable by the AI."""
+    verdict. Derived on demand -- never stored, never writable by the AI.
+
+    Also includes due_at / is_late for the dynamic check-in lateness feature (plan §4.3)."""
     recent = (await db.scalars(
         select(Checkin).where(Checkin.commitment_id == c.id)
         .order_by(Checkin.created_at.desc()).limit(3)
@@ -84,6 +94,15 @@ async def assemble_progress(db: AsyncSession, c: Commitment) -> dict:
         select(Evidence).where(Evidence.commitment_id == c.id)
         .order_by(Evidence.created_at.desc()).limit(1)
     )
+    # Derive check-in lateness from the window (plan §4.3). The last cadence tick is
+    # the reference point; if no tick yet, use the commitment start time.
+    last_tick = await _last_tick_time(db, c)
+    deadline = as_utc(c.deadline)
+    now = now_utc()
+    remaining = max(deadline - now, timedelta(0))
+    grace = checkin_grace(remaining)
+    due_at = last_tick  # cadence tick IS the due time
+    late = is_checkin_late(now, last_tick, remaining)
     return {
         "status": c.status,
         "hours_to_deadline": _hours_left(c),
@@ -98,12 +117,34 @@ async def assemble_progress(db: AsyncSession, c: Commitment) -> dict:
              "at": as_utc(latest_ev.created_at).isoformat()}
             if latest_ev else None
         ),
+        "due_at": due_at.isoformat(),
+        "is_late": late,
     }
 
 
+async def _notify_witness_missed_retry(c: Commitment) -> None:
+    """Email the stake witness when the cadence check-in grace window is also missed.
+
+    Called only when kind='cadence' AND is_late=True at the moment the tick runs.
+    Guards: stake must be enabled with a valid contact email. Best-effort; never raises.
+    Does NOT fire _on_missed — that is reserved for the final-deadline miss path."""
+    if not (c.stake_enabled and c.stake_contact_email):
+        return
+    name = c.stake_contact_name or "Friend"
+    body = (
+        f"{name}, this is Kawan.\n\n"
+        f'"{c.action} {c.deliverable}" — {c.user_id} missed the check-in window today '
+        f"and hasn't submitted evidence. Just letting you know.\n\n-- Kawan"
+    )
+    sent = await email.send_email(c.stake_contact_email, f'Kawan — missed check-in on "{c.deliverable}"', body)
+    if not sent:
+        logger.warning("witness missed-retry email bounced for commitment %s", c.id)
+
+
 async def run_checkin(db: AsyncSession, c: Commitment, kind: str) -> Checkin:
+    last_tick = await _last_tick_time(db, c)
     adapter = adapter_for(c.evidence_type)
-    bundle = await adapter.fetch(c, await _last_tick_time(db, c))
+    bundle = await adapter.fetch(c, last_tick)
     had_new = bool(bundle.items)
 
     evidence_id = None
@@ -142,11 +183,18 @@ async def run_checkin(db: AsyncSession, c: Commitment, kind: str) -> Checkin:
         await _maybe_lapse(db, c, prior, had_new)
 
     payload = {"type": "checkin", "kind": kind, "say": line["say"],
-               "emotion": line.get("emotion"), "escalation": c.escalation, "evidence_id": evidence_id}
+               "emotion": line.get("emotion"), "escalation": c.escalation, "evidence_id": evidence_id,
+               "commitment_url": notify._deep_link(c)}
     ck.delivered_via = await deliver(db, c.user_id, payload)
     await db.commit()
     if kind == "cadence":  # off-device reminder fan-out (ADR-0006); on_demand stays device-only
         await notify.send_reminder(db, c, line["say"])
+        # Missed-retry witness email: if the cadence tick fires after the grace window has
+        # already passed, the user missed the check-in retry window — notify the witness.
+        deadline = as_utc(c.deadline)
+        remaining = max(deadline - now_utc(), timedelta(0))
+        if not had_new and is_checkin_late(now_utc(), last_tick, remaining):
+            await _notify_witness_missed_retry(c)
     return ck
 
 
@@ -171,7 +219,8 @@ async def send_winback(db: AsyncSession, c: Commitment) -> Checkin:
     ck = Checkin(commitment_id=c.id, kind="winback", message=say, escalation=c.escalation)
     db.add(ck)
     await db.commit()
-    ck.delivered_via = await deliver(db, c.user_id, {"type": "winback", "say": say})
+    ck.delivered_via = await deliver(db, c.user_id, {"type": "winback", "say": say,
+                                                      "commitment_url": notify._deep_link(c)})
     await db.commit()
     await notify.send_reminder(db, c, say)  # winback is a reminder → off-device fan-out (ADR-0006)
     return ck
@@ -229,11 +278,13 @@ def _verdict_payload(ev: Evidence, verdict) -> dict:
 
 
 async def _after_outcome(db: AsyncSession, c: Commitment, ev: Evidence, verdict, outcome: str) -> None:
-    await deliver(db, c.user_id, _verdict_payload(ev, verdict))
+    deep_link = notify._deep_link(c)
+    await deliver(db, c.user_id, {**_verdict_payload(ev, verdict), "commitment_url": deep_link})
     if outcome == "grace":
         scheduler.arm_grace_expire(c.id, now_utc() + timedelta(hours=state.GRACE_HOURS))
         await deliver(db, c.user_id, {"type": "checkin", "kind": "deadline",
-                                      "say": "Not quite — you've got a 6-hour grace window. Use it."})
+                                      "say": "Not quite — you've got a 6-hour grace window. Use it.",
+                                      "commitment_url": deep_link})
     elif outcome == "completed":
         await _on_completed(db, c, ev)
     elif outcome == "missed":
@@ -243,7 +294,8 @@ async def _after_outcome(db: AsyncSession, c: Commitment, ev: Evidence, verdict,
 async def _on_completed(db: AsyncSession, c: Commitment, ev: Evidence) -> None:
     scheduler.remove_commitment_jobs(c.id)
     await deliver(db, c.user_id, {"type": "celebration",
-                                  "say": "Verified. First ship — noted. That counts."})
+                                  "say": "Verified. First ship — noted. That counts.",
+                                  "commitment_url": notify._deep_link(c)})
 
 
 async def _on_missed(db: AsyncSession, c: Commitment, evidence: Evidence | None) -> None:
@@ -252,13 +304,14 @@ async def _on_missed(db: AsyncSession, c: Commitment, evidence: Evidence | None)
     if c.stake_enabled and c.stake_contact_email:
         body = (f"{c.stake_contact_name or 'Friend'}, this is Kawan.\n\n"
                 f'"{c.action} {c.deliverable}" didn\'t happen by the deadline. '
-                f"You were named as the person who'd be told. That's the whole mechanism.\n\n— Kawan")
+                f"You were named as the person who'd be told. That's the whole mechanism.\n\n-- Kawan")
         sent = await email.send_email(c.stake_contact_email, "A Kawan commitment was missed", body)
         stake_note = "stake_sent" if sent else "stake_bounced"  # TR-65: told to the user either way
-    say = "It didn't happen. I won't pretend it did — that's the deal."
+    say = "It didn't happen. I won't pretend it did -- that's the deal."
     if stake_note == "stake_bounced":
-        say += " (Couldn't reach your contact — that one's on the house.)"
-    await deliver(db, c.user_id, {"type": "reckoning", "say": say, "stake": stake_note})
+        say += " (Couldn't reach your contact -- that one's on the house.)"
+    await deliver(db, c.user_id, {"type": "reckoning", "say": say, "stake": stake_note,
+                                   "commitment_url": notify._deep_link(c)})
 
 
 async def abandon(db: AsyncSession, c: Commitment) -> str:

@@ -111,7 +111,11 @@ export function AnalyticsPanel({ events }: Props) {
                   cursor={{ fill: 'var(--surface-sunk)' }}
                   labelFormatter={(v) =>
                     typeof v === 'string'
-                      ? new Date(v).toLocaleDateString('en-MY', { day: 'numeric', month: 'short' })
+                      ? new Date(v).toLocaleDateString('en-MY', {
+                          day: 'numeric',
+                          month: 'short',
+                          timeZone: 'Asia/Kuala_Lumpur'
+                        })
                       : String(v)
                   }
                 />

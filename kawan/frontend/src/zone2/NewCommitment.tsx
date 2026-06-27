@@ -16,8 +16,9 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { MOCK_AUTH } from '../auth/api'
 import { createCommitment, patchCommitment, startCommitment } from '../commitments/api'
+import { useDemoTour } from '../demo/DemoTour'
 import { listPersonas } from '../mock/provider'
-import type { EvidenceType, Persona } from '../types/api'
+import type { Persona } from '../types/api'
 import { Button } from '../ui/Button'
 import { DatePicker } from '../ui/DatePicker'
 import type { SelectOption } from '../ui/Select'
@@ -30,18 +31,8 @@ const ACTION_OPTIONS = ['complete', 'finish', 'ship', 'write', 'build', 'submit'
 type Action = (typeof ACTION_OPTIONS)[number]
 const ACTION_SELECT_OPTIONS: SelectOption[] = ACTION_OPTIONS.map((a) => ({ value: a, label: a }))
 
-// Evidence options (Q7 - include github with repo field).
-const EVIDENCE_OPTIONS_FULL: { value: EvidenceType; label: string; trust: string }[] = [
-  { value: 'github', label: 'GitHub commits', trust: 'high trust' },
-  { value: 'screenshot', label: 'Screenshot', trust: 'medium trust' }
-]
-const EVIDENCE_SELECT_OPTIONS: SelectOption[] = EVIDENCE_OPTIONS_FULL.map((o) => ({
-  value: o.value,
-  label: `${o.label} (${o.trust})`
-}))
-
-// Skip-days options (0-2).
-const SKIP_DAYS_OPTIONS: SelectOption[] = [0, 1, 2].map((n) => ({ value: String(n), label: String(n) }))
+// evidence_type is now chosen per-submission in the workspace check-in/finish flow.
+// GitHub repo field is still optionally configurable here for high-trust evidence (Q7).
 
 // Step order: Compose -> Plan -> Companion (Context intake moved to workspace, PO decision 1)
 const STEPS = ['nc-compose', 'nc-plan', 'nc-companion'] as const
@@ -50,20 +41,16 @@ type StepId = (typeof STEPS)[number]
 // Local draft shape for plan-step fields (held locally; NO API writes until handleStart).
 interface DraftPlan {
   cadence: string
-  evidence_type: EvidenceType
-  evidence_config: Record<string, unknown> | null
-  skip_days_total: number
+  evidence_config: Record<string, unknown> | null // github repo config only; evidence_type chosen in workspace
   stake_enabled: boolean
   stake_contact_name: string
   stake_contact_email: string
-  notify_email: string // X-NOTIF: the user's own reminder email (optional)
+  notify_email: string // X-NOTIF: the user's own reminder email (mandatory)
 }
 
 const DEFAULT_DRAFT_PLAN: DraftPlan = {
   cadence: 'daily',
-  evidence_type: 'screenshot',
   evidence_config: null,
-  skip_days_total: 0,
   stake_enabled: false,
   stake_contact_name: '',
   stake_contact_email: '',
@@ -72,6 +59,44 @@ const DEFAULT_DRAFT_PLAN: DraftPlan = {
 
 // Shared lenient email check (X-NOTIF): reminder email + stake witness email.
 const isValidEmail = (value: string): boolean => /\S+@\S+\.\S+/.test(value)
+const MYT_OFFSET_HOURS = 8
+
+// NOW + 1 hour in UTC, returned as a local MYT datetime-local string for the DatePicker.
+function demoDeadlineLocal(): string {
+  const utc = new Date(Date.now() + 60 * 60 * 1000)
+  const myt = new Date(utc.getTime() + MYT_OFFSET_HOURS * 60 * 60 * 1000)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return (
+    `${myt.getUTCFullYear()}-${pad(myt.getUTCMonth() + 1)}-${pad(myt.getUTCDate())}` +
+    `T${pad(myt.getUTCHours())}:${pad(myt.getUTCMinutes())}`
+  )
+}
+
+function mytWallClockToUtcInstant(value: string): Date | null {
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/)
+  if (!match) return null
+
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  const hour = Number(match[4])
+  const minute = Number(match[5])
+
+  if (month < 1 || month > 12 || hour > 23 || minute > 59) return null
+
+  const wallDate = new Date(Date.UTC(year, month - 1, day, hour, minute))
+  if (
+    wallDate.getUTCFullYear() !== year ||
+    wallDate.getUTCMonth() !== month - 1 ||
+    wallDate.getUTCDate() !== day ||
+    wallDate.getUTCHours() !== hour ||
+    wallDate.getUTCMinutes() !== minute
+  ) {
+    return null
+  }
+
+  return new Date(Date.UTC(year, month - 1, day, hour - MYT_OFFSET_HOURS, minute))
+}
 
 // ── StepPanel: fade+rise animation on step entry ─────────────────────────────
 
@@ -184,6 +209,7 @@ interface ComposeSectionProps {
   deadlineLocal: string
   setDeadlineLocal: (d: string) => void
   composeError: string | null
+  demoMode: boolean
   active: boolean
 }
 
@@ -195,6 +221,7 @@ function ComposeSection({
   deadlineLocal,
   setDeadlineLocal,
   composeError,
+  demoMode,
   active
 }: ComposeSectionProps) {
   return (
@@ -222,6 +249,7 @@ function ComposeSection({
             </label>
             <input
               id="nc-deliverable"
+              data-tour="commitment-deliverable"
               className="nc-madlib-input"
               type="text"
               placeholder="what you will deliver"
@@ -232,10 +260,18 @@ function ComposeSection({
           </span>
           <span className="nc-madlib-prose">by</span>
           <span className="nc-madlib-field">
-            <label className="sr-only" htmlFor="nc-deadline-trigger">
-              Deadline date
-            </label>
-            <DatePicker value={deadlineLocal} onChange={setDeadlineLocal} aria-label="Choose deadline" />
+            {demoMode ? (
+              <span className="nc-demo-deadline">
+                <DatePicker value={deadlineLocal} onChange={setDeadlineLocal} aria-label="Demo deadline" disabled />
+              </span>
+            ) : (
+              <>
+                <label className="sr-only" htmlFor="nc-deadline-trigger">
+                  Deadline date
+                </label>
+                <DatePicker value={deadlineLocal} onChange={setDeadlineLocal} aria-label="Choose deadline" />
+              </>
+            )}
           </span>
         </div>
 
@@ -245,7 +281,12 @@ function ComposeSection({
         <p className="nc-sentence-preview">
           I will <em>{action}</em> {deliverable || 'the deliverable'}{' '}
           {deadlineLocal
-            ? `by ${new Date(deadlineLocal).toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric' })}`
+            ? `by ${new Date(deadlineLocal).toLocaleDateString('en-MY', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+                timeZone: 'Asia/Kuala_Lumpur'
+              })}`
             : 'by the deadline'}
         </p>
       </div>
@@ -264,6 +305,7 @@ interface PlanSectionProps {
   deliverable: string
   deadlineLocal: string
   stakeContactValid: boolean
+  notifyEmailError: string | null
   active: boolean
 }
 
@@ -274,16 +316,17 @@ function PlanSection({
   deliverable,
   deadlineLocal,
   stakeContactValid,
+  notifyEmailError,
   active
 }: PlanSectionProps) {
-  const evidenceType = draft.evidence_type
   const repo =
     draft.evidence_config !== null && typeof draft.evidence_config?.repo === 'string'
       ? (draft.evidence_config.repo as string)
       : ''
 
-  const trustLabel = EVIDENCE_OPTIONS_FULL.find((o) => o.value === evidenceType)?.trust ?? ''
-  const deadlineDisplay = deadlineLocal ? new Date(deadlineLocal).toLocaleString('en-MY') : ''
+  const deadlineDisplay = deadlineLocal
+    ? new Date(deadlineLocal).toLocaleString('en-MY', { timeZone: 'Asia/Kuala_Lumpur' })
+    : ''
 
   return (
     <StepPanel id="nc-plan" active={active}>
@@ -326,56 +369,24 @@ function PlanSection({
         {/* Safe hard-field GUI controls (GUI-set, user session, never AI - TR-25/26) */}
         {/* Un-boxed: dropdowns stand alone, no surrounding container */}
         <div className="nc-plan-settings">
-          <div className="plan-setting-row">
+          {/* GitHub repo field - shown always for optional high-trust evidence config (Q7) */}
+          <div className="plan-setting-row plan-setting-repo">
             <span className="plan-setting-label">
-              Evidence
-              <Tooltip text="How you will prove progress. Screenshot requires you to upload proof. GitHub checks your commits automatically." />
+              GitHub repo
+              <Tooltip text="Optional. If you add your repo, Kawan can reference your commits when you check in." />
             </span>
-            <Select
-              className="plan-setting-select"
-              aria-label="Evidence type"
-              value={evidenceType}
-              onChange={(v) => {
-                const t = v as EvidenceType
-                const evidence_config = t === 'github' ? (draft.evidence_config ?? {}) : null
-                onDraftChange({ ...draft, evidence_type: t, evidence_config })
+            <input
+              className="plan-setting-input"
+              type="text"
+              placeholder="owner/repo (optional)"
+              aria-label="GitHub repository (owner/repo)"
+              defaultValue={repo}
+              onBlur={(e) => {
+                const val = e.target.value.trim()
+                if (val !== repo) {
+                  onDraftChange({ ...draft, evidence_config: val ? { repo: val } : null })
+                }
               }}
-              options={EVIDENCE_SELECT_OPTIONS}
-            />
-          </div>
-
-          {/* GitHub repo field - shown when evidence_type = github (Q7) */}
-          {evidenceType === 'github' && (
-            <div className="plan-setting-row plan-setting-repo">
-              <span className="plan-setting-label">
-                GitHub repo <span className="plan-trust-label">{trustLabel}</span>
-              </span>
-              <input
-                className="plan-setting-input"
-                type="text"
-                placeholder="owner/repo"
-                aria-label="GitHub repository (owner/repo)"
-                defaultValue={repo}
-                onBlur={(e) => {
-                  if (e.target.value !== repo) {
-                    onDraftChange({ ...draft, evidence_config: { repo: e.target.value } })
-                  }
-                }}
-              />
-            </div>
-          )}
-
-          <div className="plan-setting-row">
-            <span className="plan-setting-label">
-              Skip days
-              <Tooltip text="The number of check-ins you can skip without penalty. 0 means every check-in counts." />
-            </span>
-            <Select
-              className="plan-setting-select"
-              aria-label="Allowed skip days"
-              value={String(draft.skip_days_total)}
-              onChange={(v) => onDraftChange({ ...draft, skip_days_total: Number(v) })}
-              options={SKIP_DAYS_OPTIONS}
             />
           </div>
 
@@ -427,22 +438,25 @@ function PlanSection({
             </div>
           )}
 
-          {/* X-NOTIF (ADR-0006): optional per-commitment reminder email — the user's OWN
-              address, distinct from the witness above. Blank = in-app only. */}
+          {/* X-NOTIF (ADR-0006): mandatory per-commitment reminder email — the user's OWN
+              address, distinct from the witness above. */}
           <div className="plan-setting-row plan-setting-repo">
-            <span className="plan-setting-label">Reminder email</span>
-            <p className="toggle-sub">Optional. We&apos;ll email you when it&apos;s time to check in.</p>
+            <span className="plan-setting-label">
+              Reminder email{' '}
+              <span className="plan-required-mark" aria-hidden="true">
+                *
+              </span>
+            </span>
+            <p className="toggle-sub">Required. We&apos;ll email you when it&apos;s time to check in.</p>
             <input
               className="plan-setting-input"
               type="email"
               placeholder="you@example.com"
-              aria-label="Your reminder email"
+              aria-label="Your reminder email (required)"
               value={draft.notify_email}
               onChange={(e) => onDraftChange({ ...draft, notify_email: e.target.value })}
             />
-            {draft.notify_email.trim() !== '' && !isValidEmail(draft.notify_email) && (
-              <p className="compose-error">Enter a valid email, or leave this blank.</p>
-            )}
+            {notifyEmailError && <p className="compose-error">{notifyEmailError}</p>}
           </div>
         </div>
       </div>
@@ -541,8 +555,9 @@ function CompanionSection({ selectedPersona, onSelect, startError, composeValid,
 export function NewCommitment() {
   const navigate = useNavigate()
   const { setPersona } = useAuth()
+  const { active: demoActive, setDemoCommitmentId } = useDemoTour()
 
-  // Current step index (0 = Compose, 1 = Context, 2 = Plan, 3 = Companion)
+  // Current step index (0 = Compose, 1 = Plan, 2 = Companion)
   const [stepIndex, setStepIndex] = useState(0)
   const activeStep = STEPS[stepIndex]
 
@@ -554,11 +569,14 @@ export function NewCommitment() {
   // NO API calls until the final "Start commitment" - Cancel at any prior point is inert.
   const [action, setAction] = useState<Action>('complete')
   const [deliverable, setDeliverable] = useState('')
-  const [deadlineLocal, setDeadlineLocal] = useState('')
+  // Demo mode: deadline is locked to NOW+1h (MYT); normal mode: user picks via DatePicker.
+  const [deadlineLocal, setDeadlineLocal] = useState(() => (demoActive ? demoDeadlineLocal() : ''))
   const [composeError, setComposeError] = useState<string | null>(null)
 
   // Plan draft - held locally; NO API writes until handleStart.
   const [draftPlan, setDraftPlan] = useState<DraftPlan>({ ...DEFAULT_DRAFT_PLAN })
+  // Track whether the user has attempted to advance from the plan step (for error visibility).
+  const [planTouched, setPlanTouched] = useState(false)
 
   // Start commitment state
   const [starting, setStarting] = useState(false)
@@ -568,8 +586,8 @@ export function NewCommitment() {
   function isComposeValid(): boolean {
     if (!deliverable.trim()) return false
     if (!deadlineLocal) return false
-    const dl = new Date(deadlineLocal)
-    if (Number.isNaN(dl.getTime())) return false
+    const dl = mytWallClockToUtcInstant(deadlineLocal)
+    if (dl === null) return false
     if (dl <= new Date()) return false
     return true
   }
@@ -580,13 +598,26 @@ export function NewCommitment() {
   const stakeContactValid = Boolean(draftPlan.stake_contact_name.trim() && isValidEmail(draftPlan.stake_contact_email))
   // True when the toggle is on but the contact is incomplete — blocks Start.
   const stakeIncomplete = draftPlan.stake_enabled && !stakeContactValid
-  // Reminder email is optional; only a non-empty invalid value blocks Start (X-NOTIF).
-  const notifyEmailInvalid = draftPlan.notify_email.trim() !== '' && !isValidEmail(draftPlan.notify_email)
+  // Reminder email is mandatory: empty or invalid both block Start (X-NOTIF).
+  const notifyEmailEmpty = draftPlan.notify_email.trim() === ''
+  const notifyEmailInvalid = !notifyEmailEmpty && !isValidEmail(draftPlan.notify_email)
+  const notifyEmailBlocked = notifyEmailEmpty || notifyEmailInvalid
+  // Inline error shown after the user has touched the plan step.
+  const notifyEmailError = planTouched
+    ? notifyEmailEmpty
+      ? 'A reminder email is required.'
+      : notifyEmailInvalid
+        ? 'Enter a valid email address.'
+        : null
+    : notifyEmailInvalid
+      ? 'Enter a valid email address.'
+      : null
 
   // Island steps with completion state
+  const planDone = !notifyEmailBlocked && !stakeIncomplete
   const islandSteps: IslandStep[] = [
     { id: 'nc-compose', label: 'Compose', done: composeValid },
-    { id: 'nc-plan', label: 'Plan', done: false },
+    { id: 'nc-plan', label: 'Plan', done: planDone },
     { id: 'nc-companion', label: 'Companion', done: selectedPersona !== null }
   ]
 
@@ -607,6 +638,8 @@ export function NewCommitment() {
     if (isFinalStep) {
       handleStart()
     } else {
+      // Mark plan touched when leaving the plan step so inline errors appear.
+      if (activeStep === 'nc-plan') setPlanTouched(true)
       setStepIndex(stepIndex + 1)
     }
   }
@@ -626,7 +659,12 @@ export function NewCommitment() {
       setStepIndex(0)
       return
     }
-    const deadlineDate = new Date(deadlineLocal)
+    const deadlineDate = mytWallClockToUtcInstant(deadlineLocal)
+    if (deadlineDate === null) {
+      setComposeError('Please pick a valid deadline.')
+      setStepIndex(0)
+      return
+    }
     if (deadlineDate <= new Date()) {
       setComposeError('Deadline must be in the future.')
       setStepIndex(0)
@@ -642,6 +680,13 @@ export function NewCommitment() {
       return
     }
 
+    // Mandatory reminder email validation at submit time.
+    if (notifyEmailBlocked) {
+      setPlanTouched(true)
+      setStepIndex(1) // jump back to the plan step
+      return
+    }
+
     if (MOCK_AUTH) {
       await setPersona(selectedPersona)
       navigate('/workspace/mock')
@@ -653,24 +698,32 @@ export function NewCommitment() {
     const deadlineISO = deadlineDate.toISOString()
     try {
       // 1. Create the commitment (first write)
-      const created = await createCommitment({ action, deliverable, deadline: deadlineISO })
-      // 2. Apply plan-step settings (cadence / evidence / skip / stake) if they differ from server defaults
-      // stakeContactValid is pre-checked above; stakeIncomplete blocks reaching here, so if toggle is on,
-      // the contact is guaranteed valid.
+      let created: Awaited<ReturnType<typeof createCommitment>>
+      try {
+        created = await createCommitment({ action, deliverable, deadline: deadlineISO })
+        if (demoActive) setDemoCommitmentId(created.id)
+      } catch (err) {
+        const status = err instanceof Error ? (err as Error & { status?: number }).status : undefined
+        const msg = err instanceof Error ? err.message : ''
+        if (status === 409 || msg.includes('409')) {
+          setStartError('You can have at most 3 active commitments at once. Complete or end one first.')
+        } else {
+          setStartError(msg || 'Failed to create commitment. Please try again.')
+        }
+        setStarting(false)
+        return
+      }
+      // 2. Apply plan-step settings (cadence / evidence_config / stake / notify_email) if needed.
+      // evidence_type and skip_days_total are no longer set by the create UI; server defaults apply.
+      // stakeContactValid is pre-checked above; stakeIncomplete blocks reaching here.
       const stakeValid = Boolean(draftPlan.stake_enabled && stakeContactValid)
       const notifyEmail = draftPlan.notify_email.trim()
       const needsPatch =
-        draftPlan.cadence !== created.cadence ||
-        draftPlan.evidence_type !== created.evidence_type ||
-        draftPlan.skip_days_total !== created.skip_days_total ||
-        stakeValid ||
-        notifyEmail !== ''
+        draftPlan.cadence !== created.cadence || draftPlan.evidence_config !== null || stakeValid || notifyEmail !== ''
       if (needsPatch) {
         const patchBody: Parameters<typeof patchCommitment>[1] = {
           cadence: draftPlan.cadence,
-          evidence_type: draftPlan.evidence_type,
-          evidence_config: draftPlan.evidence_config as Record<string, unknown> | undefined,
-          skip_days_total: draftPlan.skip_days_total
+          evidence_config: draftPlan.evidence_config as Record<string, unknown> | undefined
         }
         if (stakeValid) {
           patchBody.stake_enabled = true
@@ -693,9 +746,9 @@ export function NewCommitment() {
     }
   }
 
-  // The final step's Continue becomes Start commitment; requires composeValid + companion selected + no incomplete stake.
+  // The final step's Continue becomes Start commitment; requires composeValid + companion selected + no plan errors.
   const continueDisabled =
-    isFinalStep && (!composeValid || selectedPersona === null || stakeIncomplete || notifyEmailInvalid)
+    isFinalStep && (!composeValid || selectedPersona === null || stakeIncomplete || notifyEmailBlocked)
 
   return (
     <div className="workspace-root nc-root">
@@ -720,6 +773,7 @@ export function NewCommitment() {
             deadlineLocal={deadlineLocal}
             setDeadlineLocal={setDeadlineLocal}
             composeError={composeError}
+            demoMode={demoActive}
             active={activeStep === 'nc-compose'}
           />
           <PlanSection
@@ -729,6 +783,7 @@ export function NewCommitment() {
             deliverable={deliverable}
             deadlineLocal={deadlineLocal}
             stakeContactValid={stakeContactValid}
+            notifyEmailError={notifyEmailError}
             active={activeStep === 'nc-plan'}
           />
           <CompanionSection

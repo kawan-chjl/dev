@@ -12,10 +12,12 @@ TOKENS: TokenProvider = AuthTokenProvider()
 
 def _build() -> tuple[dict[str, EvidenceAdapter], LLMClient]:
     if settings.ai_backend == "stub":
-        from app.stubs import StubGitHubAdapter, StubLLMClient, StubScreenshotAdapter
-        return ({"github": StubGitHubAdapter(), "screenshot": StubScreenshotAdapter()}, StubLLMClient())
+        from app.stubs import StubFileAdapter, StubGitHubAdapter, StubLLMClient, StubScreenshotAdapter
+        return ({"github": StubGitHubAdapter(), "screenshot": StubScreenshotAdapter(),
+                 "file": StubFileAdapter()}, StubLLMClient())
 
     # Real Chutes-backed Lane C (imported lazily so the stub path never imports it).
+    from app.adapters.file import FileAdapter
     from app.adapters.github import GitHubAdapter
     from app.adapters.screenshot import ScreenshotAdapter
     from app.chutes import ChutesClient
@@ -25,6 +27,7 @@ def _build() -> tuple[dict[str, EvidenceAdapter], LLMClient]:
     adapters: dict[str, EvidenceAdapter] = {
         "github": GitHubAdapter(chutes),
         "screenshot": ScreenshotAdapter(chutes),
+        "file": FileAdapter(chutes),
     }
     return adapters, ChutesLLMClient(chutes, db_persona_resolver)
 

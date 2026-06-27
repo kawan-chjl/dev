@@ -36,7 +36,7 @@ def test_clamp_turns_bounds():
 
 
 async def test_assemble_progress_shape(db):
-    c = await _seed_active(db, evidence_type="screenshot", escalation=1)
+    c = await _seed_active(db, evidence_type="screenshot", escalation=1, skip_days_total=1)
     db.add(Checkin(commitment_id=c.id, kind="cadence", message="nothing today", escalation=1))
     db.add(Evidence(commitment_id=c.id, adapter="screenshot", verdict="pass", reasoning="site is live"))
     await db.commit()

@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthProvider'
 import { MOCK_AUTH } from '../../auth/api'
 import { deleteMyData } from '../../commitments/api'
+import { clearWelcomeDismissed } from '../../demo/welcomeFlag'
 import { listPersonas } from '../../mock/provider'
 import { useNotifications } from '../../notifications/NotificationProvider'
 import { getTelegramStatus, linkTelegram, unlinkTelegram } from '../../notifications/telegram'
@@ -17,10 +18,49 @@ import { subscribeToPush, unsubscribeFromPush } from '../../notifications/webPus
 import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
 import { Modal } from '../../ui/Modal'
+import { Skeleton } from '../../ui/Skeleton'
 import { PageHeader } from '../PageHeader'
 
+function SettingsSkeleton() {
+  return (
+    <div className="skeleton-card-content" aria-hidden="true">
+      <section className="settings-section">
+        <Skeleton variant="text" width={160} height={22} />
+        <div className="skeleton-settings-grid">
+          {[0, 1, 2].map((index) => (
+            <Card key={index}>
+              <div className="skeleton-card-content">
+                <Skeleton variant="text" width="54%" height={18} />
+                <Skeleton variant="text" width="72%" />
+                <Skeleton variant="text" width="88%" />
+              </div>
+            </Card>
+          ))}
+        </div>
+      </section>
+      {[0, 1].map((index) => (
+        <section key={index} className="settings-section">
+          <Skeleton variant="text" width={180} height={22} />
+          <Card>
+            <div className="skeleton-card-content">
+              <div className="skeleton-row">
+                <Skeleton variant="text" width="42%" />
+                <Skeleton variant="block" width={88} height={32} radius="var(--radius-pill)" />
+              </div>
+              <div className="skeleton-row">
+                <Skeleton variant="text" width="64%" />
+                <Skeleton variant="block" width={88} height={32} radius="var(--radius-pill)" />
+              </div>
+            </div>
+          </Card>
+        </section>
+      ))}
+    </div>
+  )
+}
+
 export function Settings() {
-  const { me, signOut, setPersona } = useAuth()
+  const { status, me, signOut, setPersona } = useAuth()
   const navigate = useNavigate()
   const { notify } = useNotifications()
   const personas = listPersonas()
@@ -73,6 +113,8 @@ export function Settings() {
       if (!MOCK_AUTH) {
         await deleteMyData()
       }
+      // Clear the welcome-dismissed flag so the tour reappears on next sign-in.
+      clearWelcomeDismissed()
       // Refresh to empty/idle state (no sign-out; account stays)
       navigate('/home')
       window.location.reload()
@@ -137,6 +179,15 @@ export function Settings() {
     } finally {
       setTgBusy(false)
     }
+  }
+
+  if (status === 'loading') {
+    return (
+      <div className="shell-page">
+        <PageHeader title="Settings" subtitle="Choose your companion, manage your account, and control your data." />
+        <SettingsSkeleton />
+      </div>
+    )
   }
 
   return (

@@ -16,6 +16,8 @@ dependencies = [
     "cryptography>=43",         # Fernet token-at-rest (TR-51)
     "pywebpush>=2.0",           # Web Push send side (TR-17)
     "python-multipart>=0.0.9",  # evidence screenshot upload
+    "pypdf>=4.0",               # PDF text extraction for file evidence (4.1)
+    "python-docx>=1.1",         # Word .docx text extraction for file evidence (4.1)
 ]
 
 [dependency-groups]
