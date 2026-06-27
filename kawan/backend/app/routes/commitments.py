@@ -16,7 +16,7 @@ from app.db import get_session
 from app.deps import current_user
 from app.models import Checkin, Commitment, Evidence, Message, Plan, Proposal, SoftContext, SuccessPattern, User
 from app.pipeline import record_contact
-from app.schemas import CommitmentCreate, CommitmentListOut, CommitmentOut, CommitmentPatch, ContextTurnIn, DebriefIn, GitHubLinkIn, MessageOut, WorkspaceTurnIn
+from app.schemas import CheckinStatusOut, CommitmentCreate, CommitmentListOut, CommitmentOut, CommitmentPatch, ContextTurnIn, DebriefIn, GitHubLinkIn, MessageOut, SoftContextOut, WorkspaceTurnIn
 from app.util import as_utc, now_utc, to_jsonable
 from app.wiring import LLM
 
@@ -103,6 +103,29 @@ async def active(user: User = Depends(current_user), db: AsyncSession = Depends(
     if c is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "no active commitment")
     return c
+
+
+@router.get("/{commitment_id}", response_model=CommitmentOut)
+async def get_commitment(c: Commitment = Depends(_owned)) -> Commitment:
+    """Return the single owned commitment by id."""
+    return c
+
+
+@router.get("/{commitment_id}/soft-context", response_model=SoftContextOut)
+async def get_soft_context(c: Commitment = Depends(_owned), db: AsyncSession = Depends(get_session)) -> SoftContextOut:
+    """Return the four soft-context slots for the commitment; all null when no row exists."""
+    sc = await db.get(SoftContext, c.id)
+    if sc is None:
+        return SoftContextOut(why=None, obstacles=None, time_constraints=None, skill=None)
+    return SoftContextOut(why=sc.why, obstacles=sc.obstacles, time_constraints=sc.time_constraints, skill=sc.skill)
+
+
+@router.get("/{commitment_id}/checkin-status", response_model=CheckinStatusOut)
+async def get_checkin_status(c: Commitment = Depends(_owned), db: AsyncSession = Depends(get_session)) -> CheckinStatusOut:
+    """Return due_at, is_late, and escalation sourced from assemble_progress so this
+    endpoint and the workspace digest always agree (no independent lateness computation)."""
+    progress = await pipeline.assemble_progress(db, c)
+    return CheckinStatusOut(due_at=progress["due_at"], is_late=progress["is_late"], escalation=c.escalation)
 
 
 @router.patch("/{commitment_id}", response_model=CommitmentOut)

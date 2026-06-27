@@ -30,6 +30,9 @@ interface MessagesModeProps {
   commitment: Commitment | null
   intakeStep: number
   openerLoading: boolean
+  // Phase 3: passed from WorkspaceLayout for key-event routing (islands handle the UI, not Messages)
+  keyEvent?: string | null
+  checkinStatus?: unknown
   onSend: (text: string) => Promise<void>
   onIntakeAnswer: (text: string) => Promise<void>
   onRetry: () => void
@@ -276,6 +279,32 @@ export function MessagesMode({
             </button>
           ))}
         </fieldset>
+      )}
+
+      {/* Fix A: INTAKE DEAD-END FIX — when commitment/options are unavailable, show the
+          open-ended input directly so intake can never dead-end. Always available during intake. */}
+      {phase === 'intake' && !openerLoading && !sending && !intakeOptions && !showTypeOwn && (
+        <div className="messages-input-bar">
+          <input
+            className="messages-input"
+            type="text"
+            placeholder="Type your answer..."
+            aria-label="Your answer"
+            value={typeOwnText}
+            onChange={(e) => setTypeOwnText(e.target.value)}
+            onKeyDown={handleTypeOwnKeyDown}
+            disabled={sending}
+          />
+          <button
+            type="button"
+            className="messages-send-btn"
+            onClick={handleTypeOwnSend}
+            disabled={sending || !typeOwnText.trim()}
+            aria-label={sending ? 'Sending...' : 'Send answer'}
+          >
+            <Send size={18} aria-hidden="true" />
+          </button>
+        </div>
       )}
 
       {/* Inline type-own input — shown when "Answer in my own words" is tapped */}

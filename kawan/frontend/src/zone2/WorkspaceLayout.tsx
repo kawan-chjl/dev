@@ -2,6 +2,7 @@
 // No shell chrome. Local viewMode: 'stage' | 'messages'. Shared conversation state.
 // T4: phased VN-intake (phase:'intake') → open chat (phase:'chat').
 // Phase lives here; stage NEVER remounts (A3 design §4, PO decision 6).
+// Phase 3: Context/Plan/Check-In/Finish islands + Activity card overlaid as DOM siblings.
 
 import { ArrowLeft } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -14,6 +15,20 @@ import type { Commitment, Emotion } from '../types/api'
 import type { WorkspaceMessage } from '../workspace/api'
 import { workspaceTurn } from '../workspace/api'
 import { fetchMessages } from '../workspace/messagesApi'
+import { EndingSequence } from './EndingSequence'
+import { ActivityCard } from './islands/ActivityCard'
+import { CheckinIsland } from './islands/CheckinIsland'
+import { ContextIsland } from './islands/ContextIsland'
+import { FinishIsland } from './islands/FinishIsland'
+import { PlanIsland } from './islands/PlanIsland'
+import {
+  type CheckinStatus,
+  countFilledSlots,
+  detectKeyEvent,
+  fetchCheckinStatus,
+  fetchSoftContext,
+  type KeyEventKind
+} from './keyEvents'
 import { MessagesMode } from './MessagesMode'
 import { generatePlan, type PlanResult } from './planApi'
 import { StageMode } from './StageMode'
@@ -84,6 +99,13 @@ export function WorkspaceLayout() {
   // Plan result — generated once after intake completes
   const [plan, setPlan] = useState<PlanResult | null>(null)
 
+  // Plan generating flag — true while /plan is in-flight
+  const [planGenerating, setPlanGenerating] = useState(false)
+  // Checkin status from GET /{id}/checkin-status — drives key-event detection
+  const [checkinStatus, setCheckinStatus] = useState<CheckinStatus | null>(null)
+  // Key event kind derived from commitment state + checkin status
+  const [keyEvent, setKeyEvent] = useState<KeyEventKind>(null)
+
   // Mock intake turn tracker (MOCK_AUTH only)
   const mockIntakeTurnRef = useRef(0)
   // Guard: fire the intake opener only once on mount
@@ -132,20 +154,20 @@ export function WorkspaceLayout() {
       }
 
       if (history.length > 0) {
-        // History exists — determine phase from slot count
-        // Count how many slots look filled by examining message count heuristic.
-        // A robust signal: if messages include 4+ user turns, intake is complete.
-        const userTurns = history.filter((m) => m.from === 'user').length
+        // Fix B: use real slot count from GET /{id}/soft-context, not userTurns heuristic.
+        // intake complete = all 4 slots non-null; otherwise resume at the filled-slot index.
+        const slots = await fetchSoftContext(commitmentId)
+        const filledCount = slots ? countFilledSlots(slots) : 0
         setMessages(history)
-        if (userTurns >= 4) {
+        if (filledCount >= 4) {
           setPhase('chat')
           setSlotProgress({ total: 4, filled: 4 })
           setIntakeStep(4)
         } else {
-          // Partial intake — resume from where we left off
+          // Partial intake — resume from the real filled-slot index
           setPhase('intake')
-          setSlotProgress({ total: 4, filled: userTurns })
-          setIntakeStep(userTurns)
+          setSlotProgress({ total: 4, filled: filledCount })
+          setIntakeStep(filledCount)
         }
         // Don't re-fire the opener when history exists
         return
@@ -194,6 +216,7 @@ export function WorkspaceLayout() {
     if (!commitmentId || MOCK_AUTH) return
     planFiredRef.current = true
 
+    setPlanGenerating(true)
     generatePlan(commitmentId)
       .then((result) => {
         if (result) setPlan(result)
@@ -201,7 +224,20 @@ export function WorkspaceLayout() {
       .catch(() => {
         // Non-fatal — no plan, no crash
       })
+      .finally(() => setPlanGenerating(false))
   }, [phase, commitmentId])
+
+  // 3.6: load checkin status and derive key event when in chat phase
+  useEffect(() => {
+    if (phase !== 'chat') return
+    if (!commitmentId || MOCK_AUTH || !commitment) return
+
+    fetchCheckinStatus(commitmentId).then((status) => {
+      setCheckinStatus(status)
+      const kind = detectKeyEvent(commitment.status, commitment.deadline, status)
+      setKeyEvent(kind)
+    })
+  }, [phase, commitmentId, commitment])
 
   // Handle an intake answer — calls context/turn, updates slots, flips phase when complete.
   const handleIntakeAnswer = useCallback(
@@ -400,9 +436,6 @@ export function WorkspaceLayout() {
     })
   }
 
-  // plan is held in state for Phase 3 islands; views don't consume it directly yet.
-  void plan
-
   const sharedProps = {
     messages,
     // 2.1: suppress typing-dots in views while openerLoading is true
@@ -414,12 +447,17 @@ export function WorkspaceLayout() {
     commitment,
     intakeStep,
     openerLoading,
+    keyEvent,
+    checkinStatus,
     onSend: handleSend,
     onIntakeAnswer: handleIntakeAnswer,
     onRetry: handleRetry,
     onProposalApplied: handleProposalApplied,
     onProposalDismissed: handleProposalDismissed
   }
+
+  // 3.6: commitment failure — overlay the ending sequence instead of the normal workspace
+  const isFailure = keyEvent === 'failure' && commitment !== null
 
   const isLoading = openerLoading || viewSwitching
 
@@ -466,6 +504,42 @@ export function WorkspaceLayout() {
             <span className="workspace-spinner-ring" aria-hidden="true" />
             <span className="workspace-spinner-label">Loading...</span>
           </div>
+        )}
+
+        {/* 3.6: Commitment failure overlay — replaces normal workspace interaction */}
+        {isFailure && (
+          <div className="workspace-failure-overlay">
+            <EndingSequence variant="failure" commitment={commitment} />
+          </div>
+        )}
+
+        {/* Phase 3 islands — DOM siblings over the stage, never cause a remount.
+            Only shown in chat phase (post-intake) and when not in failure state. */}
+        {phase === 'chat' && !isFailure && commitmentId && (
+          <>
+            {/* Top-left: Activity card */}
+            <div className="workspace-island-topleft">
+              <ActivityCard commitmentId={commitmentId} />
+            </div>
+
+            {/* Top-right: Context + Plan islands stacked vertically */}
+            <div className="workspace-island-topright">
+              <ContextIsland commitmentId={commitmentId} slotProgress={slotProgress} />
+              <PlanIsland plan={plan} commitment={commitment} generating={planGenerating} />
+            </div>
+
+            {/* Check-In / Finish islands — shown only when relevant (not during failure) */}
+            {(keyEvent === 'checkin' || keyEvent === 'late-checkin') && (
+              <div className="workspace-island-bottom">
+                <CheckinIsland commitmentId={commitmentId} checkinStatus={checkinStatus} variant={keyEvent} />
+              </div>
+            )}
+            {commitment && keyEvent === null && (
+              <div className="workspace-island-bottom">
+                <FinishIsland commitmentId={commitmentId} commitment={commitment} />
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

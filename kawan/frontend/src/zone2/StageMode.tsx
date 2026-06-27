@@ -30,6 +30,9 @@ interface StageModeProps {
   commitment: Commitment | null
   intakeStep: number
   openerLoading: boolean
+  // Phase 3: passed from WorkspaceLayout for key-event routing (islands handle the UI, not Stage)
+  keyEvent?: string | null
+  checkinStatus?: unknown
   onSend: (text: string) => Promise<void>
   onIntakeAnswer: (text: string) => Promise<void>
   onRetry: () => void
@@ -289,6 +292,35 @@ export function StageMode({
             </button>
           ))}
         </fieldset>
+      )}
+
+      {/* Fix A: INTAKE DEAD-END FIX — when commitment/options are unavailable, show the
+          open-ended input directly so intake can never dead-end. This is independent of
+          the VN options: if options are present the user can tap them or "Answer in my
+          own words"; if options are absent (commitment not yet loaded) this input is the
+          only path. The open-ended input is ALWAYS available during intake. */}
+      {phase === 'intake' && !openerLoading && !sending && !intakeOptions && !showTypeOwn && (
+        <div className="stage-input-bar" style={{ zIndex: 20 }}>
+          <input
+            className="stage-input"
+            type="text"
+            placeholder="Type your answer..."
+            aria-label="Your answer"
+            value={typeOwnText}
+            onChange={(e) => setTypeOwnText(e.target.value)}
+            onKeyDown={handleTypeOwnKeyDown}
+            disabled={sending}
+          />
+          <button
+            type="button"
+            className="stage-send-btn"
+            onClick={handleTypeOwnSend}
+            disabled={sending || !typeOwnText.trim()}
+            aria-label={sending ? 'Sending...' : 'Send answer'}
+          >
+            {sending ? '...' : '>'}
+          </button>
+        </div>
       )}
 
       {/* Inline type-own input — shown when "Answer in my own words" is tapped */}

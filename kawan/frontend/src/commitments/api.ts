@@ -229,3 +229,129 @@ export async function deleteMyData(): Promise<void> {
   if (res.status === 204) return
   throw new Error(`DELETE /api/me/data returned ${res.status}`)
 }
+
+/** Verdict response from evidence submission endpoints. */
+export interface EvidenceVerdict {
+  verdict: 'pass' | 'fail' | 'unclear'
+  confidence: number | null
+  reasoning: string | null
+  evidence_id: string
+}
+
+/** Client-side MIME type allow-list for screenshot uploads (mirrors backend _ALLOWED_IMAGE_TYPES). */
+export const ALLOWED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp'])
+/** 8 MB cap mirrors backend _MAX_EVIDENCE_BYTES. */
+export const MAX_EVIDENCE_BYTES = 8 * 1024 * 1024
+
+/** Client-side MIME type allow-list for file evidence (mirrors backend _ALLOWED_FILE_TYPES). */
+export const ALLOWED_FILE_TYPES = new Set([
+  'text/plain',
+  'text/markdown',
+  'text/csv',
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+])
+
+/**
+ * POST /api/commitments/{id}/evidence  (multipart, screenshot)
+ * Returns the 3-valued verdict from the AI judge.
+ */
+export async function uploadEvidence(commitmentId: string, file: File): Promise<EvidenceVerdict> {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await fetch(`/api/commitments/${commitmentId}/evidence`, {
+    method: 'POST',
+    credentials: 'include',
+    body: form
+  })
+  if (!res.ok) {
+    let detail = `POST /api/commitments/${commitmentId}/evidence returned ${res.status}`
+    try {
+      const json = (await res.json()) as { detail?: string }
+      if (json.detail) detail = String(json.detail)
+    } catch {
+      // Ignore parse errors.
+    }
+    throw new Error(detail)
+  }
+  return (await res.json()) as EvidenceVerdict
+}
+
+/**
+ * POST /api/commitments/{id}/evidence/file  (multipart, .txt/.md/.csv/.pdf/.docx)
+ * Returns the 3-valued verdict from the AI judge.
+ */
+export async function uploadFileEvidence(commitmentId: string, file: File): Promise<EvidenceVerdict> {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await fetch(`/api/commitments/${commitmentId}/evidence/file`, {
+    method: 'POST',
+    credentials: 'include',
+    body: form
+  })
+  if (!res.ok) {
+    let detail = `POST /api/commitments/${commitmentId}/evidence/file returned ${res.status}`
+    try {
+      const json = (await res.json()) as { detail?: string }
+      if (json.detail) detail = String(json.detail)
+    } catch {
+      // Ignore parse errors.
+    }
+    throw new Error(detail)
+  }
+  return (await res.json()) as EvidenceVerdict
+}
+
+/**
+ * POST /api/commitments/{id}/evidence/github-link  { url }
+ * Returns the 3-valued verdict from the AI judge.
+ */
+export async function submitGithubLink(commitmentId: string, url: string): Promise<EvidenceVerdict> {
+  const res = await fetch(`/api/commitments/${commitmentId}/evidence/github-link`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url })
+  })
+  if (!res.ok) {
+    let detail = `POST /api/commitments/${commitmentId}/evidence/github-link returned ${res.status}`
+    try {
+      const json = (await res.json()) as { detail?: string }
+      if (json.detail) detail = String(json.detail)
+    } catch {
+      // Ignore parse errors.
+    }
+    throw new Error(detail)
+  }
+  return (await res.json()) as EvidenceVerdict
+}
+
+/**
+ * POST /api/commitments/{id}/check — trigger an on-demand check-in.
+ * Returns the AI brief message and escalation level.
+ */
+export interface CheckinResponse {
+  message: string
+  escalation: number
+  delivered_via: string | null
+  evidence_id: string | null
+}
+
+export async function triggerCheckin(commitmentId: string): Promise<CheckinResponse> {
+  const res = await fetch(`/api/commitments/${commitmentId}/check`, {
+    method: 'POST',
+    credentials: 'include'
+  })
+  if (!res.ok) {
+    let detail = `POST /api/commitments/${commitmentId}/check returned ${res.status}`
+    try {
+      const json = (await res.json()) as { detail?: string; message?: string }
+      if (json.message) detail = json.message
+      else if (json.detail) detail = String(json.detail)
+    } catch {
+      // Ignore parse errors.
+    }
+    throw new Error(detail)
+  }
+  return (await res.json()) as CheckinResponse
+}

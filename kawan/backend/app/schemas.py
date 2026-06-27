@@ -161,3 +161,20 @@ class MessageOut(BaseModel):
     emotion: str | None
     response_type: str | None
     created_at: datetime
+
+
+class SoftContextOut(BaseModel):
+    """Soft-context slots returned by GET /{id}/soft-context."""
+
+    why: str | None
+    obstacles: str | None
+    time_constraints: str | None
+    skill: str | None
+
+
+class CheckinStatusOut(BaseModel):
+    """Check-in lateness status returned by GET /{id}/checkin-status."""
+
+    due_at: str | None
+    is_late: bool
+    escalation: int
