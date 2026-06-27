@@ -349,7 +349,7 @@
   border: 1.5px solid rgba(244, 236, 225, 0.1);
   border-radius: var(--radius-card);
   backdrop-filter: blur(16px) saturate(160%);
-  padding: var(--space-4) 92px var(--space-4) var(--space-5); /* 92px = advance(36) + mic(32) + gaps */
+  padding: var(--space-4) var(--space-5);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
   animation: stage-fade-in var(--duration-panel) var(--ease-smooth) both;
 }
@@ -491,7 +491,7 @@
 
 .message-bubble {
   max-width: 75%;
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-4) var(--space-5);
   border-radius: var(--radius-card);
 }
 
@@ -2314,14 +2314,19 @@ fieldset.messages-intake-menu {
   width: 100%;
   backdrop-filter: var(--blur-backdrop);
   transition:
-    background var(--duration-ui) var(--ease-smooth),
     border-color var(--duration-ui) var(--ease-smooth),
-    color var(--duration-ui) var(--ease-smooth);
+    border-width var(--duration-ui) var(--ease-smooth),
+    transform var(--duration-ui) var(--ease-smooth);
 }
 .stage-intake-btn:hover:not(:disabled) {
-  background: rgba(217, 100, 58, 0.16);
-  border-color: rgba(217, 100, 58, 0.45);
-  color: rgba(244, 236, 225, 0.95);
+  border-color: rgba(244, 236, 225, 0.5);
+  border-width: 2px;
+  transform: scale(1.02);
+}
+@media (prefers-reduced-motion: reduce) {
+  .stage-intake-btn:hover:not(:disabled) {
+    transform: none;
+  }
 }
 .stage-intake-btn:disabled {
   opacity: 0.4;
@@ -2367,6 +2372,63 @@ fieldset.messages-intake-menu {
   color: rgba(244, 236, 225, 0.7);
 }
 
+/* ── ITEM 4: Intake type-own input with embedded send button (Stage mode) ── */
+/* Outer bar: same positioning/width as .stage-input-bar */
+.stage-intake-own-bar {
+  position: relative;
+  display: flex;
+  gap: var(--space-2);
+  margin: 0 auto var(--space-4);
+  width: min(580px, calc(100vw - var(--space-8)));
+  align-items: center;
+  z-index: 20;
+}
+
+/* Field wrapper: relative so the embedded button can sit on the right edge */
+.stage-intake-own-field {
+  position: relative;
+  flex: 1;
+}
+
+/* Input modifier: extra right padding to clear the embedded send button */
+.stage-input--with-send {
+  padding-right: 52px;
+  width: 100%;
+}
+
+/* Embedded send button — absolute inside the field wrapper */
+.stage-intake-send-inline {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1;
+  transition: background var(--duration-ui) var(--ease-smooth);
+}
+.stage-intake-send-inline:hover:not(:disabled) {
+  background: var(--accent-press);
+}
+.stage-intake-send-inline:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.stage-intake-send-inline:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 /* ── T4: Intake VN action menu (Messages mode) ── */
 .messages-intake-menu {
   display: flex;
@@ -2394,14 +2456,19 @@ fieldset.messages-intake-menu {
   min-height: 44px;
   width: 100%;
   transition:
-    background var(--duration-ui) var(--ease-smooth),
     border-color var(--duration-ui) var(--ease-smooth),
-    color var(--duration-ui) var(--ease-smooth);
+    border-width var(--duration-ui) var(--ease-smooth),
+    transform var(--duration-ui) var(--ease-smooth);
 }
 .messages-intake-btn:hover:not(:disabled) {
-  background: rgba(217, 100, 58, 0.12);
-  border-color: rgba(217, 100, 58, 0.38);
-  color: rgba(244, 236, 225, 0.95);
+  border-color: rgba(244, 236, 225, 0.5);
+  border-width: 2px;
+  transform: scale(1.02);
+}
+@media (prefers-reduced-motion: reduce) {
+  .messages-intake-btn:hover:not(:disabled) {
+    transform: none;
+  }
 }
 .messages-intake-btn:disabled {
   opacity: 0.4;
@@ -2443,6 +2510,56 @@ fieldset.messages-intake-menu {
 }
 .messages-intake-cancel:hover {
   color: rgba(244, 236, 225, 0.65);
+}
+
+/* ── ITEM 4: Intake type-own input with embedded send button (Messages mode) ── */
+.messages-intake-own-bar {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0));
+  border-top: 1px solid rgba(244, 236, 225, 0.07);
+  background: rgba(22, 16, 9, 0.75);
+  backdrop-filter: var(--blur-backdrop);
+  align-items: center;
+}
+
+.messages-intake-own-field {
+  position: relative;
+  flex: 1;
+}
+
+.messages-input--with-send {
+  padding-right: 52px;
+}
+
+.messages-intake-send-inline {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--duration-ui) var(--ease-smooth);
+}
+.messages-intake-send-inline:hover:not(:disabled) {
+  background: var(--accent-press);
+}
+.messages-intake-send-inline:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.messages-intake-send-inline:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* ── I3: skip button inside the intake input bars ── */

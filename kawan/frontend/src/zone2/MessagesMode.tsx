@@ -66,7 +66,6 @@ export function MessagesMode({
   error,
   commitmentId,
   phase,
-  slotProgress,
   commitment,
   intakeStep,
   openerLoading,
@@ -151,19 +150,7 @@ export function MessagesMode({
 
   return (
     <div className="messages-mode">
-      {/* Slot progress bar — intake phase only, not while opener loads */}
-      {phase === 'intake' && !openerLoading && (
-        <div className="messages-intake-progress" role="status" aria-live="polite" aria-atomic="true">
-          <span className="messages-intake-label">Context</span>
-          {Array.from({ length: slotProgress.total }).map((_, i) => (
-            <span
-              // biome-ignore lint/suspicious/noArrayIndexKey: static fixed-length array
-              key={i}
-              className={`messages-intake-dot${i < slotProgress.filled ? ' messages-intake-dot--filled' : ''}`}
-            />
-          ))}
-        </div>
-      )}
+      {/* Slot progress is shown in the top-right ContextIsland (ITEM 1) — not duplicated here */}
 
       {/* Thread — centered max-width column, content anchors near input when sparse */}
       <div ref={threadRef} className="messages-thread" role="log" aria-label="Conversation thread" aria-live="polite">
@@ -284,51 +271,55 @@ export function MessagesMode({
       {/* Fix A: INTAKE DEAD-END FIX — when commitment/options are unavailable, show the
           open-ended input directly so intake can never dead-end. Always available during intake. */}
       {phase === 'intake' && !openerLoading && !sending && !intakeOptions && !showTypeOwn && (
-        <div className="messages-input-bar">
-          <input
-            className="messages-input"
-            type="text"
-            placeholder="Type your answer..."
-            aria-label="Your answer"
-            value={typeOwnText}
-            onChange={(e) => setTypeOwnText(e.target.value)}
-            onKeyDown={handleTypeOwnKeyDown}
-            disabled={sending}
-          />
-          <button
-            type="button"
-            className="messages-send-btn"
-            onClick={handleTypeOwnSend}
-            disabled={sending || !typeOwnText.trim()}
-            aria-label={sending ? 'Sending...' : 'Send answer'}
-          >
-            <Send size={18} aria-hidden="true" />
-          </button>
+        <div className="messages-intake-own-bar">
+          <div className="messages-intake-own-field">
+            <input
+              className="messages-input messages-input--with-send"
+              type="text"
+              placeholder="Type your answer..."
+              aria-label="Your answer"
+              value={typeOwnText}
+              onChange={(e) => setTypeOwnText(e.target.value)}
+              onKeyDown={handleTypeOwnKeyDown}
+              disabled={sending}
+            />
+            <button
+              type="button"
+              className="messages-intake-send-inline"
+              onClick={handleTypeOwnSend}
+              disabled={sending || !typeOwnText.trim()}
+              aria-label={sending ? 'Sending...' : 'Send answer'}
+            >
+              <Send size={18} aria-hidden="true" />
+            </button>
+          </div>
         </div>
       )}
 
       {/* Inline type-own input — shown when "Answer in my own words" is tapped */}
       {phase === 'intake' && showTypeOwn && (
-        <div className="messages-input-bar">
-          <input
-            className="messages-input"
-            type="text"
-            placeholder="Type your answer..."
-            aria-label="Your answer"
-            value={typeOwnText}
-            onChange={(e) => setTypeOwnText(e.target.value)}
-            onKeyDown={handleTypeOwnKeyDown}
-            disabled={sending}
-          />
-          <button
-            type="button"
-            className="messages-send-btn"
-            onClick={handleTypeOwnSend}
-            disabled={sending || !typeOwnText.trim()}
-            aria-label={sending ? 'Sending...' : 'Send answer'}
-          >
-            <Send size={18} aria-hidden="true" />
-          </button>
+        <div className="messages-intake-own-bar">
+          <div className="messages-intake-own-field">
+            <input
+              className="messages-input messages-input--with-send"
+              type="text"
+              placeholder="Type your answer..."
+              aria-label="Your answer"
+              value={typeOwnText}
+              onChange={(e) => setTypeOwnText(e.target.value)}
+              onKeyDown={handleTypeOwnKeyDown}
+              disabled={sending}
+            />
+            <button
+              type="button"
+              className="messages-intake-send-inline"
+              onClick={handleTypeOwnSend}
+              disabled={sending || !typeOwnText.trim()}
+              aria-label={sending ? 'Sending...' : 'Send answer'}
+            >
+              <Send size={18} aria-hidden="true" />
+            </button>
+          </div>
           <button
             type="button"
             className="messages-intake-cancel"

@@ -49,7 +49,6 @@ export function StageMode({
   error,
   commitmentId,
   phase,
-  slotProgress,
   commitment,
   intakeStep,
   openerLoading,
@@ -246,19 +245,7 @@ export function StageMode({
         </div>
       )}
 
-      {/* Intake phase: slot progress indicator (no skip-ahead button — task 2.2/2.3) */}
-      {phase === 'intake' && !openerLoading && (
-        <div className="stage-intake-progress" role="status" aria-live="polite" aria-atomic="true">
-          <span className="stage-intake-progress-label">Context</span>
-          {Array.from({ length: slotProgress.total }).map((_, i) => (
-            <span
-              // biome-ignore lint/suspicious/noArrayIndexKey: static fixed-length array
-              key={i}
-              className={`stage-intake-dot${i < slotProgress.filled ? ' stage-intake-dot--filled' : ''}`}
-            />
-          ))}
-        </div>
-      )}
+      {/* Slot progress is shown in the top-right ContextIsland (ITEM 1) — not duplicated here */}
 
       {/* Starter chips — chat phase empty state */}
       {showStarterChips && !openerLoading && (
@@ -300,51 +287,55 @@ export function StageMode({
           own words"; if options are absent (commitment not yet loaded) this input is the
           only path. The open-ended input is ALWAYS available during intake. */}
       {phase === 'intake' && !openerLoading && !sending && !intakeOptions && !showTypeOwn && (
-        <div className="stage-input-bar" style={{ zIndex: 20 }}>
-          <input
-            className="stage-input"
-            type="text"
-            placeholder="Type your answer..."
-            aria-label="Your answer"
-            value={typeOwnText}
-            onChange={(e) => setTypeOwnText(e.target.value)}
-            onKeyDown={handleTypeOwnKeyDown}
-            disabled={sending}
-          />
-          <button
-            type="button"
-            className="stage-send-btn"
-            onClick={handleTypeOwnSend}
-            disabled={sending || !typeOwnText.trim()}
-            aria-label={sending ? 'Sending...' : 'Send answer'}
-          >
-            {sending ? '...' : '>'}
-          </button>
+        <div className="stage-intake-own-bar" style={{ zIndex: 20 }}>
+          <div className="stage-intake-own-field">
+            <input
+              className="stage-input stage-input--with-send"
+              type="text"
+              placeholder="Type your answer..."
+              aria-label="Your answer"
+              value={typeOwnText}
+              onChange={(e) => setTypeOwnText(e.target.value)}
+              onKeyDown={handleTypeOwnKeyDown}
+              disabled={sending}
+            />
+            <button
+              type="button"
+              className="stage-intake-send-inline"
+              onClick={handleTypeOwnSend}
+              disabled={sending || !typeOwnText.trim()}
+              aria-label={sending ? 'Sending...' : 'Send answer'}
+            >
+              {sending ? '...' : '>'}
+            </button>
+          </div>
         </div>
       )}
 
       {/* Inline type-own input — shown when "Answer in my own words" is tapped */}
       {phase === 'intake' && showTypeOwn && (
-        <div className="stage-input-bar" style={{ zIndex: 20 }}>
-          <input
-            className="stage-input"
-            type="text"
-            placeholder="Type your answer..."
-            aria-label="Your answer"
-            value={typeOwnText}
-            onChange={(e) => setTypeOwnText(e.target.value)}
-            onKeyDown={handleTypeOwnKeyDown}
-            disabled={sending}
-          />
-          <button
-            type="button"
-            className="stage-send-btn"
-            onClick={handleTypeOwnSend}
-            disabled={sending || !typeOwnText.trim()}
-            aria-label={sending ? 'Sending...' : 'Send answer'}
-          >
-            {sending ? '...' : '>'}
-          </button>
+        <div className="stage-intake-own-bar" style={{ zIndex: 20 }}>
+          <div className="stage-intake-own-field">
+            <input
+              className="stage-input stage-input--with-send"
+              type="text"
+              placeholder="Type your answer..."
+              aria-label="Your answer"
+              value={typeOwnText}
+              onChange={(e) => setTypeOwnText(e.target.value)}
+              onKeyDown={handleTypeOwnKeyDown}
+              disabled={sending}
+            />
+            <button
+              type="button"
+              className="stage-intake-send-inline"
+              onClick={handleTypeOwnSend}
+              disabled={sending || !typeOwnText.trim()}
+              aria-label={sending ? 'Sending...' : 'Send answer'}
+            >
+              {sending ? '...' : '>'}
+            </button>
+          </div>
           <button
             type="button"
             className="stage-intake-cancel-btn"

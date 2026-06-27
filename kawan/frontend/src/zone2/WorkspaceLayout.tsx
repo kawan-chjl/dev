@@ -517,29 +517,29 @@ export function WorkspaceLayout() {
           </div>
         )}
 
-        {/* Phase 3 islands — DOM siblings over the stage, never cause a remount.
-            Only shown in chat phase (post-intake) and when not in failure state. */}
-        {phase === 'chat' && !isFailure && commitmentId && (
-          <>
-            {/* Top-left: Activity card */}
-            <div className="workspace-island-topleft">
-              <ActivityCard commitmentId={commitmentId} />
-            </div>
+        {/* Context island — top-right, always shown during intake and chat (never in failure) */}
+        {!isFailure && commitmentId && (
+          <div className="workspace-island-topright">
+            <ContextIsland commitmentId={commitmentId} slotProgress={slotProgress} />
+            {phase === 'chat' && (
+              <>
+                <PlanIsland plan={plan} commitment={commitment} generating={planGenerating} />
+                <CheckinIsland
+                  commitmentId={commitmentId}
+                  checkinStatus={checkinStatus}
+                  variant={keyEvent === 'late-checkin' ? 'late-checkin' : keyEvent === 'checkin' ? 'checkin' : null}
+                />
+                {commitment && <FinishIsland commitmentId={commitmentId} commitment={commitment} />}
+              </>
+            )}
+          </div>
+        )}
 
-            {/* Top-right: all four islands stacked vertically, always available.
-                keyEvent drives late tone on Check-In but never hides it.
-                Finish requires commitment to be non-null for the ending sequence. */}
-            <div className="workspace-island-topright">
-              <ContextIsland commitmentId={commitmentId} slotProgress={slotProgress} />
-              <PlanIsland plan={plan} commitment={commitment} generating={planGenerating} />
-              <CheckinIsland
-                commitmentId={commitmentId}
-                checkinStatus={checkinStatus}
-                variant={keyEvent === 'late-checkin' ? 'late-checkin' : keyEvent === 'checkin' ? 'checkin' : null}
-              />
-              {commitment && <FinishIsland commitmentId={commitmentId} commitment={commitment} />}
-            </div>
-          </>
+        {/* Activity card — top-left, chat phase only */}
+        {phase === 'chat' && !isFailure && commitmentId && (
+          <div className="workspace-island-topleft">
+            <ActivityCard commitmentId={commitmentId} />
+          </div>
         )}
       </div>
     </div>
