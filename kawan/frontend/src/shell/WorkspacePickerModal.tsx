@@ -1,13 +1,16 @@
-// WorkspacePickerModal — lists commitments; selecting one navigates to /workspace/:id.
+// WorkspacePickerModal — lists in-flight commitments; selecting one navigates to /workspace/:id.
 // Portaled to document.body via Modal so it stacks above sidebar and topbar.
+// Filters to in-flight statuses (active / lapsed / verifying / grace) — up to 3 active at once.
 
 import { Plus, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { statusLabel } from '../commitments/statusLabel'
-import type { Commitment } from '../types/api'
+import type { Commitment, CommitmentStatus } from '../types/api'
 import { Button } from '../ui/Button'
 import { Chip } from '../ui/Chip'
 import { Modal } from '../ui/Modal'
+
+const IN_FLIGHT: CommitmentStatus[] = ['active', 'lapsed', 'verifying', 'grace']
 
 interface WorkspacePickerModalProps {
   open: boolean
@@ -17,6 +20,9 @@ interface WorkspacePickerModalProps {
 
 export function WorkspacePickerModal({ open, commitments, onClose }: WorkspacePickerModalProps) {
   const navigate = useNavigate()
+
+  // Only show in-flight commitments — completed/missed/draft are not workspaces.
+  const inFlight = commitments.filter((c) => IN_FLIGHT.includes(c.status))
 
   function openWorkspace(id: string) {
     onClose()
@@ -38,9 +44,9 @@ export function WorkspacePickerModal({ open, commitments, onClose }: WorkspacePi
         </button>
       </div>
 
-      {commitments.length === 0 ? (
+      {inFlight.length === 0 ? (
         <div className="ws-modal-empty">
-          <p className="ws-modal-empty-text">You have no commitments to open yet.</p>
+          <p className="ws-modal-empty-text">You have no active commitments to open yet.</p>
           <Button
             variant="accent"
             onClick={() => {
@@ -54,7 +60,7 @@ export function WorkspacePickerModal({ open, commitments, onClose }: WorkspacePi
         </div>
       ) : (
         <ul className="ws-modal-list">
-          {commitments.map((c) => (
+          {inFlight.map((c) => (
             <li key={c.id}>
               <button type="button" className="ws-modal-item" onClick={() => openWorkspace(c.id)}>
                 <div className="ws-modal-item-text">

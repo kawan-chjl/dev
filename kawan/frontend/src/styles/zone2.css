@@ -2541,7 +2541,7 @@ fieldset.messages-intake-menu {
   max-width: 220px;
 }
 
-/* Top-right: Context + Plan islands stacked */
+/* Top-right: Context + Plan + Check-In + Finish islands stacked */
 .workspace-island-topright {
   position: absolute;
   top: calc(52px + var(--space-4));
@@ -2552,6 +2552,14 @@ fieldset.messages-intake-menu {
   flex-direction: column;
   gap: var(--space-2);
   max-width: 220px;
+  /* Cap height so islands never extend below the viewport when one expands */
+  max-height: calc(100svh - 52px - var(--space-8));
+  overflow-y: auto;
+  /* Hide the scrollbar but keep it functional */
+  scrollbar-width: none;
+}
+.workspace-island-topright::-webkit-scrollbar {
+  display: none;
 }
 
 /* Bottom: Check-In or Finish island */

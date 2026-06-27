@@ -522,23 +522,19 @@ export function WorkspaceLayout() {
               <ActivityCard commitmentId={commitmentId} />
             </div>
 
-            {/* Top-right: Context + Plan islands stacked vertically */}
+            {/* Top-right: all four islands stacked vertically, always available.
+                keyEvent drives late tone on Check-In but never hides it.
+                Finish requires commitment to be non-null for the ending sequence. */}
             <div className="workspace-island-topright">
               <ContextIsland commitmentId={commitmentId} slotProgress={slotProgress} />
               <PlanIsland plan={plan} commitment={commitment} generating={planGenerating} />
+              <CheckinIsland
+                commitmentId={commitmentId}
+                checkinStatus={checkinStatus}
+                variant={keyEvent === 'late-checkin' ? 'late-checkin' : keyEvent === 'checkin' ? 'checkin' : null}
+              />
+              {commitment && <FinishIsland commitmentId={commitmentId} commitment={commitment} />}
             </div>
-
-            {/* Check-In / Finish islands — shown only when relevant (not during failure) */}
-            {(keyEvent === 'checkin' || keyEvent === 'late-checkin') && (
-              <div className="workspace-island-bottom">
-                <CheckinIsland commitmentId={commitmentId} checkinStatus={checkinStatus} variant={keyEvent} />
-              </div>
-            )}
-            {commitment && keyEvent === null && (
-              <div className="workspace-island-bottom">
-                <FinishIsland commitmentId={commitmentId} commitment={commitment} />
-              </div>
-            )}
           </>
         )}
       </div>

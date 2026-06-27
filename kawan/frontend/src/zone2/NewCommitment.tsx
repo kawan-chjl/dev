@@ -692,7 +692,20 @@ export function NewCommitment() {
     const deadlineISO = deadlineDate.toISOString()
     try {
       // 1. Create the commitment (first write)
-      const created = await createCommitment({ action, deliverable, deadline: deadlineISO })
+      let created: Awaited<ReturnType<typeof createCommitment>>
+      try {
+        created = await createCommitment({ action, deliverable, deadline: deadlineISO })
+      } catch (err) {
+        const status = err instanceof Error ? (err as Error & { status?: number }).status : undefined
+        const msg = err instanceof Error ? err.message : ''
+        if (status === 409 || msg.includes('409')) {
+          setStartError('You can have at most 3 active commitments at once. Complete or end one first.')
+        } else {
+          setStartError(msg || 'Failed to create commitment. Please try again.')
+        }
+        setStarting(false)
+        return
+      }
       // 2. Apply plan-step settings (cadence / evidence / skip / stake) if they differ from server defaults
       // stakeContactValid is pre-checked above; stakeIncomplete blocks reaching here, so if toggle is on,
       // the contact is guaranteed valid.
