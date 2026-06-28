@@ -1463,13 +1463,13 @@
 
 .page-header-card-image {
   position: absolute;
-  right: clamp(24px, 6vw, 96px);
+  right: clamp(12px, 3vw, 40px);
   top: 50%;
   z-index: 0;
   width: clamp(112px, 16vw, 176px);
   height: clamp(112px, 16vw, 176px);
   object-fit: contain;
-  opacity: 0.36;
+  opacity: 0.9;
   pointer-events: none;
   transform: translateY(-50%);
 }
@@ -1523,10 +1523,10 @@
   }
 
   .page-header-card-image {
-    right: var(--space-3);
+    right: var(--space-2);
     width: 120px;
     height: 120px;
-    opacity: 0.22;
+    opacity: 0.72;
   }
 
   .page-header-card-body {
