@@ -157,6 +157,7 @@ export function Commitments() {
         <PageHeader
           title="Commitments"
           subtitle="All your commitments, active and finished."
+          imageSrc="/illustrations/commitment-card.webp"
           actions={
             <Button variant="accent" onClick={() => navigate('/commitments/new')}>
               Make a commitment
@@ -215,6 +216,7 @@ export function Commitments() {
       <PageHeader
         title="Commitments"
         subtitle="All your commitments, active and finished."
+        imageSrc="/illustrations/commitment-card.webp"
         actions={
           <Button variant="accent" onClick={() => navigate('/commitments/new')}>
             Make a commitment

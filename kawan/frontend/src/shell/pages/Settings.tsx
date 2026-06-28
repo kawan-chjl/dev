@@ -184,7 +184,11 @@ export function Settings() {
   if (status === 'loading') {
     return (
       <div className="shell-page">
-        <PageHeader title="Settings" subtitle="Choose your companion, manage your account, and control your data." />
+        <PageHeader
+          title="Settings"
+          subtitle="Choose your companion, manage your account, and control your data."
+          imageSrc="/illustrations/settings-card.webp"
+        />
         <SettingsSkeleton />
       </div>
     )
@@ -192,7 +196,11 @@ export function Settings() {
 
   return (
     <div className="shell-page">
-      <PageHeader title="Settings" subtitle="Choose your companion, manage your account, and control your data." />
+      <PageHeader
+        title="Settings"
+        subtitle="Choose your companion, manage your account, and control your data."
+        imageSrc="/illustrations/settings-card.webp"
+      />
 
       {/* Companion selector - horizontal cube-card grid (matches onboarding companion cards) */}
       <section className="settings-section" aria-labelledby="persona-heading">

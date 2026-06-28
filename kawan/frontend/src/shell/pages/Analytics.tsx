@@ -74,7 +74,11 @@ export function Analytics() {
 
   return (
     <div className="shell-page">
-      <PageHeader title="Analytics" subtitle="Your check-ins and verdicts over time." />
+      <PageHeader
+        title="Analytics"
+        subtitle="Your check-ins and verdicts over time."
+        imageSrc="/illustrations/analytics-card.webp"
+      />
       <IdentityTitle />
       <ProductivityMeter />
 

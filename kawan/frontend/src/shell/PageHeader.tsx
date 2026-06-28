@@ -8,11 +8,16 @@ interface PageHeaderProps {
   title: string
   subtitle?: string
   actions?: ReactNode
+  imageSrc?: string
+  imageAlt?: string
 }
 
-export function PageHeader({ title, subtitle, actions }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, actions, imageSrc, imageAlt = '' }: PageHeaderProps) {
   return (
-    <div className="page-header-card">
+    <div className={`page-header-card${imageSrc ? ' page-header-card-with-image' : ''}`}>
+      {imageSrc && (
+        <img className="page-header-card-image" src={imageSrc} alt={imageAlt} aria-hidden={imageAlt === ''} />
+      )}
       <div className="page-header-card-body">
         <div className="page-header-card-text">
           <h2 className="page-header-card-title">{title}</h2>

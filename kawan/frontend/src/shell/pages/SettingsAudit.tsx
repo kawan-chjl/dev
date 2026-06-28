@@ -111,7 +111,12 @@ export function SettingsAudit() {
 
   return (
     <div className="shell-page">
-      <PageHeader title="History" subtitle="Every change you made, and when." actions={headerActions} />
+      <PageHeader
+        title="History"
+        subtitle="Every change you made, and when."
+        imageSrc="/illustrations/history-card.webp"
+        actions={headerActions}
+      />
 
       {loading && <SettingsAuditSkeleton />}
 

@@ -22,7 +22,11 @@ export function Faq() {
 
   return (
     <div className="shell-page">
-      <PageHeader title="FAQ" subtitle="Answers to common questions about Kawan." />
+      <PageHeader
+        title="FAQ"
+        subtitle="Answers to common questions about Kawan."
+        imageSrc="/illustrations/faq-card.webp"
+      />
 
       <div className="faq-controls">
         <input

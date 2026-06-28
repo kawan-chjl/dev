@@ -16,6 +16,13 @@ import { Skeleton } from '../../ui/Skeleton'
 import { PageHeader } from '../PageHeader'
 import { WorkspacePickerModal } from '../WorkspacePickerModal'
 
+const HOME_ILLUSTRATIONS = {
+  commitment: '/illustrations/commitment-card.webp',
+  analytics: '/illustrations/analytics-card.webp',
+  workspace: '/illustrations/workspace-card.webp',
+  recentActivity: '/illustrations/recent-activity-card.webp'
+}
+
 function HomeSkeleton() {
   return (
     <div className="home-bento-v5" aria-hidden="true">
@@ -71,11 +78,19 @@ function HomeLayout({ commitments }: { commitments: Commitment[] }) {
           onKeyDown={(e) => e.key === 'Enter' && navigate('/commitments')}
           aria-label="View and manage your commitments"
         >
-          <div className="home-widget-icon" aria-hidden="true">
-            <ClipboardList size={20} color="var(--accent)" />
+          <div className="home-card-copy">
+            <div className="home-widget-icon" aria-hidden="true">
+              <ClipboardList size={20} color="var(--accent)" />
+            </div>
+            <p className="home-widget-label">Commitment</p>
+            <p className="home-widget-sub">View and manage your commitments.</p>
           </div>
-          <p className="home-widget-label">Commitment</p>
-          <p className="home-widget-sub">View and manage your commitments.</p>
+          <img
+            className="home-card-illustration home-card-illustration-wide"
+            src={HOME_ILLUSTRATIONS.commitment}
+            alt=""
+            aria-hidden="true"
+          />
         </Card>
 
         <div className="home-left-bottom-row">
@@ -87,11 +102,14 @@ function HomeLayout({ commitments }: { commitments: Commitment[] }) {
             onKeyDown={(e) => e.key === 'Enter' && navigate('/analytics')}
             aria-label="View analytics"
           >
-            <div className="home-widget-icon" aria-hidden="true">
-              <BarChart2 size={20} color="var(--sage-deep)" />
+            <div className="home-card-copy">
+              <div className="home-widget-icon" aria-hidden="true">
+                <BarChart2 size={20} color="var(--sage-deep)" />
+              </div>
+              <p className="home-widget-label">Analytics</p>
+              <p className="home-widget-sub">Your check-ins and verdicts over time.</p>
             </div>
-            <p className="home-widget-label">Analytics</p>
-            <p className="home-widget-sub">Your check-ins and verdicts over time.</p>
+            <img className="home-card-illustration" src={HOME_ILLUSTRATIONS.analytics} alt="" aria-hidden="true" />
           </Card>
 
           <Card
@@ -102,11 +120,14 @@ function HomeLayout({ commitments }: { commitments: Commitment[] }) {
             onKeyDown={(e) => e.key === 'Enter' && setWorkspaceOpen(true)}
             aria-label="Open workspace"
           >
-            <div className="home-widget-icon" aria-hidden="true">
-              <Briefcase size={20} color="var(--clay)" />
+            <div className="home-card-copy">
+              <div className="home-widget-icon" aria-hidden="true">
+                <Briefcase size={20} color="var(--clay)" />
+              </div>
+              <p className="home-widget-label">Workspace</p>
+              <p className="home-widget-sub">Talk to Kawan about your commitment.</p>
             </div>
-            <p className="home-widget-label">Workspace</p>
-            <p className="home-widget-sub">Talk to Kawan about your commitment.</p>
+            <img className="home-card-illustration" src={HOME_ILLUSTRATIONS.workspace} alt="" aria-hidden="true" />
           </Card>
         </div>
       </div>
@@ -114,24 +135,32 @@ function HomeLayout({ commitments }: { commitments: Commitment[] }) {
       {/* Right: tall Recent Activity rail */}
       <aside className="home-right-rail-v5">
         <Card className="home-rail-card-v5">
-          <div className="home-widget-icon" aria-hidden="true">
-            <Clock size={20} color="var(--ink-soft)" />
+          <div className="home-card-copy home-rail-copy">
+            <div className="home-widget-icon" aria-hidden="true">
+              <Clock size={20} color="var(--ink-soft)" />
+            </div>
+            <p className="home-rail-heading-v5">Recent Activity</p>
+            {recentItems.length === 0 ? (
+              <p className="home-recent-empty">No activity yet. Make your first commitment.</p>
+            ) : (
+              <ul className="home-recent-list-v5">
+                {recentItems.map((c) => (
+                  <li key={c.id} className="home-recent-item">
+                    <button type="button" className="home-recent-btn" onClick={() => navigate(`/commitments/${c.id}`)}>
+                      <span className="home-recent-action">{c.action}</span>
+                      <Chip variant={c.status === 'active' ? 'sage' : 'default'}>{statusLabel(c.status)}</Chip>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
-          <p className="home-rail-heading-v5">Recent Activity</p>
-          {recentItems.length === 0 ? (
-            <p className="home-recent-empty">No activity yet. Make your first commitment.</p>
-          ) : (
-            <ul className="home-recent-list-v5">
-              {recentItems.map((c) => (
-                <li key={c.id} className="home-recent-item">
-                  <button type="button" className="home-recent-btn" onClick={() => navigate(`/commitments/${c.id}`)}>
-                    <span className="home-recent-action">{c.action}</span>
-                    <Chip variant={c.status === 'active' ? 'sage' : 'default'}>{statusLabel(c.status)}</Chip>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+          <img
+            className="home-card-illustration home-rail-illustration"
+            src={HOME_ILLUSTRATIONS.recentActivity}
+            alt=""
+            aria-hidden="true"
+          />
         </Card>
       </aside>
 
