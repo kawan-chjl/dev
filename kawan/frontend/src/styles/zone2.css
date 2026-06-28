@@ -5,9 +5,11 @@
 .workspace-root {
   /* Dark stage band — independent of theme, character always pops */
   background: #161009;
+  height: 100svh;
   min-height: 100svh;
   display: flex;
   flex-direction: column;
+  position: relative;
   color: #f4ece1; /* warm off-white — always on dark stage */
 }
 
@@ -54,12 +56,17 @@
 
 /* Segmented pill toggle — clean, premium */
 .workspace-mode-toggle {
+  position: absolute;
+  left: 50%;
+  bottom: calc(176px + env(safe-area-inset-bottom, 0));
+  transform: translateX(-50%);
   display: flex;
   gap: 2px;
   background: rgba(244, 236, 225, 0.07);
   border: 1px solid rgba(244, 236, 225, 0.1);
   border-radius: var(--radius-pill);
   padding: 3px;
+  z-index: 35;
 }
 
 .workspace-mode-btn {
@@ -100,15 +107,13 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0;
   overflow: hidden;
   position: relative;
 }
 
 /* ── 2.1: workspace loading overlay — stronger blur, single labeled spinner above the stage ── */
-/* The blur goes on the wrapper which creates a stacking context; the spinner must sit OUTSIDE
-   that stacking context (or use position:fixed + explicit z-index above 9999) so it renders
-   on top. The spinner is a sibling of the blurred content inside .workspace-stage, but uses
-   position:fixed + z-index:9999 to escape the stacking context created by filter:blur(). */
+/* The blur goes on .workspace-stage; the spinner is a sibling so the filter cannot blur it. */
 .workspace-loading {
   filter: blur(12px);
   pointer-events: none;
@@ -116,9 +121,6 @@
   /* stage never remounts — this is a CSS filter on the wrapper, not a conditional unmount */
 }
 
-/* Spinner sits above the stacking context created by filter:blur on .workspace-stage.
-   position:fixed escapes the stacking context; explicit z-index: 9999 guarantees it is
-   above the Live2D canvas (which uses z-index auto / stage stacking). */
 .workspace-loading-spinner {
   position: fixed;
   inset: 0;
@@ -343,13 +345,13 @@
 /* VN dialogue box — polished card, bottom-center (design-system.md §1 dark-stage context) */
 .stage-dialogue-box {
   position: relative;
-  margin: 0 auto var(--space-6);
-  width: min(580px, calc(100vw - var(--space-8)));
+  margin: var(--space-8) auto var(--space-6);
+  width: min(860px, calc(100vw - var(--space-8)));
   background: rgba(26, 18, 10, 0.88);
   border: 1.5px solid rgba(244, 236, 225, 0.1);
   border-radius: var(--radius-card);
   backdrop-filter: blur(16px) saturate(160%);
-  padding: var(--space-5) var(--space-6);
+  padding: var(--space-6) var(--space-7);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
   animation: stage-fade-in var(--duration-panel) var(--ease-smooth) both;
 }
@@ -434,6 +436,8 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
   /* Same dark stage band behind the thread */
   background: radial-gradient(ellipse 80% 60% at 50% 0%, #1e1409 0%, #161009 55%);
@@ -2109,6 +2113,7 @@ fieldset.stage-voice-controls {
    anchors near the input, not the top of a large dark void. */
 .messages-thread {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -2127,7 +2132,7 @@ fieldset.stage-voice-controls {
 
 /* ── Layout fix 3: constrain Kawan dialogue strip in Stage view ── */
 .stage-dialogue-box {
-  max-width: min(580px, calc(100vw - var(--space-8)));
+  max-width: min(860px, calc(100vw - var(--space-8)));
 }
 
 /* ── Layout fix 4 & 5: friendly error + retry affordance ── */
@@ -2290,9 +2295,10 @@ fieldset.messages-intake-menu {
 /* Uniform-width pill buttons, no bullets (Layout fix 2) */
 .stage-intake-menu {
   position: absolute;
-  bottom: 120px;
+  top: 38%;
+  bottom: auto;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -3586,7 +3592,7 @@ div.ws-island-header:hover {
 }
 
 [data-theme="light"] .workspace-spinner-ring {
-  border-color: color-mix(in srgb, var(--ink-faint) 30%, transparent);
+  border-color: color-mix(in srgb, var(--ink-soft) 45%, transparent);
   border-top-color: var(--accent);
 }
 

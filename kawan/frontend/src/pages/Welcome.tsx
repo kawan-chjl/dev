@@ -6,6 +6,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { guestLogin } from '../auth/api'
 import { useDemoTour } from '../demo/DemoTour'
 import { setWelcomeDismissed } from '../demo/welcomeFlag'
 import { listPersonas } from '../mock/provider'
@@ -15,7 +16,7 @@ import { Card } from '../ui/Card'
 
 export function Welcome() {
   const navigate = useNavigate()
-  const { me, setPersona } = useAuth()
+  const { me, setPersona, status, refresh } = useAuth()
   const { start } = useDemoTour()
   const personas = listPersonas()
   // Seed from the persisted me.persona so returning users see their current choice.
@@ -32,6 +33,17 @@ export function Welcome() {
 
   async function handleStartWalkthrough() {
     await setPersona(selected)
+    // The walkthrough creates a real commitment (POST /api/commitments), which 401s without a
+    // session. Establish a guest session first, but only when definitively unauthenticated so a
+    // real (or still-loading) SIWC session is never clobbered.
+    if (status === 'unauthenticated') {
+      try {
+        await guestLogin()
+        await refresh()
+      } catch {
+        // Non-fatal: start() still runs; the create step guards itself too.
+      }
+    }
     start()
   }
 

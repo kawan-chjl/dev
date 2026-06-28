@@ -157,11 +157,27 @@ async def context_turn(body: ContextTurnIn, c: Commitment = Depends(_owned), db:
         return JSONResponse(status_code=503, content={**_INFERENCE_ERROR_BODY, "intake_complete": False,
                                                       "slots": {k: None for k in _SOFT_SLOTS}, "emotion": "neutral"})
     # The ONLY DB write reachable from any LLM output (spec §8.2): the soft_context UPSERT.
-    for k, v in (result.get("slots") or {}).items():
-        if k in _SOFT_SLOTS and v is not None:
+    # Fill only still-null slots the model attributed, and track whether this turn advanced.
+    returned = result.get("slots") or {}
+    advanced = False
+    for k, v in returned.items():
+        if k in _SOFT_SLOTS and v is not None and getattr(sc, k) is None:
             setattr(sc, k, v)
+            advanced = True
+    # Deterministic fallback: a non-empty user answer always fills the next still-null slot, so
+    # intake can never get stuck re-asking when the model fails to attribute the answer to a slot.
+    if body.say and body.say.strip() and not advanced:
+        for k in _SOFT_SLOTS:
+            if getattr(sc, k) is None:
+                setattr(sc, k, body.say.strip())
+                break
     sc.updated_at = now_utc()
     await db.commit()
+    # Backend is authoritative: return the cumulative DB snapshot and compute completion ourselves,
+    # never trusting the small model's echoed slots or its intake_complete flag.
+    filled = {k: getattr(sc, k) for k in _SOFT_SLOTS}
+    result["slots"] = filled
+    result["intake_complete"] = all(v is not None for v in filled.values())
     # Persist transcript: skip the empty opener user turn so history starts with the AI message.
     if body.say:
         db.add(Message(commitment_id=c.id, role="user", content=body.say))
