@@ -3028,26 +3028,29 @@
   text-overflow: ellipsis;
 }
 
-.commitments-table-row-selected {
-  background: var(--accent-tint);
-}
-
 .commitments-table-view-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: var(--space-1);
+  min-height: 24px;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
   font-size: var(--text-caption);
-  font-weight: 500;
-  color: var(--accent);
-  background: none;
-  border: none;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--accent-press);
+  background: var(--accent-tint);
+  border: 1px solid transparent;
   cursor: pointer;
   font-family: var(--font-body);
-  padding: 0;
-  transition: color var(--duration-ui) var(--ease-out);
+  transition:
+    background var(--duration-ui) var(--ease-out),
+    border-color var(--duration-ui) var(--ease-out);
 }
 .commitments-table-view-btn:hover {
-  color: var(--accent-press);
+  background: var(--surface-sunk);
+  border-color: var(--line);
 }
 
 .commitments-filter-row-wrap {
