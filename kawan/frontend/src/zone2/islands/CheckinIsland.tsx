@@ -94,76 +94,76 @@ export function CheckinIsland({
         {expanded ? <ChevronUp size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />}
       </button>
 
-      {expanded && (
-        <div className="ws-island-body">
-          {checkedIn ? (
-            <div className="checkin-island-locked">
-              <Check size={14} aria-hidden="true" />
-              <span>Checked in. You're set until the next check-in window.</span>
-            </div>
-          ) : (
-            <>
-              {phase === 'idle' && (
-                <>
-                  {isLate && (
-                    <p className="checkin-island-reprimand">
-                      You're late. Submit your evidence now before the window closes.
+      {/* Body stays mounted (hidden when collapsed) so an in-progress evidence attachment in the
+          SubmissionPanel survives collapse/re-expand instead of resetting. */}
+      <div className="ws-island-body" hidden={!expanded}>
+        {checkedIn ? (
+          <div className="checkin-island-locked">
+            <Check size={14} aria-hidden="true" />
+            <span>Checked in. You're set until the next check-in window.</span>
+          </div>
+        ) : (
+          <>
+            {phase === 'idle' && (
+              <>
+                {isLate && (
+                  <p className="checkin-island-reprimand">
+                    You're late. Submit your evidence now before the window closes.
+                  </p>
+                )}
+                {error && (
+                  <p className="ws-island-error" role="alert">
+                    {error}
+                  </p>
+                )}
+                <button type="button" className="checkin-island-trigger-btn" onClick={handleTrigger}>
+                  {isLate ? 'Submit late check-in' : 'Start check-in'}
+                </button>
+              </>
+            )}
+
+            {phase === 'checking' && (
+              <p className="ws-island-empty" role="status" aria-live="polite">
+                Kawan is checking in...
+              </p>
+            )}
+
+            {phase === 'submitting' && checkin && (
+              // Kawan's check-in line shows in the main dialogue (stage-dialogue-line) via onKawanSay,
+              // not inside the island — only the submission controls remain here.
+              <SubmissionPanel
+                commitmentId={commitmentId}
+                onVerdict={handleVerdict}
+                onCancel={() => setPhase('idle')}
+              />
+            )}
+
+            {phase === 'verdict' && verdict && (
+              <>
+                <VerdictCard verdict={verdict} />
+                {verdict.verdict === 'fail' && (
+                  <div className="checkin-island-denial">
+                    <p className="checkin-island-denial-text">
+                      That one didn't pass.
+                      {checkinStatus?.due_at
+                        ? ` You have one more chance before ${new Date(checkinStatus.due_at).toLocaleTimeString('en-MY', { timeZone: 'Asia/Kuala_Lumpur', hour: '2-digit', minute: '2-digit' })} MYT.`
+                        : ' Try again with stronger evidence.'}
                     </p>
-                  )}
-                  {error && (
-                    <p className="ws-island-error" role="alert">
-                      {error}
-                    </p>
-                  )}
-                  <button type="button" className="checkin-island-trigger-btn" onClick={handleTrigger}>
-                    {isLate ? 'Submit late check-in' : 'Start check-in'}
-                  </button>
-                </>
-              )}
-
-              {phase === 'checking' && (
-                <p className="ws-island-empty" role="status" aria-live="polite">
-                  Kawan is checking in...
-                </p>
-              )}
-
-              {phase === 'submitting' && checkin && (
-                // Kawan's check-in line shows in the main dialogue (stage-dialogue-line) via onKawanSay,
-                // not inside the island — only the submission controls remain here.
-                <SubmissionPanel
-                  commitmentId={commitmentId}
-                  onVerdict={handleVerdict}
-                  onCancel={() => setPhase('idle')}
-                />
-              )}
-
-              {phase === 'verdict' && verdict && (
-                <>
-                  <VerdictCard verdict={verdict} />
-                  {verdict.verdict === 'fail' && (
-                    <div className="checkin-island-denial">
-                      <p className="checkin-island-denial-text">
-                        That one didn't pass.
-                        {checkinStatus?.due_at
-                          ? ` You have one more chance before ${new Date(checkinStatus.due_at).toLocaleTimeString('en-MY', { timeZone: 'Asia/Kuala_Lumpur', hour: '2-digit', minute: '2-digit' })} MYT.`
-                          : ' Try again with stronger evidence.'}
-                      </p>
-                      <button type="button" className="checkin-island-retry-btn" onClick={handleRetry}>
-                        Try again
-                      </button>
-                    </div>
-                  )}
-                  {verdict.verdict !== 'fail' && (
-                    <button type="button" className="checkin-island-done-btn" onClick={handleRetry}>
-                      Done
+                    <button type="button" className="checkin-island-retry-btn" onClick={handleRetry}>
+                      Try again
                     </button>
-                  )}
-                </>
-              )}
-            </>
-          )}
-        </div>
-      )}
+                  </div>
+                )}
+                {verdict.verdict !== 'fail' && (
+                  <button type="button" className="checkin-island-done-btn" onClick={handleRetry}>
+                    Done
+                  </button>
+                )}
+              </>
+            )}
+          </>
+        )}
+      </div>
     </div>
   )
 }

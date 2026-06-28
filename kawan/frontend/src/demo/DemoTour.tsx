@@ -25,6 +25,8 @@ export interface TourOverride {
   // 'left' floats the tooltip to the left of the target (for right-edge island targets whose
   // own buttons a below-placed tooltip would cover). Default places it below/above the target.
   placement?: 'left'
+  // Label for the advance button (default 'Next'); e.g. 'Skip' to unblock a stuck step.
+  nextLabel?: string
 }
 
 const TOUR_STEPS: TourStep[] = [

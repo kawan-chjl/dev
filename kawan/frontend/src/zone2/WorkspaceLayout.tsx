@@ -120,6 +120,9 @@ export function WorkspaceLayout() {
   const [winDateIso, setWinDateIso] = useState<string | null>(null)
   // 4.x: workspace coachmark sub-tour — islands -> check-in -> finish -> share -> analytics.
   const [subStep, setSubStep] = useState<SubStep>('intake')
+  // True once a Finish-Now submission was evaluated but didn't complete (denied/unclear) — the
+  // walkthrough then offers a Skip so a denied demo submission can't dead-end the tour.
+  const [finishEvaluated, setFinishEvaluated] = useState(false)
   const shareOpenedRef = useRef(false)
 
   // Mock intake turn tracker (MOCK_AUTH only)
@@ -474,6 +477,11 @@ export function WorkspaceLayout() {
     setSubStep((s) => (s === 'checkin' ? 'finish' : s))
   }, [])
 
+  // A denied/unclear Finish verdict won't roll the win, so surface a Skip in the finish coachmark.
+  const handleFinishVerdict = useCallback(() => {
+    setFinishEvaluated(true)
+  }, [])
+
   const handleShareStateChange = useCallback((open: boolean) => {
     if (open) {
       shareOpenedRef.current = true
@@ -515,15 +523,20 @@ export function WorkspaceLayout() {
       },
       finish: {
         target: '.finish-island',
-        hintText: 'Now open Finish Now and upload your final evidence to complete the commitment.',
-        placement: 'left'
+        hintText: finishEvaluated
+          ? "If Kawan won't pass your evidence, tap Skip to wrap up the walkthrough."
+          : 'Now open Finish Now and upload your final evidence to complete the commitment.',
+        placement: 'left',
+        showNext: finishEvaluated,
+        nextLabel: 'Skip',
+        onNext: () => setSubStep('analytics')
       },
       share: { target: '.ending-btn--share', hintText: 'You did it. Open "Share your win" to celebrate.' },
       analytics: { target: '.workspace-back-btn', hintText: 'Head to Analytics to see what you achieved.' }
     }
     setOverride(overrides[subStep])
     return () => setOverride(null)
-  }, [tourActive, tourStep, subStep, setOverride])
+  }, [tourActive, tourStep, subStep, finishEvaluated, setOverride])
 
   // 2.1: openerLoading — true while the very first Kawan message is fetching.
   // Once messages.length > 0 it clears (catch path always sets a message too).
@@ -539,7 +552,31 @@ export function WorkspaceLayout() {
     })
   }
 
+  // The Stage/Messages toggle is rendered inside each view (in the dialogue box for stage,
+  // at the top for messages) rather than floated over the stage, so it never overlaps content.
+  const modeToggle = (
+    <div className="workspace-mode-toggle" role="toolbar" aria-label="View mode">
+      <button
+        type="button"
+        className={`workspace-mode-btn ${viewMode === 'stage' ? 'workspace-mode-btn-active' : ''}`}
+        aria-pressed={viewMode === 'stage'}
+        onClick={() => handleViewModeSwitch('stage')}
+      >
+        Stage
+      </button>
+      <button
+        type="button"
+        className={`workspace-mode-btn ${viewMode === 'messages' ? 'workspace-mode-btn-active' : ''}`}
+        aria-pressed={viewMode === 'messages'}
+        onClick={() => handleViewModeSwitch('messages')}
+      >
+        Messages
+      </button>
+    </div>
+  )
+
   const sharedProps = {
+    modeToggle,
     messages,
     // 2.1: suppress typing-dots in views while openerLoading is true
     sending: openerLoading ? false : sending,
@@ -626,6 +663,7 @@ export function WorkspaceLayout() {
                     onKawanSay={sayAsKawan}
                     onActivity={bumpActivity}
                     onComplete={handleFinishComplete}
+                    onVerdict={handleFinishVerdict}
                   />
                 )}
               </>
@@ -640,25 +678,6 @@ export function WorkspaceLayout() {
             <ActivityCard commitmentId={commitmentId} milestones={milestones} refreshSignal={activitySignal} />
           </div>
         )}
-      </div>
-
-      <div className="workspace-mode-toggle" role="toolbar" aria-label="View mode">
-        <button
-          type="button"
-          className={`workspace-mode-btn ${viewMode === 'stage' ? 'workspace-mode-btn-active' : ''}`}
-          aria-pressed={viewMode === 'stage'}
-          onClick={() => handleViewModeSwitch('stage')}
-        >
-          Stage
-        </button>
-        <button
-          type="button"
-          className={`workspace-mode-btn ${viewMode === 'messages' ? 'workspace-mode-btn-active' : ''}`}
-          aria-pressed={viewMode === 'messages'}
-          onClick={() => handleViewModeSwitch('messages')}
-        >
-          Messages
-        </button>
       </div>
 
       {/* 2.1: single labeled spinner sits outside the blurred stage */}

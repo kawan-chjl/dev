@@ -26,6 +26,10 @@ export function Spotlight() {
     }
 
     const selector = effectiveTarget
+    let observed: Element | null = null
+    // Follow the target's own size changes (e.g. an island expanding/collapsing) so the ring
+    // and the tooltip reposition to the new shape, not just on resize/scroll.
+    const ro = new ResizeObserver(() => updateRect())
 
     function updateRect() {
       const element = document.querySelector(selector)
@@ -42,6 +46,11 @@ export function Spotlight() {
 
       setRect(nextRect)
       setRadius(window.getComputedStyle(element).borderRadius || null)
+      if (observed !== element) {
+        if (observed) ro.unobserve(observed)
+        ro.observe(element)
+        observed = element
+      }
     }
 
     updateRect()
@@ -50,6 +59,7 @@ export function Spotlight() {
     window.addEventListener('scroll', updateRect, true)
 
     return () => {
+      ro.disconnect()
       window.clearTimeout(timeoutId)
       window.removeEventListener('resize', updateRect)
       window.removeEventListener('scroll', updateRect, true)
@@ -61,7 +71,7 @@ export function Spotlight() {
   const nextButton =
     showNext && onNext ? (
       <button type="button" className="demo-spotlight-next" onClick={onNext}>
-        Next
+        {override?.nextLabel ?? 'Next'}
       </button>
     ) : null
 

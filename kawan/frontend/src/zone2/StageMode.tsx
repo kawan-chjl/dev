@@ -5,7 +5,7 @@
 // Do NOT remount the stage — Live2DStageView mounts once here (see a3-workspace-chat-design.md §4).
 
 import { Play, ShieldX, Square } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '../auth/AuthProvider'
 import type { Commitment, Emotion, Persona } from '../types/api'
 import type { WorkspaceMessage } from '../workspace/api'
@@ -25,6 +25,8 @@ interface StageModeProps {
   sending: boolean
   error: string | null
   commitmentId: string
+  // The Stage/Messages toggle, rendered inside the dialogue box (above the dialogue line).
+  modeToggle: ReactNode
   phase: WorkspacePhase
   slotProgress: SlotProgress
   commitment: Commitment | null
@@ -48,6 +50,7 @@ export function StageMode({
   sending,
   error,
   commitmentId,
+  modeToggle,
   phase,
   commitment,
   intakeStep,
@@ -390,6 +393,7 @@ export function StageMode({
           aria-label="Dialogue"
           aria-live="polite"
         >
+          {modeToggle}
           <div className="stage-dialogue-inner">
             {isRefusal && (
               <div className="stage-refusal-chip">
