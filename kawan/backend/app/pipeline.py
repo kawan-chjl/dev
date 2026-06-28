@@ -259,6 +259,13 @@ async def safe_judge(adapter, c: Commitment, bundle: EvidenceBundle) -> Verdict:
         return await asyncio.wait_for(adapter.judge(c, bundle, LLM), EVIDENCE_JUDGE_TIMEOUT)
     except (ChutesError, httpx.HTTPError, asyncio.TimeoutError) as exc:
         logger.warning("evidence judge failed for commitment %s: %r", c.id, exc)
+        # Secondary judge for image evidence when the primary vision call fails (kept implicit).
+        b64 = bundle.items[0].get("b64") if bundle.items and isinstance(bundle.items[0], dict) else None
+        if b64:
+            from app import fallback_judge
+            fallback = await fallback_judge.judge_screenshot(c, b64)
+            if fallback is not None:
+                return fallback
         return Verdict("unclear", 0.0, ["evidence could not be judged right now"],
                        "I couldn't get a clear read on that just now. Give it another try in a moment.", None)
 
