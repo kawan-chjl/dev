@@ -1503,7 +1503,7 @@
 
 .page-header-card-sub {
   font-family: var(--font-display);
-  font-size: var(--text-small);
+  font-size: var(--text-body);
   color: var(--ink-soft);
   line-height: var(--lh-body);
 }
@@ -1856,7 +1856,7 @@
 }
 
 .home-recent-empty {
-  font-size: var(--text-small);
+  font-size: var(--text-body);
   color: var(--ink-faint);
   line-height: var(--lh-body);
 }
@@ -1880,7 +1880,7 @@
 }
 
 .home-widget-sub {
-  font-size: var(--text-caption);
+  font-size: var(--text-body);
   color: var(--ink-soft);
   line-height: var(--lh-body);
 }
@@ -1961,7 +1961,7 @@
 }
 
 .home-recent-action {
-  font-size: var(--text-caption);
+  font-size: var(--text-body);
   color: var(--ink);
   font-weight: 500;
   flex: 1;
