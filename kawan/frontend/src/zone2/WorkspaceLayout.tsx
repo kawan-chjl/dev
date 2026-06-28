@@ -505,12 +505,18 @@ export function WorkspaceLayout() {
         hintText:
           'These are your tools. Context tracks what Kawan learned, Plan is your roadmap, Check-In logs progress, and Finish completes the commitment.',
         showNext: true,
-        onNext: () => setSubStep('checkin')
+        onNext: () => setSubStep('checkin'),
+        placement: 'left'
       },
-      checkin: { target: '.checkin-island', hintText: 'Open Check-In and upload a file to log your progress.' },
+      checkin: {
+        target: '.checkin-island',
+        hintText: 'Open Check-In and upload a file to log your progress.',
+        placement: 'left'
+      },
       finish: {
         target: '.finish-island',
-        hintText: 'Now open Finish Now and upload your final evidence to complete the commitment.'
+        hintText: 'Now open Finish Now and upload your final evidence to complete the commitment.',
+        placement: 'left'
       },
       share: { target: '.ending-btn--share', hintText: 'You did it. Open "Share your win" to celebrate.' },
       analytics: { target: '.workspace-back-btn', hintText: 'Head to Analytics to see what you achieved.' }
@@ -606,7 +612,6 @@ export function WorkspaceLayout() {
             <ContextIsland commitmentId={commitmentId} slotProgress={slotProgress} />
             {phase === 'chat' && (
               <>
-                <PlanIsland plan={plan} commitment={commitment} generating={planGenerating} />
                 <CheckinIsland
                   commitmentId={commitmentId}
                   checkinStatus={checkinStatus}
@@ -628,9 +633,10 @@ export function WorkspaceLayout() {
           </div>
         )}
 
-        {/* Activity card — top-left, chat phase only */}
+        {/* Plan + Activity — top-left column, chat phase only (Plan stacked above Activity) */}
         {phase === 'chat' && !isFailure && !winDateIso && commitmentId && (
           <div className="workspace-island-topleft">
+            <PlanIsland plan={plan} commitment={commitment} generating={planGenerating} />
             <ActivityCard commitmentId={commitmentId} milestones={milestones} refreshSignal={activitySignal} />
           </div>
         )}

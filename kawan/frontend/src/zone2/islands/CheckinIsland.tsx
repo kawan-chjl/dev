@@ -48,6 +48,8 @@ export function CheckinIsland({
     try {
       const ck = await triggerCheckin(commitmentId)
       setCheckin(ck)
+      // Kawan's check-in line speaks in the main dialogue (stage-dialogue-line), not inside the island.
+      onKawanSay(ck.message, 'curious')
       setPhase('submitting')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Check-in failed. Try again.')
@@ -126,14 +128,13 @@ export function CheckinIsland({
               )}
 
               {phase === 'submitting' && checkin && (
-                <>
-                  <p className="checkin-island-brief">{checkin.message}</p>
-                  <SubmissionPanel
-                    commitmentId={commitmentId}
-                    onVerdict={handleVerdict}
-                    onCancel={() => setPhase('idle')}
-                  />
-                </>
+                // Kawan's check-in line shows in the main dialogue (stage-dialogue-line) via onKawanSay,
+                // not inside the island — only the submission controls remain here.
+                <SubmissionPanel
+                  commitmentId={commitmentId}
+                  onVerdict={handleVerdict}
+                  onCancel={() => setPhase('idle')}
+                />
               )}
 
               {phase === 'verdict' && verdict && (

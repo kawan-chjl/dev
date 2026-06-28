@@ -22,6 +22,9 @@ export interface TourOverride {
   hintText: string
   showNext?: boolean
   onNext?: () => void
+  // 'left' floats the tooltip to the left of the target (for right-edge island targets whose
+  // own buttons a below-placed tooltip would cover). Default places it below/above the target.
+  placement?: 'left'
 }
 
 const TOUR_STEPS: TourStep[] = [
