@@ -342,7 +342,7 @@ async def evidence_file(file: UploadFile = File(...), finish: bool = Query(False
         items=[{"filename": filename, "text": text}],
         summary=f"file: {filename}",
     )
-    verdict = await adapter.judge(c, bundle, LLM)
+    verdict = await pipeline.safe_judge(adapter, c, bundle)
     from app.models import Evidence
     ev = Evidence(commitment_id=c.id, adapter="file", raw_ref={"filename": filename},
                   verdict=verdict.verdict, confidence=verdict.confidence, reasoning=verdict.reasoning)
@@ -374,7 +374,7 @@ async def evidence_github_link(body: GitHubLinkIn, finish: bool = Query(False),
     await record_contact(db, c)
     if finish and c.status in ("active", "lapsed"):
         await state.begin_verifying(db, c)
-    verdict = await adapter.judge(c, bundle, LLM)
+    verdict = await pipeline.safe_judge(adapter, c, bundle)
     from app.models import Evidence
     ev = Evidence(commitment_id=c.id, adapter="github", raw_ref=bundle.raw_ref,
                   verdict=verdict.verdict, confidence=verdict.confidence, reasoning=verdict.reasoning)

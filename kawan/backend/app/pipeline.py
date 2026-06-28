@@ -7,14 +7,17 @@ moves through state.py. Delivery ladder: WS → Web Push → in-app timeline (TR
 
 from __future__ import annotations
 
+import asyncio
 from datetime import timedelta
 import logging
 
+import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import email, notify, push, scheduler, state
-from app.contracts import EvidenceBundle
+from app.chutes import ChutesError
+from app.contracts import EvidenceBundle, Verdict
 from app.lateness import checkin_grace, is_checkin_late
 from app.models import Checkin, Commitment, Evidence
 from app.util import as_utc, now_utc
@@ -242,6 +245,22 @@ async def run_final_verify(db: AsyncSession, c: Commitment) -> Evidence:
     return ev
 
 
+EVIDENCE_JUDGE_TIMEOUT = 75.0  # demo-safe ceiling for a TEE vision/judge call (spec §9.3)
+
+
+async def safe_judge(adapter, c: Commitment, bundle: EvidenceBundle) -> Verdict:
+    """Judge evidence, degrading a flaky/slow inference call to a neutral 'unclear'
+    verdict instead of a 500 (spec §9.3 — unclear never punishes, and the whole state
+    machine/UI already handle it). Bounds the wait so the demo fails fast rather than
+    hanging on a stalled vision model: the live `/evidence` 500 hung >2 min first."""
+    try:
+        return await asyncio.wait_for(adapter.judge(c, bundle, LLM), EVIDENCE_JUDGE_TIMEOUT)
+    except (ChutesError, httpx.HTTPError, asyncio.TimeoutError) as exc:
+        logger.warning("evidence judge failed for commitment %s: %r", c.id, exc)
+        return Verdict("unclear", 0.0, ["evidence could not be judged right now"],
+                       "I couldn't get a clear read on that just now. Give it another try in a moment.", None)
+
+
 async def judge_upload(db: AsyncSession, c: Commitment, raw_ref: dict, *, image_b64: str | None = None) -> Evidence:
     """Screenshot upload (spec §10.3). At/after the deadline it's a final verify; before,
     it's progress evidence that can reset escalation. The image rides in the bundle's
@@ -250,7 +269,7 @@ async def judge_upload(db: AsyncSession, c: Commitment, raw_ref: dict, *, image_
     bundle = EvidenceBundle(adapter="screenshot", raw_ref=raw_ref,
                             items=([{"b64": image_b64}] if image_b64 else []),
                             summary="one uploaded screenshot")
-    verdict = await adapter.judge(c, bundle, LLM)
+    verdict = await safe_judge(adapter, c, bundle)
     ev = Evidence(commitment_id=c.id, adapter="screenshot", raw_ref=raw_ref,
                   verdict=verdict.verdict, confidence=verdict.confidence, reasoning=verdict.reasoning)
     db.add(ev)

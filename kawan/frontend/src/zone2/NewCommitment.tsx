@@ -11,7 +11,7 @@
 // Motion: step panels cross-fade + rise 8px on step change, gated by prefers-reduced-motion.
 
 import { Check, Lock, X } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { MOCK_AUTH } from '../auth/api'
@@ -256,6 +256,8 @@ function ComposeSection({
               value={deliverable}
               onChange={(e) => setDeliverable(e.target.value)}
               autoComplete="off"
+              readOnly={demoMode}
+              style={demoMode ? { cursor: 'not-allowed' } : undefined}
             />
           </span>
           <span className="nc-madlib-prose">by</span>
@@ -307,6 +309,7 @@ interface PlanSectionProps {
   stakeContactValid: boolean
   notifyEmailError: string | null
   active: boolean
+  demoMode: boolean
 }
 
 function PlanSection({
@@ -317,8 +320,11 @@ function PlanSection({
   deadlineLocal,
   stakeContactValid,
   notifyEmailError,
-  active
+  active,
+  demoMode
 }: PlanSectionProps) {
+  // Demo mode prefills + locks every plan field for a stable walkthrough.
+  const lockedInput = demoMode ? { readOnly: true as const, style: { cursor: 'not-allowed' } } : {}
   const repo =
     draft.evidence_config !== null && typeof draft.evidence_config?.repo === 'string'
       ? (draft.evidence_config.repo as string)
@@ -387,6 +393,7 @@ function PlanSection({
                   onDraftChange({ ...draft, evidence_config: val ? { repo: val } : null })
                 }
               }}
+              {...lockedInput}
             />
           </div>
 
@@ -402,6 +409,8 @@ function PlanSection({
               aria-label="Toggle witness stake"
               className={`toggle-btn${draft.stake_enabled ? ' toggle-btn-on' : ''}`}
               onClick={() => onDraftChange({ ...draft, stake_enabled: !draft.stake_enabled })}
+              disabled={demoMode}
+              style={demoMode ? { cursor: 'not-allowed' } : undefined}
             >
               <span className="toggle-knob" />
             </button>
@@ -417,6 +426,7 @@ function PlanSection({
                 aria-label="Witness contact name"
                 value={draft.stake_contact_name}
                 onChange={(e) => onDraftChange({ ...draft, stake_contact_name: e.target.value })}
+                {...lockedInput}
               />
             </div>
           )}
@@ -431,6 +441,7 @@ function PlanSection({
                 aria-label="Witness contact email"
                 value={draft.stake_contact_email}
                 onChange={(e) => onDraftChange({ ...draft, stake_contact_email: e.target.value })}
+                {...lockedInput}
               />
               {!stakeContactValid && (draft.stake_contact_name.trim() || draft.stake_contact_email) && (
                 <p className="compose-error">Enter a witness name and a valid email, or turn off the witness toggle.</p>
@@ -455,6 +466,7 @@ function PlanSection({
               aria-label="Your reminder email (required)"
               value={draft.notify_email}
               onChange={(e) => onDraftChange({ ...draft, notify_email: e.target.value })}
+              {...lockedInput}
             />
             {notifyEmailError && <p className="compose-error">{notifyEmailError}</p>}
           </div>
@@ -555,11 +567,19 @@ function CompanionSection({ selectedPersona, onSelect, startError, composeValid,
 export function NewCommitment() {
   const navigate = useNavigate()
   const { setPersona } = useAuth()
-  const { active: demoActive, setDemoCommitmentId } = useDemoTour()
+  const { active: demoActive, currentStep, setDemoCommitmentId, setOverride } = useDemoTour()
 
   // Current step index (0 = Compose, 1 = Plan, 2 = Companion)
   const [stepIndex, setStepIndex] = useState(0)
   const activeStep = STEPS[stepIndex]
+
+  // Demo: the Create-step spotlight highlights only the "Make your commitment" (Compose) sub-step.
+  // On the Plan/Companion sub-steps, blank the spotlight so the outline + annotation don't linger.
+  useEffect(() => {
+    if (!demoActive || currentStep !== 1) return
+    setOverride(activeStep === 'nc-compose' ? null : { hintText: '' })
+    return () => setOverride(null)
+  }, [demoActive, currentStep, activeStep, setOverride])
 
   // Companion selection - starts unset; user must actively choose.
   // NO setPersona call here; committed only in handleStart.
@@ -568,13 +588,26 @@ export function NewCommitment() {
   // Compose state - lifted so it persists across steps and feeds handleStart.
   // NO API calls until the final "Start commitment" - Cancel at any prior point is inert.
   const [action, setAction] = useState<Action>('complete')
-  const [deliverable, setDeliverable] = useState('')
+  // Demo mode prefills the deliverable so the walkthrough is stable and consistent.
+  const [deliverable, setDeliverable] = useState(() => (demoActive ? 'my portfolio website' : ''))
   // Demo mode: deadline is locked to NOW+1h (MYT); normal mode: user picks via DatePicker.
   const [deadlineLocal, setDeadlineLocal] = useState(() => (demoActive ? demoDeadlineLocal() : ''))
   const [composeError, setComposeError] = useState<string | null>(null)
 
-  // Plan draft - held locally; NO API writes until handleStart.
-  const [draftPlan, setDraftPlan] = useState<DraftPlan>({ ...DEFAULT_DRAFT_PLAN })
+  // Plan draft - held locally; NO API writes until handleStart. Demo mode prefills every field
+  // (repo, witness, reminder email) so the walkthrough showcases a complete plan without typing.
+  const [draftPlan, setDraftPlan] = useState<DraftPlan>(() =>
+    demoActive
+      ? {
+          ...DEFAULT_DRAFT_PLAN,
+          evidence_config: { repo: 'kawan-demo/portfolio' },
+          stake_enabled: true,
+          stake_contact_name: 'Alex Tan',
+          stake_contact_email: 'alex@example.com',
+          notify_email: 'demo@kawan.app'
+        }
+      : { ...DEFAULT_DRAFT_PLAN }
+  )
   // Track whether the user has attempted to advance from the plan step (for error visibility).
   const [planTouched, setPlanTouched] = useState(false)
 
@@ -671,7 +704,9 @@ export function NewCommitment() {
       return
     }
     const diffMs = deadlineDate.getTime() - Date.now()
-    if (diffMs < 60 * 60 * 1000) {
+    // The demo locks the deadline to NOW+1h, so skip the under-an-hour confirm there to keep
+    // the guided walkthrough uninterrupted.
+    if (diffMs < 60 * 60 * 1000 && !demoActive) {
       if (!window.confirm("That's under an hour. Are you sure?")) return
     }
 
@@ -785,6 +820,7 @@ export function NewCommitment() {
             stakeContactValid={stakeContactValid}
             notifyEmailError={notifyEmailError}
             active={activeStep === 'nc-plan'}
+            demoMode={demoActive}
           />
           <CompanionSection
             selectedPersona={selectedPersona}

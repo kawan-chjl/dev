@@ -13,7 +13,11 @@ export function Spotlight() {
   const effectiveHint = override ? override.hintText : step?.hintText
   const showNext = override?.showNext ?? false
   const onNext = override?.onNext
+  const placement = override?.placement
   const [rect, setRect] = useState<DOMRect | null>(null)
+  // Match the highlighted element's own corner radius so the ring hugs rounded/pill components
+  // instead of drawing a boxy rectangle around them.
+  const [radius, setRadius] = useState<string | null>(null)
 
   useEffect(() => {
     if (!active || currentStep < 0 || !effectiveTarget) {
@@ -37,6 +41,7 @@ export function Spotlight() {
       }
 
       setRect(nextRect)
+      setRadius(window.getComputedStyle(element).borderRadius || null)
     }
 
     updateRect()
@@ -62,17 +67,30 @@ export function Spotlight() {
 
   if (rect) {
     const belowTarget = rect.bottom + 96 < window.innerHeight
-    const tooltipStyle: CSSProperties = {
-      top: belowTarget ? rect.bottom + 14 : Math.max(96, rect.top - 14),
-      left: Math.min(Math.max(rect.left + rect.width / 2, TOOLTIP_HALF), window.innerWidth - TOOLTIP_HALF),
-      transform: belowTarget ? 'translate(-50%, 0)' : 'translate(-50%, -100%)'
-    }
+    const tooltipStyle: CSSProperties =
+      placement === 'left'
+        ? {
+            top: Math.min(Math.max(rect.top + rect.height / 2, 96), window.innerHeight - 96),
+            right: Math.max(window.innerWidth - rect.left + 14, 12),
+            transform: 'translateY(-50%)'
+          }
+        : {
+            top: belowTarget ? rect.bottom + 14 : Math.max(96, rect.top - 14),
+            left: Math.min(Math.max(rect.left + rect.width / 2, TOOLTIP_HALF), window.innerWidth - TOOLTIP_HALF),
+            transform: belowTarget ? 'translate(-50%, 0)' : 'translate(-50%, -100%)'
+          }
 
     return (
       <>
         <div
           className="demo-spotlight-ring"
-          style={{ top: rect.top, left: rect.left, width: rect.width, height: rect.height }}
+          style={{
+            top: rect.top,
+            left: rect.left,
+            width: rect.width,
+            height: rect.height,
+            borderRadius: radius ?? undefined
+          }}
           aria-hidden="true"
         />
         {effectiveHint && (

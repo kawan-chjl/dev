@@ -55,10 +55,11 @@
 }
 
 /* Segmented pill toggle — clean, premium */
+/* Docked just above the chat input bar, nested at the bottom of the dialogue zone. */
 .workspace-mode-toggle {
   position: absolute;
   left: 50%;
-  bottom: calc(176px + env(safe-area-inset-bottom, 0));
+  bottom: calc(84px + env(safe-area-inset-bottom, 0));
   transform: translateX(-50%);
   display: flex;
   gap: 2px;
@@ -2654,26 +2655,33 @@ fieldset.messages-intake-menu {
 /* Islands are DOM siblings over the single-mounted stage — never cause a remount.
    Positioned to avoid overlapping the 52px header or each other. */
 
-/* Top-left: Activity card */
+/* Top-left: Plan + Activity, vertically centered in the character area, left-aligned.
+   Confined between the topbar and the bottom dialogue/input zone so it never overlaps
+   section.stage-dialogue-box. */
 .workspace-island-topleft {
   position: absolute;
-  top: auto;
-  bottom: calc(160px + var(--space-8));
+  top: calc(52px + var(--space-3));
+  bottom: 240px;
   left: var(--space-3);
   z-index: 30;
   pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-2);
   width: min(320px, 34vw);
   max-width: min(320px, calc(100vw - var(--space-6)));
-  max-height: calc(100svh - 52px - 160px - var(--space-12));
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: rgba(244, 236, 225, 0.22) transparent;
 }
 
-/* Top-right: Context + Plan + Check-In + Finish islands stacked */
+/* Top-right: Context + Check-In + Finish islands stacked. Bottom-bounded so the column
+   stays above the dialogue box (item 2: islands float above + within the dialogue zone). */
 .workspace-island-topright {
   position: absolute;
   top: calc(52px + var(--space-4));
+  bottom: 240px;
   right: var(--space-3);
   z-index: 30;
   pointer-events: auto;
@@ -2682,8 +2690,6 @@ fieldset.messages-intake-menu {
   gap: var(--space-2);
   width: min(320px, 34vw);
   max-width: min(320px, calc(100vw - var(--space-6)));
-  /* Cap height so islands never extend below the viewport when one expands */
-  max-height: calc(100svh - 52px - var(--space-6));
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: rgba(244, 236, 225, 0.22) transparent;
