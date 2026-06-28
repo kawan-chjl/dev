@@ -65,6 +65,41 @@ async def test_safe_judge_times_out_to_unclear(monkeypatch):
     assert v.verdict == "unclear"
 
 
+async def test_image_evidence_uses_fallback_judge_on_primary_failure(monkeypatch):
+    """When the primary judge fails on image evidence, safe_judge uses the fallback verdict."""
+    import app.fallback_judge as fb_mod
+    from app.contracts import Verdict
+
+    class _FailAdapter:
+        async def judge(self, commitment, bundle, llm):
+            raise ChutesError("primary vision down")
+
+    async def _fake_fallback(commitment, image_b64):
+        return Verdict("pass", 0.9, ["portfolio site visible"], "looks deployed")
+
+    monkeypatch.setattr(fb_mod, "judge_screenshot", _fake_fallback)
+    bundle = EvidenceBundle(adapter="screenshot", raw_ref={}, items=[{"b64": "x"}], summary="s")
+    v = await pipeline.safe_judge(_FailAdapter(), SimpleNamespace(id="x"), bundle)
+    assert v.verdict == "pass"
+
+
+async def test_image_evidence_falls_back_to_unclear_when_fallback_unavailable(monkeypatch):
+    """If the fallback returns None (unconfigured/failed), safe_judge still degrades to 'unclear'."""
+    import app.fallback_judge as fb_mod
+
+    class _FailAdapter:
+        async def judge(self, commitment, bundle, llm):
+            raise ChutesError("primary vision down")
+
+    async def _none_fallback(commitment, image_b64):
+        return None
+
+    monkeypatch.setattr(fb_mod, "judge_screenshot", _none_fallback)
+    bundle = EvidenceBundle(adapter="screenshot", raw_ref={}, items=[{"b64": "x"}], summary="s")
+    v = await pipeline.safe_judge(_FailAdapter(), SimpleNamespace(id="x"), bundle)
+    assert v.verdict == "unclear"
+
+
 async def test_safe_judge_passthrough_on_success(monkeypatch):
     """When the judge succeeds, safe_judge returns its verdict unchanged."""
     from app.contracts import Verdict

@@ -27,6 +27,9 @@ def _isolate_external_creds(monkeypatch):
     monkeypatch.setattr(settings, "resend_api_key", "")
     monkeypatch.setattr(settings, "telegram_bot_token", "")
     monkeypatch.setattr(settings, "telegram_bot_username", "")
+    # Keep the secondary judge dormant in tests so they never hit the network; fallback tests
+    # patch app.fallback_judge.judge_screenshot directly.
+    monkeypatch.setattr(settings, "gemini_api_key", "")
 
 
 @pytest_asyncio.fixture(autouse=True)
