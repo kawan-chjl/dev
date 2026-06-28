@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     chutes_inference_base_url: str = "https://llm.chutes.ai/v1"  # OpenAI-compatible inference (TR-29)
     chutes_api_base_url: str = "https://api.chutes.ai"  # IdP + /users/me (reference: api.chutes.ai/idp/*)
     chutes_api_key: str = ""  # team cpk_ token — guest mode + app registration only (TR-50/TR-53)
+    # Optional secondary judge key for the evidence-vision fallback (provisioned on Render + local).
+    gemini_api_key: str = ""
     siwc_client_id: str = ""
     siwc_client_secret: str = ""
     siwc_app_id: str = ""

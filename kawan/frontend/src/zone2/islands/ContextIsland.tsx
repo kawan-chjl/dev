@@ -23,7 +23,7 @@ interface ContextIslandProps {
 }
 
 export function ContextIsland({ commitmentId, slotProgress }: ContextIslandProps) {
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(true)
   const [slots, setSlots] = useState<SoftContextSlots | null>(null)
   const [loading, setLoading] = useState(false)
 

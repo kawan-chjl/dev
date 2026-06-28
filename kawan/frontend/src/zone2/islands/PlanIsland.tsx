@@ -33,7 +33,7 @@ interface PlanIslandProps {
 }
 
 export function PlanIsland({ plan, commitment, generating }: PlanIslandProps) {
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(true)
 
   const schedule =
     plan && commitment ? buildPlanSchedule(plan.roadmap, commitment.created_at, commitment.deadline) : null

@@ -555,12 +555,22 @@
 /* Composer bar — polished, safe-area aware */
 .messages-input-bar {
   display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
   padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0));
   border-top: 1px solid rgba(244, 236, 225, 0.07);
   background: rgba(22, 16, 9, 0.75);
   backdrop-filter: var(--blur-backdrop);
+}
+
+/* Input + send share the thread's max width so they line up with the conversation column. */
+.messages-input-row {
+  display: flex;
+  gap: var(--space-2);
+  width: 100%;
+  max-width: 720px;
 }
 
 .messages-input {
@@ -1899,12 +1909,13 @@ fieldset.stage-voice-controls {
   z-index: 5;
 }
 
-/* ── Stage thinking indicator ── */
+/* ── Stage thinking indicator — floats over the character area, like the VN intake menu ── */
 .stage-thinking {
   position: absolute;
-  bottom: 170px;
+  top: 38%;
+  bottom: auto;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   display: flex;
   gap: 5px;
   align-items: center;
@@ -2125,7 +2136,9 @@ fieldset.stage-voice-controls {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end; /* content near input when sparse */
+  /* 'safe' keeps the thread scrollable from the top when it overflows, instead of clipping
+     the earliest messages above a bottom-anchored column. */
+  justify-content: safe flex-end;
 }
 
 .messages-thread-inner {
@@ -2793,11 +2806,8 @@ fieldset.messages-intake-menu {
   color: rgba(127, 174, 143, 0.95);
 }
 
-/* #A: when the demo tour bar is on screen, push the workspace down so it never covers the topbar. */
-.workspace-root--tour {
-  box-sizing: border-box;
-  padding-top: 60px;
-}
+/* The demo step bar floats (fixed, z-index) over the topbar's empty center — no extra row,
+   so the workspace is not pushed down. */
 
 @media (prefers-reduced-motion: reduce) {
   .ws-confetti {
@@ -2808,6 +2818,9 @@ fieldset.messages-intake-menu {
 /* ── Shared island base ── */
 .ws-island {
   width: 100%;
+  /* Never let the flex column squeeze an island to fit — that clipped expanded content and
+     killed the column's scroll. Keep natural height so the column overflows and scrolls. */
+  flex-shrink: 0;
   background: rgba(22, 16, 9, 0.82);
   border: 1px solid rgba(244, 236, 225, 0.13);
   border-radius: var(--radius-card);
@@ -4061,6 +4074,12 @@ div.ws-island-header:hover {
 [data-theme="light"] .context-dot {
   background: var(--surface-sunk);
   border-color: var(--line-strong);
+}
+/* Must beat [data-theme=light] .context-dot (same specificity, declared after) so filled dots
+   actually light up during intake in light theme. */
+[data-theme="light"] .context-dot--filled {
+  background: var(--accent);
+  border-color: var(--accent);
 }
 
 [data-theme="light"] .context-slot-row {

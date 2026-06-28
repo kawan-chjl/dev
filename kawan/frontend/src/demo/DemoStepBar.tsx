@@ -1,12 +1,29 @@
 // DemoStepBar — floating top-center bar rendered at app level while the tour is active.
-// Shows the 5 labelled steps with the current one highlighted, plus a Skip button.
+// Shows the 5 labelled steps with the current one highlighted, plus Hide and Skip buttons.
+// Hide collapses the bar to a compact "Step N · Label · Unhide" pill (the tour keeps running).
 
+import { useState } from 'react'
 import { useDemoTour } from './DemoTour'
 
 export function DemoStepBar() {
   const { active, currentStep, steps, skip } = useDemoTour()
+  const [collapsed, setCollapsed] = useState(false)
 
   if (!active) return null
+
+  if (collapsed) {
+    return (
+      <nav className="demo-step-bar demo-step-bar--collapsed" aria-label="Walkthrough progress">
+        <span className="demo-step-collapsed-label">
+          Step {currentStep + 1}
+          {steps[currentStep]?.label ? ` · ${steps[currentStep].label}` : ''}
+        </span>
+        <button type="button" className="demo-step-skip" onClick={() => setCollapsed(false)}>
+          Unhide
+        </button>
+      </nav>
+    )
+  }
 
   return (
     <nav className="demo-step-bar" aria-label="Walkthrough progress">
@@ -46,6 +63,14 @@ export function DemoStepBar() {
           )
         })}
       </ol>
+      <button
+        type="button"
+        className="demo-step-skip"
+        onClick={() => setCollapsed(true)}
+        aria-label="Hide walkthrough bar"
+      >
+        Hide
+      </button>
       <button type="button" className="demo-step-skip" onClick={skip} aria-label="Skip walkthrough and go to home">
         Skip
       </button>
