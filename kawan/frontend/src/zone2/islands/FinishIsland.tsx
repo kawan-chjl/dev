@@ -16,11 +16,13 @@ interface FinishIslandProps {
   onKawanSay: (text: string, emotion?: Emotion) => void
   onActivity: () => void
   onComplete: (winDateIso: string) => void
+  /** Optional: notify the workspace sub-tour when a non-completing verdict arrives (denied/unclear). */
+  onVerdict?: (v: EvidenceVerdict) => void
 }
 
 type Phase = 'idle' | 'submitting' | 'verdict'
 
-export function FinishIsland({ commitmentId, onKawanSay, onActivity, onComplete }: FinishIslandProps) {
+export function FinishIsland({ commitmentId, onKawanSay, onActivity, onComplete, onVerdict }: FinishIslandProps) {
   const [expanded, setExpanded] = useState(false)
   const [phase, setPhase] = useState<Phase>('idle')
   const [verdict, setVerdict] = useState<EvidenceVerdict | null>(null)
@@ -41,6 +43,9 @@ export function FinishIsland({ commitmentId, onKawanSay, onActivity, onComplete 
         ? 'Not enough to call it done. Add more proof and try again.'
         : 'That evidence did not meet the bar. Bring something stronger.')
     onKawanSay(line, v.verdict === 'unclear' ? 'neutral' : 'skeptical')
+    // Evidence was evaluated but didn't complete — let the walkthrough offer a Skip so a denied
+    // demo submission can't dead-end the tour.
+    onVerdict?.(v)
   }
 
   function handleRetry() {
@@ -61,53 +66,51 @@ export function FinishIsland({ commitmentId, onKawanSay, onActivity, onComplete 
         {expanded ? <ChevronUp size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />}
       </button>
 
-      {expanded && (
-        <div className="ws-island-body">
-          {phase === 'idle' && (
-            <>
-              <p className="finish-island-sub">Submit your final evidence to mark this commitment complete.</p>
-              <button type="button" className="finish-island-trigger-btn" onClick={() => setPhase('submitting')}>
-                Submit final evidence
-              </button>
-            </>
-          )}
+      {/* Body stays mounted (hidden when collapsed) so an in-progress evidence attachment in the
+          SubmissionPanel survives collapse/re-expand instead of resetting. */}
+      <div className="ws-island-body" hidden={!expanded}>
+        {phase === 'idle' && (
+          <>
+            <p className="finish-island-sub">Submit your final evidence to mark this commitment complete.</p>
+            <button type="button" className="finish-island-trigger-btn" onClick={() => setPhase('submitting')}>
+              Submit final evidence
+            </button>
+          </>
+        )}
 
-          {phase === 'submitting' && (
-            <SubmissionPanel
-              commitmentId={commitmentId}
-              onVerdict={handleVerdict}
-              onCancel={() => setPhase('idle')}
-              finish
-            />
-          )}
+        {phase === 'submitting' && (
+          <SubmissionPanel
+            commitmentId={commitmentId}
+            onVerdict={handleVerdict}
+            onCancel={() => setPhase('idle')}
+            finish
+          />
+        )}
 
-          {phase === 'verdict' && verdict && (
-            <>
-              <VerdictCard verdict={verdict} />
-              {verdict.verdict === 'fail' && (
-                <div className="finish-island-denial">
-                  <p className="finish-island-denial-text">
-                    That evidence didn't meet the bar. Try with stronger proof.
-                  </p>
-                  <button type="button" className="finish-island-retry-btn" onClick={handleRetry}>
-                    Try again
-                  </button>
-                </div>
-              )}
-              {verdict.verdict === 'unclear' && (
-                <div className="finish-island-denial">
-                  <p className="finish-island-denial-text">
-                    Needs more context. Add another submission to strengthen your case.
-                  </p>
-                  <button type="button" className="finish-island-retry-btn" onClick={handleRetry}>
-                    Add evidence
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
+        {phase === 'verdict' && verdict && (
+          <>
+            <VerdictCard verdict={verdict} />
+            {verdict.verdict === 'fail' && (
+              <div className="finish-island-denial">
+                <p className="finish-island-denial-text">That evidence didn't meet the bar. Try with stronger proof.</p>
+                <button type="button" className="finish-island-retry-btn" onClick={handleRetry}>
+                  Try again
+                </button>
+              </div>
+            )}
+            {verdict.verdict === 'unclear' && (
+              <div className="finish-island-denial">
+                <p className="finish-island-denial-text">
+                  Needs more context. Add another submission to strengthen your case.
+                </p>
+                <button type="button" className="finish-island-retry-btn" onClick={handleRetry}>
+                  Add evidence
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   )
 }

@@ -7,7 +7,7 @@
 // Kawan = serif on terracotta-tinted bubble. User = sans on --surface-sunk.
 
 import { Send, ShieldX } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { useAuth } from '../auth/AuthProvider'
 import type { Commitment, Persona } from '../types/api'
 import type { WorkspaceMessage } from '../workspace/api'
@@ -25,6 +25,8 @@ interface MessagesModeProps {
   sending: boolean
   error: string | null
   commitmentId: string
+  // The Stage/Messages toggle, rendered at the top of the messages view.
+  modeToggle: ReactNode
   phase: WorkspacePhase
   slotProgress: SlotProgress
   commitment: Commitment | null
@@ -65,6 +67,7 @@ export function MessagesMode({
   sending,
   error,
   commitmentId,
+  modeToggle,
   phase,
   commitment,
   intakeStep,
@@ -150,6 +153,7 @@ export function MessagesMode({
 
   return (
     <div className="messages-mode">
+      <div className="messages-mode-toggle-row">{modeToggle}</div>
       {/* Slot progress is shown in the top-right ContextIsland (ITEM 1) — not duplicated here */}
 
       {/* Thread — centered max-width column, content anchors near input when sparse */}
