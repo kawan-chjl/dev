@@ -2696,18 +2696,11 @@
   flex: 1;
 }
 
-.commitments-selection-clear {
+.commitments-selection-action {
+  height: 32px;
+  min-width: 0;
+  padding: 0 var(--space-4);
   font-size: var(--text-small);
-  color: var(--ink-soft);
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-family: var(--font-body);
-  padding: 0;
-  transition: color var(--duration-ui) var(--ease-out);
-}
-.commitments-selection-clear:hover {
-  color: var(--ink);
 }
 
 /* Confirm overlay */

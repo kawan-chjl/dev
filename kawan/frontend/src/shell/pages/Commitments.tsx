@@ -270,13 +270,22 @@ export function Commitments() {
               {selected.size > 0 && (
                 <div className="commitments-selection-toolbar">
                   <span className="commitments-selection-count">{selected.size} selected</span>
-                  <Button variant="secondary" onClick={() => setConfirmOpen(true)} disabled={deleting}>
+                  <Button
+                    variant="secondary"
+                    className="commitments-selection-action"
+                    onClick={() => setConfirmOpen(true)}
+                    disabled={deleting}
+                  >
                     <Trash2 size={14} aria-hidden="true" />
                     {deleting ? 'Removing...' : 'Remove selected'}
                   </Button>
-                  <button type="button" className="commitments-selection-clear" onClick={() => setSelected(new Set())}>
+                  <Button
+                    variant="secondary"
+                    className="commitments-selection-action"
+                    onClick={() => setSelected(new Set())}
+                  >
                     Clear
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>

@@ -1,5 +1,9 @@
 # Repo-root ignores. App-specific patterns live in kawan/.gitignore.
 
+# Artifacts
+node_modules/
+.codex
+
 # OS / editor noise (can surface anywhere, e.g. docs/)
 .DS_Store
 Thumbs.db
