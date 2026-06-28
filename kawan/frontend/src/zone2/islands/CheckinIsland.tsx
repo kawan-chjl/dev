@@ -35,7 +35,7 @@ export function CheckinIsland({
   onActivity,
   onVerdict
 }: CheckinIslandProps) {
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(true)
   const [phase, setPhase] = useState<Phase>('idle')
   const [checkin, setCheckin] = useState<CheckinResponse | null>(null)
   const [verdict, setVerdict] = useState<EvidenceVerdict | null>(null)

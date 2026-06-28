@@ -153,7 +153,9 @@ export function MessagesMode({
 
   return (
     <div className="messages-mode">
-      <div className="messages-mode-toggle-row">{modeToggle}</div>
+      {/* During intake there's no input bar, so keep the toggle reachable at the top; in chat it
+          lives inside the input bar below. */}
+      {phase === 'intake' && <div className="messages-mode-toggle-row">{modeToggle}</div>}
       {/* Slot progress is shown in the top-right ContextIsland (ITEM 1) — not duplicated here */}
 
       {/* Thread — centered max-width column, content anchors near input when sparse */}
@@ -338,28 +340,32 @@ export function MessagesMode({
         </div>
       )}
 
-      {/* Chat input bar — only shown in chat phase (hidden during intake per 2.3) */}
+      {/* Chat input bar — only shown in chat phase (hidden during intake per 2.3). The mode toggle
+          sits inside it, above an input + send row sized to the thread column. */}
       {phase === 'chat' && (
         <div className="messages-input-bar">
-          <input
-            className="messages-input"
-            type="text"
-            placeholder={sending ? 'Kawan is thinking...' : 'Message Kawan...'}
-            aria-label="Message input"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            disabled={sending}
-          />
-          <button
-            type="button"
-            className="messages-send-btn"
-            onClick={handleSend}
-            disabled={sending || !inputText.trim()}
-            aria-label={sending ? 'Sending...' : 'Send message'}
-          >
-            <Send size={18} aria-hidden="true" />
-          </button>
+          {modeToggle}
+          <div className="messages-input-row">
+            <input
+              className="messages-input"
+              type="text"
+              placeholder={sending ? 'Kawan is thinking...' : 'Message Kawan...'}
+              aria-label="Message input"
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={sending}
+            />
+            <button
+              type="button"
+              className="messages-send-btn"
+              onClick={handleSend}
+              disabled={sending || !inputText.trim()}
+              aria-label={sending ? 'Sending...' : 'Send message'}
+            >
+              <Send size={18} aria-hidden="true" />
+            </button>
+          </div>
         </div>
       )}
     </div>

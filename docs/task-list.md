@@ -182,3 +182,18 @@ The still-open, demo-critical items, pulled together:
 - [x] **D3 Web Push** — DONE: client (PR #63) + idempotency (#31) + `gen_vapid.py` (PR #72); VAPID keys set on Render and verified live. Closed-tab notifications work. Independent of Lane C.
 - [ ] **D4 integration QA** — full **real** demo thread tested with the determinism levers; clean pre-staged demo data.
 - [ ] **D5 demo video + Devpost + README** (team-owned).
+
+---
+
+## Fallback consideration (vision/evidence judging)
+
+The TEE vision judge (`google/gemma-4-31B-turbo-TEE`) has been intermittently failing on the
+live backend during walkthroughs — the evidence call throws and `pipeline.safe_judge` degrades it
+to a neutral `unclear` (spec §9.3), so the demo never hard-blocks but also can't earn a pass.
+
+**Contingency, only if the TEE vision path stays unreliable through the demo window:** add a
+Gemini fallback for evidence judging — `KAWAN_GEMINI_API_KEY` (config env-prefix is `KAWAN_`),
+model `gemini-3.1-flash-lite`. The key is **already provisioned** on Render and in the local `.env`.
+The fallback must stay **totally implicit**: never reference Gemini (or any non-Chutes provider)
+anywhere in the README or public-facing docs — this internal note is the only place it is recorded.
+Not yet wired into `pipeline.safe_judge` (which still degrades to `unclear`); the lever is ready.

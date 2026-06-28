@@ -183,6 +183,15 @@ export function StageMode({
       {/* Character stage area — single mount, never remounts (A3 design §4) */}
       <div className="stage-character-area">
         <Live2DStageView ref={stageRef} persona={persona} />
+        {/* Typing / thinking indicator — floats over the character, like the VN intake options.
+            Suppressed while openerLoading via the sending prop (2.1). */}
+        {sending && (
+          <div className="stage-thinking" role="status" aria-live="polite" aria-label="Kawan is thinking">
+            <span className="stage-thinking-dot" />
+            <span className="stage-thinking-dot" />
+            <span className="stage-thinking-dot" />
+          </div>
+        )}
       </div>
 
       {/* DEV-only: extended harness with persona, emotion, text, and original spike */}
@@ -364,15 +373,6 @@ export function StageMode({
             onApplied={() => onProposalApplied(latestKawan.id)}
             onDismissed={() => onProposalDismissed(latestKawan.id)}
           />
-        </div>
-      )}
-
-      {/* Typing / thinking indicator — suppressed while openerLoading (2.1) */}
-      {sending && (
-        <div className="stage-thinking" role="status" aria-live="polite" aria-label="Kawan is thinking">
-          <span className="stage-thinking-dot" />
-          <span className="stage-thinking-dot" />
-          <span className="stage-thinking-dot" />
         </div>
       )}
 

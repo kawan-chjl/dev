@@ -23,7 +23,7 @@ interface FinishIslandProps {
 type Phase = 'idle' | 'submitting' | 'verdict'
 
 export function FinishIsland({ commitmentId, onKawanSay, onActivity, onComplete, onVerdict }: FinishIslandProps) {
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(true)
   const [phase, setPhase] = useState<Phase>('idle')
   const [verdict, setVerdict] = useState<EvidenceVerdict | null>(null)
 
