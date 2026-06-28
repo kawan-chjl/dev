@@ -14,6 +14,16 @@ export interface TourStep {
   hintText?: string
 }
 
+// A workspace-driven coachmark override. While the tour is on the workspace step, the workspace
+// advances an event-based sub-tour by setting this override (which element to highlight, the hint,
+// and an optional "Next" button). When set, the Spotlight renders it instead of the step default.
+export interface TourOverride {
+  target?: string
+  hintText: string
+  showNext?: boolean
+  onNext?: () => void
+}
+
 const TOUR_STEPS: TourStep[] = [
   {
     label: 'Commitments',
@@ -29,9 +39,8 @@ const TOUR_STEPS: TourStep[] = [
   },
   {
     label: 'Workspace',
-    route: '',
-    target: '.workspace-back-btn',
-    hintText: 'When the workspace opens, continue to analytics from the top-left action.'
+    route: ''
+    // No default highlight here: the workspace drives an event-based sub-tour via the override.
   }, // route is set dynamically after commitment created
   {
     label: 'Analytics',
@@ -61,6 +70,9 @@ interface DemoTourValue {
   next: (overrideRoute?: string) => void
   skip: () => void
   finish: () => void
+  // Workspace-driven coachmark override (event-based sub-tour); null = use the step default.
+  override: TourOverride | null
+  setOverride: (o: TourOverride | null) => void
 }
 
 const DemoTourContext = createContext<DemoTourValue | null>(null)
@@ -70,6 +82,7 @@ export function DemoTourProvider({ children }: { children: ReactNode }) {
   const [active, setActive] = useState(false)
   const [currentStep, setCurrentStep] = useState(-1)
   const [demoCommitmentId, setDemoCommitmentId] = useState<string | null>(null)
+  const [override, setOverride] = useState<TourOverride | null>(null)
 
   const cleanupDemoCommitment = useCallback(() => {
     if (demoCommitmentId) {
@@ -99,6 +112,7 @@ export function DemoTourProvider({ children }: { children: ReactNode }) {
 
   const skip = useCallback(() => {
     cleanupDemoCommitment()
+    setOverride(null)
     setActive(false)
     setCurrentStep(-1)
     navigate('/home')
@@ -106,6 +120,7 @@ export function DemoTourProvider({ children }: { children: ReactNode }) {
 
   const finish = useCallback(() => {
     cleanupDemoCommitment()
+    setOverride(null)
     setActive(false)
     setCurrentStep(-1)
   }, [cleanupDemoCommitment])
@@ -121,7 +136,9 @@ export function DemoTourProvider({ children }: { children: ReactNode }) {
         start,
         next,
         skip,
-        finish
+        finish,
+        override,
+        setOverride
       }}
     >
       {children}

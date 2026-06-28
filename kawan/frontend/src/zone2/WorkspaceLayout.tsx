@@ -10,7 +10,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { MOCK_AUTH } from '../auth/api'
 import type { ContextTurnResponse } from '../commitments/api'
 import { contextTurn, fetchCommitmentById } from '../commitments/api'
-import { useDemoTour } from '../demo/DemoTour'
+import { type TourOverride, useDemoTour } from '../demo/DemoTour'
 import { mockConversation } from '../mock/fixtures'
 import type { Commitment, Emotion } from '../types/api'
 import type { WorkspaceMessage } from '../workspace/api'
@@ -37,6 +37,9 @@ import { StageMode } from './StageMode'
 
 type ViewMode = 'stage' | 'messages'
 export type WorkspacePhase = 'intake' | 'chat'
+
+// Workspace coachmark sub-tour steps (only meaningful while the demo tour is on the workspace step).
+type SubStep = 'intake' | 'islands' | 'checkin' | 'finish' | 'share' | 'analytics'
 
 // Slot progress: how many of the 4 soft-context slots are filled.
 export interface SlotProgress {
@@ -87,7 +90,7 @@ function mockChatReply(userText: string): WorkspaceMessage {
 export function WorkspaceLayout() {
   const navigate = useNavigate()
   const { id: commitmentId } = useParams<{ id: string }>()
-  const { active: tourActive, currentStep: tourStep } = useDemoTour()
+  const { active: tourActive, currentStep: tourStep, setOverride } = useDemoTour()
   const [viewMode, setViewMode] = useState<ViewMode>('stage')
   const [viewSwitching, setViewSwitching] = useState(false)
   const [messages, setMessages] = useState<WorkspaceMessage[]>([])
@@ -115,6 +118,9 @@ export function WorkspaceLayout() {
   const [milestones, setMilestones] = useState<ActivityMilestone[]>([])
   // 3.5: win overlay — set when a Finish-Now submission completes the commitment.
   const [winDateIso, setWinDateIso] = useState<string | null>(null)
+  // 4.x: workspace coachmark sub-tour — islands -> check-in -> finish -> share -> analytics.
+  const [subStep, setSubStep] = useState<SubStep>('intake')
+  const shareOpenedRef = useRef(false)
 
   // Mock intake turn tracker (MOCK_AUTH only)
   const mockIntakeTurnRef = useRef(0)
@@ -462,6 +468,57 @@ export function WorkspaceLayout() {
     setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, proposalState: 'dismissed' } : m)))
   }
 
+  // ── Demo sub-tour (workspace step): event-driven coachmark flow ──────────────────────────
+  // intake done -> islands intro (Next) -> check-in upload -> finish upload -> share -> analytics.
+  const handleCheckinVerdict = useCallback(() => {
+    setSubStep((s) => (s === 'checkin' ? 'finish' : s))
+  }, [])
+
+  const handleShareStateChange = useCallback((open: boolean) => {
+    if (open) {
+      shareOpenedRef.current = true
+    } else if (shareOpenedRef.current) {
+      setSubStep((s) => (s === 'share' ? 'analytics' : s))
+    }
+  }, [])
+
+  // Intake complete -> reveal the islands intro.
+  useEffect(() => {
+    if (phase === 'chat') setSubStep((s) => (s === 'intake' ? 'islands' : s))
+  }, [phase])
+
+  // Finish completed (win overlay shown) -> guide the share step.
+  useEffect(() => {
+    if (winDateIso) setSubStep((s) => (s === 'share' || s === 'analytics' ? s : 'share'))
+  }, [winDateIso])
+
+  // Drive the shared Spotlight via the tour override while the tour is on the workspace step.
+  useEffect(() => {
+    if (!(tourActive && tourStep === 2)) {
+      setOverride(null)
+      return
+    }
+    const overrides: Record<SubStep, TourOverride> = {
+      intake: { hintText: "Answer Kawan's 4 questions to unlock your workspace tools." },
+      islands: {
+        target: '.workspace-island-topright',
+        hintText:
+          'These are your tools. Context tracks what Kawan learned, Plan is your roadmap, Check-In logs progress, and Finish completes the commitment.',
+        showNext: true,
+        onNext: () => setSubStep('checkin')
+      },
+      checkin: { target: '.checkin-island', hintText: 'Open Check-In and upload a file to log your progress.' },
+      finish: {
+        target: '.finish-island',
+        hintText: 'Now open Finish Now and upload your final evidence to complete the commitment.'
+      },
+      share: { target: '.ending-btn--share', hintText: 'You did it. Open "Share your win" to celebrate.' },
+      analytics: { target: '.workspace-back-btn', hintText: 'Head to Analytics to see what you achieved.' }
+    }
+    setOverride(overrides[subStep])
+    return () => setOverride(null)
+  }, [tourActive, tourStep, subStep, setOverride])
+
   // 2.1: openerLoading — true while the very first Kawan message is fetching.
   // Once messages.length > 0 it clears (catch path always sets a message too).
   const openerLoading = phase === 'intake' && messages.length === 0 && sending
@@ -516,37 +573,12 @@ export function WorkspaceLayout() {
           <ArrowLeft size={16} aria-hidden="true" />
           <span>{tourActive && tourStep === 2 ? 'Analytics' : 'Back'}</span>
         </button>
-        <div className="workspace-mode-toggle" role="toolbar" aria-label="View mode">
-          <button
-            type="button"
-            className={`workspace-mode-btn ${viewMode === 'stage' ? 'workspace-mode-btn-active' : ''}`}
-            aria-pressed={viewMode === 'stage'}
-            onClick={() => handleViewModeSwitch('stage')}
-          >
-            Stage
-          </button>
-          <button
-            type="button"
-            className={`workspace-mode-btn ${viewMode === 'messages' ? 'workspace-mode-btn-active' : ''}`}
-            aria-pressed={viewMode === 'messages'}
-            onClick={() => handleViewModeSwitch('messages')}
-          >
-            Messages
-          </button>
-        </div>
         <div className="workspace-spacer" aria-hidden="true" />
       </div>
 
       {/* Main stage area — wrapper gets blur class while loading; stage never remounts */}
       <div className={`workspace-stage${isLoading ? ' workspace-loading' : ''}`} aria-busy={isLoading}>
         {viewMode === 'stage' ? <StageMode {...sharedProps} /> : <MessagesMode {...sharedProps} />}
-        {/* 2.1: single labeled spinner ABOVE the blur layer, explicit z-index */}
-        {isLoading && (
-          <div className="workspace-loading-spinner" role="status" aria-label="Loading">
-            <span className="workspace-spinner-ring" aria-hidden="true" />
-            <span className="workspace-spinner-label">Loading...</span>
-          </div>
-        )}
 
         {/* 3.6: Commitment failure overlay — replaces normal workspace interaction */}
         {isFailure && (
@@ -559,7 +591,12 @@ export function WorkspaceLayout() {
         {winDateIso && commitment && (
           <div className="workspace-win-overlay">
             <Confetti />
-            <EndingSequence variant="win" commitment={commitment} winDateIso={winDateIso} />
+            <EndingSequence
+              variant="win"
+              commitment={commitment}
+              winDateIso={winDateIso}
+              onShareStateChange={handleShareStateChange}
+            />
           </div>
         )}
 
@@ -576,6 +613,7 @@ export function WorkspaceLayout() {
                   variant={keyEvent === 'late-checkin' ? 'late-checkin' : keyEvent === 'checkin' ? 'checkin' : null}
                   onKawanSay={sayAsKawan}
                   onActivity={bumpActivity}
+                  onVerdict={handleCheckinVerdict}
                 />
                 {commitment && (
                   <FinishIsland
@@ -597,6 +635,33 @@ export function WorkspaceLayout() {
           </div>
         )}
       </div>
+
+      <div className="workspace-mode-toggle" role="toolbar" aria-label="View mode">
+        <button
+          type="button"
+          className={`workspace-mode-btn ${viewMode === 'stage' ? 'workspace-mode-btn-active' : ''}`}
+          aria-pressed={viewMode === 'stage'}
+          onClick={() => handleViewModeSwitch('stage')}
+        >
+          Stage
+        </button>
+        <button
+          type="button"
+          className={`workspace-mode-btn ${viewMode === 'messages' ? 'workspace-mode-btn-active' : ''}`}
+          aria-pressed={viewMode === 'messages'}
+          onClick={() => handleViewModeSwitch('messages')}
+        >
+          Messages
+        </button>
+      </div>
+
+      {/* 2.1: single labeled spinner sits outside the blurred stage */}
+      {isLoading && (
+        <div className="workspace-loading-spinner" role="status" aria-label="Loading">
+          <span className="workspace-spinner-ring" aria-hidden="true" />
+          <span className="workspace-spinner-label">Loading...</span>
+        </div>
+      )}
     </div>
   )
 }

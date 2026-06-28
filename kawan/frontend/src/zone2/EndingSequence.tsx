@@ -17,13 +17,20 @@ interface EndingSequenceProps {
   variant: EndingVariant
   commitment: Commitment
   winDateIso?: string // required for win variant
+  /** Optional: notify the workspace sub-tour when the share dialog opens/closes. */
+  onShareStateChange?: (open: boolean) => void
 }
 
-export function EndingSequence({ variant, commitment, winDateIso }: EndingSequenceProps) {
+export function EndingSequence({ variant, commitment, winDateIso, onShareStateChange }: EndingSequenceProps) {
   const navigate = useNavigate()
   const { me } = useAuth()
   const persona: Persona = me?.persona ?? 'kawan'
   const [shareOpen, setShareOpen] = useState(false)
+
+  function setShare(open: boolean) {
+    setShareOpen(open)
+    onShareStateChange?.(open)
+  }
 
   if (variant === 'win') {
     return (
@@ -32,7 +39,7 @@ export function EndingSequence({ variant, commitment, winDateIso }: EndingSequen
           <div className="ending-win-headline">You did it.</div>
           <p className="ending-win-sub">{commitment.deliverable} — committed and delivered.</p>
           <div className="ending-win-actions">
-            <button type="button" className="ending-btn ending-btn--share" onClick={() => setShareOpen(true)}>
+            <button type="button" className="ending-btn ending-btn--share" onClick={() => setShare(true)}>
               Share your win
             </button>
             <button type="button" className="ending-btn ending-btn--new" onClick={() => navigate('/new')}>
@@ -46,7 +53,7 @@ export function EndingSequence({ variant, commitment, winDateIso }: EndingSequen
         </div>
         <ShareWinDialog
           open={shareOpen}
-          onClose={() => setShareOpen(false)}
+          onClose={() => setShare(false)}
           commitment={commitment}
           winDateIso={winDateIso ?? new Date().toISOString()}
           persona={persona}

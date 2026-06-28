@@ -201,6 +201,41 @@ async def test_context_turn_skips_empty_opener(client):
 
 
 @pytest.mark.asyncio
+async def test_context_turn_fills_next_empty_slot_and_computes_completion(client):
+    """context/turn does not trust the LLM to attribute slots or mark completion."""
+    from unittest.mock import AsyncMock, patch
+
+    r = await client.post("/api/commitments", json={
+        "action": "write", "deliverable": "the spec",
+        "deadline": "2099-12-31T23:59:00+00:00",
+    })
+    cid = r.json()["id"]
+    for answer in ("for growth", "scope creep", "weeknights"):
+        r_setup = await client.post(f"/api/commitments/{cid}/context/turn", json={"say": answer})
+        assert r_setup.status_code == 200
+
+    fake_result = {
+        "say": "Got it.",
+        "slots": {},
+        "intake_complete": False,
+        "emotion": "curious",
+    }
+    with patch("app.routes.commitments.LLM") as mock_llm:
+        mock_llm.intake_turn = AsyncMock(return_value=fake_result)
+        r2 = await client.post(f"/api/commitments/{cid}/context/turn", json={"say": "intermediate"})
+    assert r2.status_code == 200
+
+    body = r2.json()
+    assert body["slots"] == {
+        "why": "for growth",
+        "obstacles": "scope creep",
+        "time_constraints": "weeknights",
+        "skill": "intermediate",
+    }
+    assert body["intake_complete"] is True
+
+
+@pytest.mark.asyncio
 async def test_workspace_turn_persists_messages(client):
     """workspace/turn appends user + assistant rows after the proposal write."""
     from unittest.mock import AsyncMock, patch

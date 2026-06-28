@@ -21,11 +21,20 @@ interface CheckinIslandProps {
   variant: 'checkin' | 'late-checkin' | null
   onKawanSay: (text: string, emotion?: Emotion) => void
   onActivity: () => void
+  /** Optional: notify the workspace sub-tour when a check-in verdict arrives. */
+  onVerdict?: (v: EvidenceVerdict) => void
 }
 
 type Phase = 'idle' | 'checking' | 'submitting' | 'verdict'
 
-export function CheckinIsland({ commitmentId, checkinStatus, variant, onKawanSay, onActivity }: CheckinIslandProps) {
+export function CheckinIsland({
+  commitmentId,
+  checkinStatus,
+  variant,
+  onKawanSay,
+  onActivity,
+  onVerdict
+}: CheckinIslandProps) {
   const [expanded, setExpanded] = useState(false)
   const [phase, setPhase] = useState<Phase>('idle')
   const [checkin, setCheckin] = useState<CheckinResponse | null>(null)
@@ -59,6 +68,7 @@ export function CheckinIsland({ commitmentId, checkinStatus, variant, onKawanSay
     const emotion: Emotion = v.verdict === 'pass' ? 'pleased' : v.verdict === 'fail' ? 'skeptical' : 'neutral'
     onKawanSay(line, emotion)
     if (v.verdict === 'pass') setCheckedIn(true)
+    onVerdict?.(v)
   }
 
   function handleRetry() {
