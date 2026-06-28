@@ -1,26 +1,36 @@
-// Welcome — /welcome (tour intro + first-run persona picker, no shell chrome)
-// 3 preset cards: kawan / adik / cik_maid. Selected = filled --ink/inverted.
-// "Continue" → persists choice via setPersona (local + best-effort backend) → /home.
+// Welcome — /welcome (guided demo launcher, no shell chrome)
 // "Start the walkthrough" → starts the DemoTour → /welcome/commitments.
 
-import { useState } from 'react'
+import { BarChart3, ClipboardCheck, MessageCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { guestLogin } from '../auth/api'
 import { useDemoTour } from '../demo/DemoTour'
 import { setWelcomeDismissed } from '../demo/welcomeFlag'
-import { listPersonas } from '../mock/provider'
-import type { Persona } from '../types/api'
 import { Button } from '../ui/Button'
-import { Card } from '../ui/Card'
+
+const DEMO_FEATURES = [
+  {
+    icon: ClipboardCheck,
+    title: 'Create one guided commitment',
+    body: 'Walk through the same commitment flow a real user uses, with demo defaults filled in where typing would slow you down.'
+  },
+  {
+    icon: MessageCircle,
+    title: 'See how Kawan checks in',
+    body: 'Enter the workspace, respond to the check-in, and see how evidence turns into a verdict.'
+  },
+  {
+    icon: BarChart3,
+    title: 'Finish with the dashboard',
+    body: 'Review the analytics preview and return home with the main app layout already familiar.'
+  }
+]
 
 export function Welcome() {
   const navigate = useNavigate()
-  const { me, setPersona, status, refresh } = useAuth()
+  const { status, refresh } = useAuth()
   const { start } = useDemoTour()
-  const personas = listPersonas()
-  // Seed from the persisted me.persona so returning users see their current choice.
-  const [selected, setSelected] = useState<Persona>(me?.persona ?? 'kawan')
 
   function handleSkip() {
     navigate('/home')
@@ -32,7 +42,6 @@ export function Welcome() {
   }
 
   async function handleStartWalkthrough() {
-    await setPersona(selected)
     // The walkthrough creates a real commitment (POST /api/commitments), which 401s without a
     // session. Establish a guest session first, but only when definitively unauthenticated so a
     // real (or still-loading) SIWC session is never clobbered.
@@ -55,29 +64,25 @@ export function Welcome() {
       </header>
 
       <main className="welcome-main">
-        <h1 className="welcome-heading">Pick your companion</h1>
+        <p className="welcome-kicker">Demo mode</p>
+        <h1 className="welcome-heading">Take the guided walkthrough</h1>
         <p className="welcome-sub">
-          You can change this anytime in Settings. Their tone shifts, but your commitment stays yours.
+          This short tour shows the hackathon demo flow without making you figure out where to click first.
         </p>
 
-        <div className="persona-grid persona-grid-welcome">
-          {personas.map((p) => (
-            <Card
-              key={p.id}
-              selected={selected === p.id}
-              className="persona-card"
-              role="button"
-              tabIndex={0}
-              aria-pressed={selected === p.id}
-              aria-label={`Choose ${p.name}, ${p.archetype}`}
-              onClick={() => setSelected(p.id)}
-              onKeyDown={(e) => e.key === 'Enter' && setSelected(p.id)}
-            >
-              <p className="persona-card-name">{p.name}</p>
-              <p className="persona-card-archetype">{p.archetype}</p>
-              <p className="persona-card-tone">{p.tone}</p>
-            </Card>
-          ))}
+        <div className="welcome-demo-grid">
+          {DEMO_FEATURES.map((feature) => {
+            const Icon = feature.icon
+            return (
+              <section key={feature.title} className="welcome-demo-card">
+                <div className="welcome-demo-icon" aria-hidden="true">
+                  <Icon size={20} />
+                </div>
+                <h2 className="welcome-demo-title">{feature.title}</h2>
+                <p className="welcome-demo-body">{feature.body}</p>
+              </section>
+            )
+          })}
         </div>
 
         <Button
@@ -88,6 +93,10 @@ export function Welcome() {
         >
           Start the walkthrough
         </Button>
+
+        <p className="welcome-demo-note">
+          You will choose a companion inside the commitment setup, where that choice has context.
+        </p>
 
         <div className="welcome-bottom-options">
           <button type="button" className="welcome-option-btn" onClick={handleSkip}>
