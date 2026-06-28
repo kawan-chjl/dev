@@ -2651,11 +2651,17 @@ fieldset.messages-intake-menu {
 /* Top-left: Activity card */
 .workspace-island-topleft {
   position: absolute;
-  top: calc(52px + var(--space-4));
+  top: auto;
+  bottom: calc(160px + var(--space-8));
   left: var(--space-3);
   z-index: 30;
   pointer-events: auto;
-  max-width: 220px;
+  width: min(320px, 34vw);
+  max-width: min(320px, calc(100vw - var(--space-6)));
+  max-height: calc(100svh - 52px - 160px - var(--space-12));
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(244, 236, 225, 0.22) transparent;
 }
 
 /* Top-right: Context + Plan + Check-In + Finish islands stacked */
@@ -2668,15 +2674,26 @@ fieldset.messages-intake-menu {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  max-width: 220px;
+  width: min(320px, 34vw);
+  max-width: min(320px, calc(100vw - var(--space-6)));
   /* Cap height so islands never extend below the viewport when one expands */
-  max-height: calc(100svh - 52px - var(--space-8));
+  max-height: calc(100svh - 52px - var(--space-6));
   overflow-y: auto;
-  /* Hide the scrollbar but keep it functional */
-  scrollbar-width: none;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(244, 236, 225, 0.22) transparent;
 }
+.workspace-island-topleft::-webkit-scrollbar,
 .workspace-island-topright::-webkit-scrollbar {
-  display: none;
+  width: 6px;
+}
+.workspace-island-topleft::-webkit-scrollbar-thumb,
+.workspace-island-topright::-webkit-scrollbar-thumb {
+  background: rgba(244, 236, 225, 0.22);
+  border-radius: var(--radius-pill);
+}
+.workspace-island-topleft::-webkit-scrollbar-track,
+.workspace-island-topright::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 /* Bottom: Check-In or Finish island */
@@ -2769,6 +2786,7 @@ fieldset.messages-intake-menu {
 
 /* ── Shared island base ── */
 .ws-island {
+  width: 100%;
   background: rgba(22, 16, 9, 0.82);
   border: 1px solid rgba(244, 236, 225, 0.13);
   border-radius: var(--radius-card);
@@ -2782,7 +2800,7 @@ fieldset.messages-intake-menu {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--space-4);
   color: rgba(244, 236, 225, 0.7);
   font-family: var(--font-body);
   font-size: var(--text-caption);
@@ -2814,10 +2832,14 @@ div.ws-island-header:hover {
 
 .ws-island-title {
   flex: 1;
+  min-width: 0;
+  font-size: var(--text-small);
+  font-weight: 700;
+  line-height: var(--lh-tight);
 }
 
 .ws-island-body {
-  padding: var(--space-2) var(--space-3) var(--space-3);
+  padding: var(--space-3) var(--space-4) var(--space-4);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -3972,8 +3994,22 @@ div.ws-island-header:hover {
   box-shadow: var(--shadow-md);
 }
 
+[data-theme="light"] .workspace-island-topleft,
+[data-theme="light"] .workspace-island-topright {
+  scrollbar-color: color-mix(in srgb, var(--ink-soft) 26%, transparent) transparent;
+}
+
+[data-theme="light"] .workspace-island-topleft::-webkit-scrollbar-thumb,
+[data-theme="light"] .workspace-island-topright::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--ink-soft) 26%, transparent);
+}
+
 [data-theme="light"] .ws-island-header {
   color: var(--ink-soft);
+}
+
+[data-theme="light"] .ws-island-title {
+  color: var(--ink);
 }
 
 [data-theme="light"] .ws-island-header:hover {
@@ -3989,7 +4025,7 @@ div.ws-island-header:hover {
 }
 
 [data-theme="light"] .ws-island-empty {
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 [data-theme="light"] .ws-island-error {
@@ -4005,6 +4041,11 @@ div.ws-island-header:hover {
   border-bottom-color: var(--line);
 }
 
+[data-theme="light"] .context-slot-label {
+  color: var(--ink-soft);
+  opacity: 1;
+}
+
 [data-theme="light"] .context-slot-value {
   color: var(--ink);
 }
@@ -4014,7 +4055,7 @@ div.ws-island-header:hover {
 }
 
 [data-theme="light"] .plan-island-time {
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 [data-theme="light"] .plan-island-step-label {
@@ -4022,7 +4063,7 @@ div.ws-island-header:hover {
 }
 
 [data-theme="light"] .plan-island-step-note {
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 [data-theme="light"] .plan-island-note {
@@ -4030,7 +4071,11 @@ div.ws-island-header:hover {
 }
 
 [data-theme="light"] .plan-island-readonly-notice {
-  color: var(--ink-faint);
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .checkin-island-locked {
+  color: var(--ink);
 }
 
 [data-theme="light"] .checkin-island-brief {
@@ -4084,7 +4129,7 @@ div.ws-island-header:hover {
 }
 
 [data-theme="light"] .activity-event-time {
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 [data-theme="light"] .activity-event-label {
@@ -4163,7 +4208,7 @@ div.ws-island-header:hover {
 }
 
 [data-theme="light"] .submission-filesize {
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 [data-theme="light"] .submission-url-input {
@@ -4177,7 +4222,7 @@ div.ws-island-header:hover {
 }
 
 [data-theme="light"] .submission-cancel-text {
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 [data-theme="light"] .submission-cancel-text:hover:not(:disabled) {
