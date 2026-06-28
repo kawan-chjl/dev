@@ -23,15 +23,16 @@ import { Modal } from '../../ui/Modal'
 import { Skeleton } from '../../ui/Skeleton'
 import { PageHeader } from '../PageHeader'
 
-type Filter = 'All' | 'Ongoing' | 'Completed'
+type Filter = 'All' | 'Ongoing' | 'Completed' | 'Missed'
 
 const ONGOING_STATUSES: CommitmentStatus[] = ['active', 'lapsed', 'verifying', 'grace']
-const COMPLETED_STATUSES: CommitmentStatus[] = ['completed', 'missed']
+const FILTERS: Filter[] = ['All', 'Ongoing', 'Completed', 'Missed']
 
 function matchesFilter(c: Commitment, filter: Filter): boolean {
   if (filter === 'All') return true
   if (filter === 'Ongoing') return ONGOING_STATUSES.includes(c.status)
-  return COMPLETED_STATUSES.includes(c.status)
+  if (filter === 'Completed') return c.status === 'completed'
+  return c.status === 'missed'
 }
 
 function formatDate(iso: string): string {
@@ -252,7 +253,7 @@ export function Commitments() {
             <div className="commitments-filter-row-wrap">
               <fieldset className="commitments-filter-row">
                 <legend className="commitments-filter-legend">Filter commitments</legend>
-                {(['All', 'Ongoing', 'Completed'] as Filter[]).map((f) => (
+                {FILTERS.map((f) => (
                   <button
                     key={f}
                     type="button"
@@ -320,16 +321,20 @@ export function Commitments() {
                 <p className="empty-state-heading">
                   {filter === 'All'
                     ? 'Nothing here yet'
-                    : filter === 'Completed'
-                      ? 'Finished commitments will show here.'
-                      : 'No ongoing commitments.'}
+                    : filter === 'Missed'
+                      ? 'No missed commitments.'
+                      : filter === 'Completed'
+                        ? 'Finished commitments will show here.'
+                        : 'No ongoing commitments.'}
                 </p>
                 <p className="empty-state-body">
                   {filter === 'All'
                     ? 'When you make a commitment, it shows up here.'
-                    : filter === 'Completed'
-                      ? 'Complete a commitment and it will appear here.'
-                      : 'Make a commitment to get started.'}
+                    : filter === 'Missed'
+                      ? 'If a commitment is missed, it will appear here.'
+                      : filter === 'Completed'
+                        ? 'Complete a commitment and it will appear here.'
+                        : 'Make a commitment to get started.'}
                 </p>
               </Card>
             ) : (
