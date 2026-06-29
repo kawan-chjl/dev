@@ -140,10 +140,6 @@
   min-height: 0;
   overflow: hidden;
   position: relative;
-  /* Accent top outline on the outer stage section (full width), not the inner dialogue card.
-     Bold + a soft glow so it reads as the stage's frame, not the topbar's edge. */
-  border-top: 4px solid var(--accent);
-  box-shadow: inset 0 4px 16px -6px var(--accent);
 }
 
 /* ── 2.1: workspace loading overlay — stronger blur, single labeled spinner above the stage ── */
@@ -256,6 +252,9 @@
   position: relative;
   /* Warm radial vignette — character pops in both themes (design-system.md §1) */
   background: radial-gradient(ellipse 70% 80% at 50% 35%, #241810 0%, #161009 60%, #0e0b06 100%);
+  /* Full-width accent line marking the boundary between the stage and the dialogue zone. */
+  border-bottom: 4px solid var(--accent);
+  box-shadow: 0 3px 14px -4px var(--accent);
 }
 
 /* Live2D container div fills the character area; Pixi appends its own canvas inside (B-FIX bug 1). */
@@ -3752,6 +3751,11 @@ div.ws-island-header:hover {
 [data-theme="light"] .workspace-topbar {
   background: color-mix(in srgb, var(--surface) 88%, transparent);
   border-bottom-color: var(--line);
+}
+
+/* The topbar goes light in light theme, so the title's near-white default is unreadable there. */
+[data-theme="light"] .workspace-title {
+  color: var(--ink);
 }
 
 [data-theme="light"] .workspace-back-btn {
