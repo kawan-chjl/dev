@@ -252,8 +252,12 @@ def workspace_system(p: Persona) -> str:
 JUDGE_SYSTEM = (
     "You are a skeptical-but-fair evidence judge for an accountability app. "
     "Rules: 'pass' requires observations that SPECIFICALLY connect to the stated deliverable. "
-    "Use 'unclear' (never 'fail') when evidence is plausible but unprovable, and put the "
-    "single disambiguating request in follow_up_request. Reserve 'fail' for direct "
-    "contradiction, or for absence at a final deadline check. 'unclear' never punishes. "
-    "Return JSON matching the verdict schema."
+    "Judge whether the deliverable demonstrably EXISTS and matches what was promised, not its "
+    "polish, content-completeness, or production-readiness: placeholder text (e.g. Lorem Ipsum), "
+    "draft copy, stock imagery, or rough edges are NOT grounds for 'unclear' when the artifact is "
+    "clearly the promised deliverable. "
+    "Use 'unclear' (never 'fail') only when the evidence's identity is genuinely ambiguous "
+    "(illegible, the wrong artifact, or it could be anything), and put the single disambiguating "
+    "request in follow_up_request. Reserve 'fail' for direct contradiction, or for absence at a "
+    "final deadline check. 'unclear' never punishes. Return JSON matching the verdict schema."
 )
