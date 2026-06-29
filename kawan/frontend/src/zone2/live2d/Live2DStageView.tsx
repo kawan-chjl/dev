@@ -24,12 +24,23 @@ export interface Live2DStageHandle {
 
 interface Props {
   persona: Persona
+  // Fires once the model has settled (loaded or failed) so a host can drop a loading overlay.
+  onReady?: () => void
 }
 
-export const Live2DStageView = forwardRef<Live2DStageHandle, Props>(function Live2DStageView({ persona }, ref) {
+export const Live2DStageView = forwardRef<Live2DStageHandle, Props>(function Live2DStageView(
+  { persona, onReady },
+  ref
+) {
   const containerRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<Live2DStage | null>(null)
   const [loadFailed, setLoadFailed] = useState(false)
+  // Keep the latest onReady in a ref so the mount effect (keyed on persona only) never re-runs
+  // when the parent passes a fresh callback identity, which would needlessly remount the stage.
+  const onReadyRef = useRef(onReady)
+  useEffect(() => {
+    onReadyRef.current = onReady
+  }, [onReady])
 
   // Expose the imperative handle so WorkspaceLayout/StageMode can call expression/speak/motion.
   useImperativeHandle(
@@ -77,12 +88,18 @@ export const Live2DStageView = forwardRef<Live2DStageHandle, Props>(function Liv
         scale: config.scale,
         anchorY: config.anchorY
       })
+      .then(() => {
+        if (cancelled) return
+        onReadyRef.current?.()
+      })
       .catch((err: unknown) => {
         // Stale promise from a torn-down effect (StrictMode discard) — do not update state.
         if (cancelled) return
         // Model missing on disk or renderer init failed — show the placeholder fallback (Q2).
         console.warn('[Live2DStageView] model load failed for persona', persona, err)
         setLoadFailed(true)
+        // Still settle the host loader so it doesn't spin forever; the placeholder takes over.
+        onReadyRef.current?.()
       })
 
     // ResizeObserver keeps the canvas fitted to its container (responsive, TR-06).

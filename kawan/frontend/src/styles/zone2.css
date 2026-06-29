@@ -357,6 +357,7 @@
   width: min(860px, calc(100vw - var(--space-8)));
   background: rgba(26, 18, 10, 0.88);
   border: 1.5px solid rgba(244, 236, 225, 0.1);
+  border-top: 2px solid var(--accent);
   border-radius: var(--radius-card);
   backdrop-filter: blur(16px) saturate(160%);
   padding: var(--space-6) var(--space-7);
@@ -2671,62 +2672,122 @@ fieldset.messages-intake-menu {
   max-width: 100%;
 }
 
-/* ── Phase 3: Workspace island positioning ── */
-/* Islands are DOM siblings over the single-mounted stage — never cause a remount.
-   Positioned to avoid overlapping the 52px header or each other. */
+/* ── Phase 3: Workspace side drawers ── */
+/* Islands live in two edge-anchored drawers so the single-mounted stage stays uninterrupted.
+   Collapsed, only a labeled tab pokes in; hovering the edge peeks the panel out and clicking the
+   tab pins it. The backdrop blurs + dims everything beneath the open drawer(s). */
+.ws-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 44;
+  background: rgba(10, 7, 4, 0.5);
+  backdrop-filter: blur(7px);
+  animation: ws-drawer-fade var(--duration-ui) var(--ease-smooth) both;
+}
+@keyframes ws-drawer-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
 
-/* Top-left: Plan + Activity, vertically centered in the character area, left-aligned.
-   Confined between the topbar and the bottom dialogue/input zone so it never overlaps
-   section.stage-dialogue-box. */
-.workspace-island-topleft {
-  position: absolute;
+.ws-drawer {
+  --ws-tab-w: 34px;
+  position: fixed;
   top: calc(52px + var(--space-3));
-  bottom: 240px;
-  left: var(--space-3);
-  z-index: 30;
-  pointer-events: auto;
+  bottom: var(--space-3);
+  z-index: 46;
   display: flex;
-  flex-direction: column;
-  /* 'safe' keeps content top-aligned + scrollable when it overflows, instead of clipping the
-     top of a centered column (item 5). */
-  justify-content: safe center;
-  gap: var(--space-2);
-  width: min(320px, 34vw);
-  max-width: min(320px, calc(100vw - var(--space-6)));
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(244, 236, 225, 0.22) transparent;
+  align-items: center;
+  /* The aside box is the thin edge strip; clicks pass through to the stage, and only the tab and
+     panel (which re-enable pointer events) drive hover/open. */
+  pointer-events: none;
+}
+.ws-drawer--left {
+  left: 0;
+}
+.ws-drawer--right {
+  right: 0;
 }
 
-/* Top-right: Context + Check-In + Finish islands stacked. Bottom-bounded so the column
-   stays above the dialogue box (item 2: islands float above + within the dialogue zone). */
-.workspace-island-topright {
-  position: absolute;
-  top: calc(52px + var(--space-4));
-  bottom: 240px;
-  right: var(--space-3);
-  z-index: 30;
+.ws-drawer-tab {
+  position: relative;
+  z-index: 1;
   pointer-events: auto;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: var(--space-2);
-  width: min(320px, 34vw);
-  max-width: min(320px, calc(100vw - var(--space-6)));
+  width: var(--ws-tab-w);
+  padding: var(--space-3) 0;
+  border: 1px solid rgba(244, 236, 225, 0.14);
+  background: rgba(26, 18, 10, 0.92);
+  backdrop-filter: var(--blur-backdrop);
+  color: #f4ece1;
+  font-size: var(--text-caption);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background var(--duration-ui) var(--ease-smooth);
+}
+.ws-drawer-tab:hover {
+  background: rgba(42, 30, 18, 0.96);
+}
+.ws-drawer--left .ws-drawer-tab {
+  border-left: none;
+  border-radius: 0 var(--radius-card) var(--radius-card) 0;
+}
+.ws-drawer--right .ws-drawer-tab {
+  border-right: none;
+  border-radius: var(--radius-card) 0 0 var(--radius-card);
+}
+.ws-drawer-tab-label {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+.ws-drawer--right .ws-drawer-tab-label {
+  transform: rotate(180deg); /* read top-to-bottom on the right edge */
+}
+
+.ws-drawer-panel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: min(340px, calc(84vw - var(--ws-tab-w)));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-1);
   overflow-y: auto;
+  pointer-events: auto;
   scrollbar-width: thin;
   scrollbar-color: rgba(244, 236, 225, 0.22) transparent;
+  transition: transform var(--duration-panel) var(--ease-smooth);
 }
-.workspace-island-topleft::-webkit-scrollbar,
-.workspace-island-topright::-webkit-scrollbar {
+.ws-drawer--left .ws-drawer-panel {
+  left: var(--ws-tab-w);
+  transform: translateX(calc(-100% - var(--ws-tab-w) - var(--space-3)));
+}
+.ws-drawer--right .ws-drawer-panel {
+  right: var(--ws-tab-w);
+  transform: translateX(calc(100% + var(--ws-tab-w) + var(--space-3)));
+}
+.ws-drawer--open .ws-drawer-panel {
+  transform: translateX(0);
+}
+.ws-drawer--instant .ws-drawer-panel {
+  transition: none;
+}
+.ws-drawer-panel::-webkit-scrollbar {
   width: 6px;
 }
-.workspace-island-topleft::-webkit-scrollbar-thumb,
-.workspace-island-topright::-webkit-scrollbar-thumb {
+.ws-drawer-panel::-webkit-scrollbar-thumb {
   background: rgba(244, 236, 225, 0.22);
   border-radius: var(--radius-pill);
 }
-.workspace-island-topleft::-webkit-scrollbar-track,
-.workspace-island-topright::-webkit-scrollbar-track {
+.ws-drawer-panel::-webkit-scrollbar-track {
   background: transparent;
 }
 
@@ -3572,10 +3633,9 @@ div.ws-island-header:hover {
   }
 }
 
-/* Narrow screens: hide islands to avoid overlap with stage content */
+/* Narrow screens: hide the bottom island to avoid overlap. The side drawers stay (off-canvas,
+   opened by tapping their tab) so the islands remain reachable on mobile. */
 @media (max-width: 480px) {
-  .workspace-island-topleft,
-  .workspace-island-topright,
   .workspace-island-bottom {
     display: none;
   }
@@ -3684,6 +3744,8 @@ div.ws-island-header:hover {
 [data-theme="light"] .stage-dialogue-box {
   background: color-mix(in srgb, var(--surface) 90%, transparent);
   border-color: var(--line);
+  /* Keep the accent top outline; the border-color shorthand above would otherwise clobber it. */
+  border-top-color: var(--accent);
   box-shadow: var(--shadow-lg);
 }
 
@@ -4031,16 +4093,6 @@ div.ws-island-header:hover {
   background: color-mix(in srgb, var(--surface) 90%, transparent);
   border-color: var(--line);
   box-shadow: var(--shadow-md);
-}
-
-[data-theme="light"] .workspace-island-topleft,
-[data-theme="light"] .workspace-island-topright {
-  scrollbar-color: color-mix(in srgb, var(--ink-soft) 26%, transparent) transparent;
-}
-
-[data-theme="light"] .workspace-island-topleft::-webkit-scrollbar-thumb,
-[data-theme="light"] .workspace-island-topright::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--ink-soft) 26%, transparent);
 }
 
 [data-theme="light"] .ws-island-header {

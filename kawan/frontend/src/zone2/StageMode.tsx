@@ -27,6 +27,8 @@ interface StageModeProps {
   commitmentId: string
   // The Stage/Messages toggle, rendered inside the dialogue box (above the dialogue line).
   modeToggle: ReactNode
+  // Fires when the Live2D model has settled, so the workspace can drop the switch loader.
+  onStageReady?: () => void
   phase: WorkspacePhase
   slotProgress: SlotProgress
   commitment: Commitment | null
@@ -51,6 +53,7 @@ export function StageMode({
   error,
   commitmentId,
   modeToggle,
+  onStageReady,
   phase,
   commitment,
   intakeStep,
@@ -182,7 +185,7 @@ export function StageMode({
     <div className="stage-mode">
       {/* Character stage area — single mount, never remounts (A3 design §4) */}
       <div className="stage-character-area">
-        <Live2DStageView ref={stageRef} persona={persona} />
+        <Live2DStageView ref={stageRef} persona={persona} onReady={onStageReady} />
         {/* Typing / thinking indicator — floats over the character, like the VN intake options.
             Suppressed while openerLoading via the sending prop (2.1). */}
         {sending && (
