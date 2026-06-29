@@ -250,3 +250,35 @@ async def test_terminal_commitments_do_not_block_new_creates(client, db):
         json={"action": "4th", "deliverable": "d", "deadline": _future()},
     )
     assert r.status_code == 409
+
+
+# ── Demo walkthrough bypasses the cap ─────────────────────────────────────────
+
+
+async def test_demo_create_and_start_bypass_cap(client, db):
+    """The guided demo (?demo=1) creates and starts a commitment past the cap; its
+    throwaway commitment is discarded on completion/skip, so it must not be blocked."""
+    for _ in range(3):
+        cid = await _create(client)
+        await _start(client, cid)
+
+    # A normal 4th create is still blocked...
+    r = await client.post(
+        "/api/commitments",
+        json={"action": "blocked", "deliverable": "d", "deadline": _future()},
+    )
+    assert r.status_code == 409
+
+    # ...but the demo create and start succeed past the cap.
+    r = await client.post(
+        "/api/commitments?demo=1",
+        json={"action": "demo", "deliverable": "d", "deadline": _future()},
+    )
+    assert r.status_code == 201
+    demo_id = r.json()["id"]
+
+    r = await client.post(f"/api/commitments/{demo_id}/start?demo=1")
+    assert r.status_code == 200
+    c = await db.get(Commitment, demo_id)
+    assert c is not None
+    assert c.status == "active"

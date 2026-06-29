@@ -748,7 +748,7 @@ export function NewCommitment() {
       // 1. Create the commitment (first write)
       let created: Awaited<ReturnType<typeof createCommitment>>
       try {
-        created = await createCommitment({ action, deliverable, deadline: deadlineISO })
+        created = await createCommitment({ action, deliverable, deadline: deadlineISO }, demoActive)
         if (demoActive) setDemoCommitmentId(created.id)
       } catch (err) {
         const status = err instanceof Error ? (err as Error & { status?: number }).status : undefined
@@ -782,7 +782,7 @@ export function NewCommitment() {
         await patchCommitment(created.id, patchBody)
       }
       // 3. Start the commitment (draft to active)
-      await startCommitment(created.id)
+      await startCommitment(created.id, demoActive)
       // 4. Persist persona selection ONLY on full success
       await setPersona(selectedPersona)
       navigate(`/workspace/${created.id}`)
