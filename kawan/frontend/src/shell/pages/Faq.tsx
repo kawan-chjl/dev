@@ -13,7 +13,7 @@ export function Faq() {
   const [query, setQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState<typeof ALL | FaqCategory>(ALL)
   const [currentPage, setCurrentPage] = useState(1)
-  const listTopRef = useRef<HTMLDivElement>(null)
+  const pageTopRef = useRef<HTMLDivElement>(null)
 
   const filtered = faqData.filter((item) => {
     const matchCat = activeCategory === ALL || item.category === activeCategory
@@ -42,15 +42,16 @@ export function Faq() {
     setCurrentPage(1)
   }
 
-  function handlePageChange(nextPage: number) {
+  function handlePageChange(nextPage: number, trigger: HTMLButtonElement) {
+    trigger.blur()
     setCurrentPage(nextPage)
     requestAnimationFrame(() => {
-      listTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      pageTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     })
   }
 
   return (
-    <div className="shell-page">
+    <div ref={pageTopRef} className="shell-page">
       <PageHeader
         title="FAQ"
         subtitle="Answers to common questions about Kawan."
@@ -86,7 +87,7 @@ export function Faq() {
         <p className="faq-empty">No answers match that. Try another word.</p>
       ) : (
         <>
-          <div ref={listTopRef} className="faq-list">
+          <div className="faq-list">
             {pageItems.map((item) => (
               <details key={item.id} className="faq-item">
                 <summary className="faq-question">{item.question}</summary>
@@ -103,7 +104,7 @@ export function Faq() {
                     key={page}
                     type="button"
                     className={`faq-page-node${page === currentPage ? ' faq-page-node-active' : ''}`}
-                    onClick={() => handlePageChange(page)}
+                    onClick={(event) => handlePageChange(page, event.currentTarget)}
                     aria-current={page === currentPage ? 'page' : undefined}
                   >
                     {page}
