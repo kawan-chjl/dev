@@ -40,3 +40,5 @@ services:
         sync: false
       - key: KAWAN_CHUTES_API_KEY
         sync: false
+      - key: KAWAN_GEMINI_API_KEY
+        sync: false
