@@ -648,7 +648,7 @@
   position: relative;
   z-index: 1;
   min-height: 100vh;
-  margin-bottom: 120px;
+  margin-bottom: 156px;
   background: var(--bg);
 }
 
@@ -672,10 +672,10 @@
   left: 0;
   right: 0;
   z-index: 0;
-  height: 120px;
-  background: #415672;
-  color: #fff7ea;
-  border-top: 1px solid rgba(255, 247, 234, 0.1);
+  height: 156px;
+  background: #ece5dc;
+  color: #3a2a1e;
+  border-top: 1px solid #d8ccbd;
   transition:
     background-color var(--duration-panel) var(--ease-smooth),
     color var(--duration-panel) var(--ease-smooth),
@@ -688,18 +688,18 @@
   }
 }
 
-/* Keep the footer as a stable brand band across themes. */
+/* Light theme: warm oat with soft border */
 [data-theme="light"] .shell-footer,
 :root:not([data-theme="dark"]) .shell-footer {
-  background: #415672;
-  color: #fff7ea;
-  border-top-color: rgba(255, 247, 234, 0.1);
+  background: #ece5dc;
+  color: #3a2a1e;
+  border-top-color: #d8ccbd;
 }
 
 [data-theme="dark"] .shell-footer {
-  background: #34475f;
-  color: #fff7ea;
-  border-top-color: rgba(255, 247, 234, 0.12);
+  background: #140f0b;
+  color: #f4ece1;
+  border-top-color: #3a2c20;
 }
 
 /* Offset by sidebar on desktop */
@@ -767,13 +767,13 @@
 }
 [data-theme="light"] .shell-footer-logo-name,
 :root:not([data-theme="dark"]) .shell-footer-logo-name {
-  color: #fff7ea;
+  color: #3a2a1e;
 }
 [data-theme="dark"] .shell-footer-logo-name {
-  color: #fff7ea;
+  color: #f4ece1;
 }
 .shell-footer-logo-link:hover .shell-footer-logo-name {
-  color: #ffe7c2;
+  color: var(--accent);
 }
 
 /* Links row */
@@ -783,21 +783,19 @@
 
 .shell-footer-link {
   font-size: var(--text-small);
-  font-weight: 700;
   cursor: pointer;
   text-decoration: none;
-  color: #fff7ea;
   transition: color var(--duration-ui) var(--ease-out);
 }
 [data-theme="light"] .shell-footer-link,
 :root:not([data-theme="dark"]) .shell-footer-link {
-  color: #fff7ea;
+  color: #9c8a7a;
 }
 [data-theme="dark"] .shell-footer-link {
-  color: #fff7ea;
+  color: #8c7867;
 }
 .shell-footer-link:hover {
-  color: #ffe7c2;
+  color: var(--accent);
   text-decoration: none;
 }
 
