@@ -2886,35 +2886,14 @@ fieldset.messages-intake-menu {
   backdrop-filter: blur(8px);
 }
 
-/* Confetti — decorative falling pieces over the win overlay; never blocks clicks. */
+/* Confetti — one-shot canvas burst over the win overlay; never blocks clicks. */
 .ws-confetti {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  overflow: hidden;
+  width: 100vw;
+  height: 100vh;
   pointer-events: none;
   z-index: 1;
-}
-
-.ws-confetti-piece {
-  position: absolute;
-  top: -24px;
-  border-radius: 2px;
-  opacity: 0.92;
-  animation-name: ws-confetti-fall;
-  animation-timing-function: ease-in;
-  animation-iteration-count: 1;
-  animation-fill-mode: forwards;
-}
-
-@keyframes ws-confetti-fall {
-  0% {
-    transform: translateY(0) rotate(0deg);
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(108vh) rotate(540deg);
-    opacity: 0.9;
-  }
 }
 
 /* Check-in island locked confirmation shown after a passing check-in. */
@@ -2929,12 +2908,6 @@ fieldset.messages-intake-menu {
 
 /* The demo step bar floats (fixed, z-index) over the topbar's empty center — no extra row,
    so the workspace is not pushed down. */
-
-@media (prefers-reduced-motion: reduce) {
-  .ws-confetti {
-    display: none;
-  }
-}
 
 /* ── Shared island base ── */
 .ws-island {
