@@ -811,6 +811,7 @@ export function WorkspaceLayout() {
               <CheckinIsland
                 commitmentId={commitmentId}
                 checkinStatus={checkinStatus}
+                cadence={commitment?.cadence}
                 variant={keyEvent === 'late-checkin' ? 'late-checkin' : keyEvent === 'checkin' ? 'checkin' : null}
                 onKawanSay={sayAsKawan}
                 onActivity={bumpActivity}
