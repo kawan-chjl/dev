@@ -91,14 +91,6 @@
   padding: 3px;
 }
 
-/* Toggle row at the top of the messages view. */
-.messages-mode-toggle-row {
-  display: flex;
-  justify-content: center;
-  flex-shrink: 0;
-  padding: var(--space-3) 0 var(--space-1);
-}
-
 .workspace-mode-btn {
   background: none;
   border: none;
@@ -252,9 +244,9 @@
   position: relative;
   /* Warm radial vignette — character pops in both themes (design-system.md §1) */
   background: radial-gradient(ellipse 70% 80% at 50% 35%, #241810 0%, #161009 60%, #0e0b06 100%);
-  /* Full-width accent line marking the boundary between the stage and the dialogue zone. */
-  border-bottom: 4px solid var(--accent);
-  box-shadow: 0 3px 14px -4px var(--accent);
+  /* Subtle full-width accent line marking the boundary between the stage and the dialogue zone. */
+  border-bottom: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  box-shadow: 0 2px 10px -6px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 /* Live2D container div fills the character area; Pixi appends its own canvas inside (B-FIX bug 1). */
@@ -2648,6 +2640,16 @@ fieldset.messages-intake-menu {
   outline-offset: 2px;
 }
 
+/* When the intake controls nest in the composer band, drop their own band so the toggle and the
+   VN buttons read as a single bar (matches the chat composer). */
+.messages-input-bar .messages-intake-menu,
+.messages-input-bar .messages-intake-own-bar {
+  border-top: none;
+  background: none;
+  backdrop-filter: none;
+  padding: 0;
+}
+
 /* ── I3: skip button inside the intake input bars ── */
 .stage-intake-skip-btn,
 .messages-intake-skip-btn {
@@ -4158,6 +4160,12 @@ div.ws-island-header:hover {
 [data-theme="light"] .messages-intake-own-bar {
   background: color-mix(in srgb, var(--surface) 90%, transparent);
   border-top-color: var(--line);
+}
+
+[data-theme="light"] .messages-input-bar .messages-intake-menu,
+[data-theme="light"] .messages-input-bar .messages-intake-own-bar {
+  background: none;
+  border-top: none;
 }
 
 [data-theme="light"] .stage-intake-skip-btn {
