@@ -133,5 +133,5 @@ export function Confetti() {
 
   if (!active) return null
 
-  return <canvas ref={canvasRef} className="ws-confetti" aria-hidden="true" />
+  return <canvas ref={canvasRef} className="ws-confetti" />
 }
