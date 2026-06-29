@@ -99,7 +99,7 @@ This doc tracks **only status** — what is done (`[x]`) vs not done (`[ ]`), pe
 - [x] Emotion → expression wiring (6-value enum) + six Hiyori (Adik) expressions [D2/D4]
 - [x] Deploy: Vercel (frontend) + Render (backend) live, auto-deploy from `main` [D4, half]
 - [x] **D3 — Web Push** — **DONE**: client shipped (PR #63: service worker + subscribe flow + Settings toggle + `GET /api/push/vapid-public-key`) + idempotent subs/dead-sub cleanup (#31); `scripts/gen_vapid.py` added (PR #72); VAPID keypair set on Render and **verified live** (`/api/push/vapid-public-key` serves an 87-char key). Full path: Settings toggle → subscribe → closed-tab notifications. **NICE.**
-- [ ] D4 — integration QA across full demo thread + Python seed/reset script for a clean demo dataset — **now = QA of the full REAL (Lane C active) thread; the seed script is X-DEMO/B7.** **DEMO-CRITICAL.**
+- [x] D4 — integration QA across full demo thread + Python seed/reset script for a clean demo dataset — **done** (live manual-walkthrough QA of the full REAL Lane C thread; the seed script is X-DEMO/B7). **DEMO-CRITICAL.**
 - [ ] D5 — demo script + video + Devpost + README (team-owned). **DEMO-CRITICAL.**
 
 ---
@@ -111,9 +111,9 @@ Status lists only — design lives in [`plan.md`](./plan.md). Each piece is also
 ### X-GAMIF — Reward stack (spec §11.4) — NO leaderboard (§11.5 rejects it; PO agreed)
 
 - [x] A7 identity titles UI — shipped (PR #66, derive from `success_patterns`)
-- [ ] A8 productivity meter UI — rises with verified wins; **growth rate scaled by the streak multiplier (1×–~3×, see Streak)** — **NICE** `[deviation: "trust meter" renamed → "productivity meter"]`
-- [ ] A9 win-receipt share card — **NICE** (client PNG, user-triggered)
-- [ ] A10 achievements UI (pending) + B6 achievements table/award logic (**done, PR #72**) — **STRETCH** `[deviation: not in spec]`
+- [x] A8 productivity meter UI — shipped (PR #79); rises with verified wins. The optional streak-multiplier scaling is the separate **Streak** item below (not built). **NICE** `[deviation: "trust meter" renamed → "productivity meter"]`
+- [x] A9 win-receipt share card — shipped (PR #79). **NICE** (client PNG, user-triggered)
+- [x] A10 achievements UI (shipped, PR #80) + B6 achievements table/award logic (**done, PR #72**) — **STRETCH** `[deviation: not in spec]`
 - [ ] **Streak — verified-win streak + productivity multiplier** (PO 26 Jun) — current run of consecutive **completed** commitments; a **miss resets to 0**. The streak drives the A8 **productivity-meter growth multiplier**: **1× baseline → climbs with the streak (e.g. +0.25×/win), capped ~3×, resets on miss** — each win on a streak adds `base × multiplier` to the meter. All derived from ordered outcome history (no schema; **no points economy**). Extend `/api/me/stats` with `current_streak` (+ multiplier) + UI beside the meter on the momentum view. **NICE.** _Agent crew._ Spec-compatible: counts verified wins, not raw activity (§11).
 
 ### X-MEM — Session-scoped AI memory — NICE (PO chose session-scoped; persisted = `[ROADMAP]`)
@@ -149,7 +149,7 @@ Status lists only — design lives in [`plan.md`](./plan.md). Each piece is also
 - [x] Frontend: Settings **"Check-in notifications"** expanded to all four channels — in-app (always-on) · email (per-commitment note) · Web Push (toggle) · Telegram (connect/status).
 - [x] Demo: Telegram via live Connect (Settings) + email via the per-commitment reminder field — the real flow, no pre-seed env vars.
 
-> **Deploy gate (schema): ✅ APPLIED (27 Jun).** The 4 nullable columns — `commitments.notify_email` + `users.telegram_chat_id` / `telegram_link_token` / `telegram_link_expires` — were applied + verified directly on the live Supabase DB (idempotent `ADD COLUMN IF NOT EXISTS`; `create_all` keeps them on fresh DBs, so no migration framework is tracked). ✅ Resend env set. ✅ Single-instance long-poll handled by a Postgres advisory lock (`pg_try_advisory_lock`) — requires the **session pooler (5432)**, per DEPLOY.md. **Remaining: deploy the (still-uncommitted) code.**
+> **Deploy gate (schema): ✅ APPLIED (27 Jun).** The 4 nullable columns — `commitments.notify_email` + `users.telegram_chat_id` / `telegram_link_token` / `telegram_link_expires` — were applied + verified directly on the live Supabase DB (idempotent `ADD COLUMN IF NOT EXISTS`; `create_all` keeps them on fresh DBs, so no migration framework is tracked). ✅ Resend env set. ✅ Single-instance long-poll handled by a Postgres advisory lock (`pg_try_advisory_lock`) — requires the **session pooler (5432)**, per DEPLOY.md. **Deployed (30 Jun): the X-NOTIF code (`app/notify.py` + `app/telegram.py`) is on `main` and live on Render (Resend + Telegram env vars set).**
 
 _Resolved open Qs (Gate 1): transport = **long-poll**; Telegram fires **parallel to** Web Push (independent channels, not laddered); prefs = **implicit-by-existence**._
 
@@ -158,7 +158,7 @@ _Resolved open Qs (Gate 1): transport = **long-poll**; Telegram fires **parallel
 - [x] B7 seed/reset script staging a clean demo account (varied states + pre-staged history) — shipped (PR #67)
 - [ ] B7 provision endpoint/flow to create the seeded commitments — **NICE**
 - [ ] Compressed-clock / scripted-tick driver chaining the EXISTING levers (`?demo_deadline=+5m` on `.../start`, `POST .../check`) — **NICE/STRETCH**
-- [ ] "Try Demo" button (Lane A; PO imagines it in `/commitments`' top container) — **NICE**
+- [x] "Try Demo" button — shipped (Lane A; in `/commitments` as "Start guided walkthrough", now a 6-step tour ending at Details → Analytics). **NICE**
 
 ---
 
@@ -180,7 +180,7 @@ The still-open, demo-critical items, pulled together:
 - [x] **Reward beat** [A7 titles] — shipped (PR #66).
 - [x] **Demo seed** [B7] — shipped (PR #67).
 - [x] **D3 Web Push** — DONE: client (PR #63) + idempotency (#31) + `gen_vapid.py` (PR #72); VAPID keys set on Render and verified live. Closed-tab notifications work. Independent of Lane C.
-- [ ] **D4 integration QA** — full **real** demo thread tested with the determinism levers; clean pre-staged demo data.
+- [x] **D4 integration QA** — full **real** demo thread tested with the determinism levers; clean pre-staged demo data.
 - [ ] **D5 demo video + Devpost + README** (team-owned).
 
 ---
@@ -196,4 +196,8 @@ Gemini fallback for evidence judging — `KAWAN_GEMINI_API_KEY` (config env-pref
 model `gemini-3.1-flash-lite`. The key is **already provisioned** on Render and in the local `.env`.
 The fallback must stay **totally implicit**: never reference Gemini (or any non-Chutes provider)
 anywhere in the README or public-facing docs — this internal note is the only place it is recorded.
-Not yet wired into `pipeline.safe_judge` (which still degrades to `unclear`); the lever is ready.
+
+**Wired (30 Jun):** now active in `pipeline.safe_judge` as the secondary judge for **screenshot,
+file, and GitHub** evidence — a primary failure falls to the secondary judge, degrading to
+`unclear` only if that also fails. The provider/model were smoke-tested live (key valid, vision +
+text verdicts returned).
