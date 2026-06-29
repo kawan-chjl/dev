@@ -707,6 +707,12 @@ export function WorkspaceLayout() {
   // 3.6: commitment failure — overlay the ending sequence instead of the normal workspace
   const isFailure = keyEvent === 'failure' && commitment !== null
 
+  // A commitment that is already completed when the workspace loads shows the win/completion screen
+  // instead of the interactive chat (mirrors the in-session Finish-Now win overlay). The completion
+  // time is the last passing evidence (checkin-status.last_pass_at), falling back to the deadline.
+  const isCompleted = commitment?.status === 'completed'
+  const winOverlayDate = winDateIso ?? (isCompleted ? (checkinStatus?.last_pass_at ?? commitment?.deadline) : undefined)
+
   const isLoading = initializing || openerLoading || viewSwitching || (viewMode === 'stage' && !stageReady)
 
   // Side-drawer open state. During the per-island tour steps, force (and hold) the matching drawer
@@ -723,8 +729,8 @@ export function WorkspaceLayout() {
   const rightDrawerOpen = drawerPinned.right || drawerHovered === 'right' || tourDrawer === 'right'
   // Both drawers show from intake on: the left holds Context (which fills during intake), the right
   // holds Details. Plan/Activity and Check-In/Finish only populate once chat starts.
-  const showLeftDrawer = !isFailure && !winDateIso
-  const showRightDrawer = !isFailure && !winDateIso
+  const showLeftDrawer = !isFailure && !winOverlayDate
+  const showRightDrawer = !isFailure && !winOverlayDate
   const anyDrawerOpen =
     commitmentId != null && ((showLeftDrawer && leftDrawerOpen) || (showRightDrawer && rightDrawerOpen))
 
@@ -774,14 +780,15 @@ export function WorkspaceLayout() {
           </div>
         )}
 
-        {/* 3.5: Win overlay — full-screen celebration + confetti after a Finish-Now completion */}
-        {winDateIso && commitment && (
+        {/* 3.5: Win overlay — full-screen celebration after a Finish-Now completion, and the
+            completion screen when an already-completed commitment is reopened. */}
+        {winOverlayDate && commitment && (
           <div className="workspace-win-overlay">
             <Confetti />
             <EndingSequence
               variant="win"
               commitment={commitment}
-              winDateIso={winDateIso}
+              winDateIso={winOverlayDate}
               onShareStateChange={handleShareStateChange}
             />
           </div>
