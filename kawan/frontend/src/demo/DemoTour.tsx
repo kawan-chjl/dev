@@ -46,7 +46,13 @@ const TOUR_STEPS: TourStep[] = [
     label: 'Workspace',
     route: ''
     // No default highlight here: the workspace drives an event-based sub-tour via the override.
-  }, // route is set dynamically after commitment created
+  },
+  {
+    label: 'Details',
+    route: ''
+    // route is set dynamically (the demo commitment's detail page); the workspace back CTA
+    // navigates there, and TourNavigator advances the step on arrival.
+  },
   {
     label: 'Analytics',
     route: '/welcome/analytics',

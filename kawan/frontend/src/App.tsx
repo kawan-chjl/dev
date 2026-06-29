@@ -15,6 +15,7 @@ import { SignIn } from './pages/SignIn'
 import { SignUp } from './pages/SignUp'
 import { Welcome } from './pages/Welcome'
 import { WelcomeAnalyticsWrapper } from './pages/WelcomeAnalyticsWrapper'
+import { WelcomeCommitmentDetailWrapper } from './pages/WelcomeCommitmentDetailWrapper'
 import { WelcomeFinished } from './pages/WelcomeFinished'
 import { Analytics } from './shell/pages/Analytics'
 import { CommitmentDetail } from './shell/pages/CommitmentDetail'
@@ -50,13 +51,18 @@ function TourNavigator() {
       next(path)
       return
     }
-    // Step 2 (Workspace) -> Step 3 (Analytics): user navigates to /welcome/analytics.
-    if (currentStep === 2 && path === '/welcome/analytics') {
+    // Step 2 (Workspace) -> Step 3 (Details): user opens the demo commitment's detail page.
+    if (currentStep === 2 && path !== '/welcome/commitments/new' && /^\/welcome\/commitments\/[^/]+$/.test(path)) {
       next()
       return
     }
-    // Step 3 (Analytics) -> Step 4 (Finished): user navigates to /welcome/finished.
-    if (currentStep === 3 && path === '/welcome/finished') {
+    // Step 3 (Details) -> Step 4 (Analytics): user navigates to /welcome/analytics.
+    if (currentStep === 3 && path === '/welcome/analytics') {
+      next()
+      return
+    }
+    // Step 4 (Analytics) -> Step 5 (Finished): user navigates to /welcome/finished.
+    if (currentStep === 4 && path === '/welcome/finished') {
       next()
       return
     }
@@ -89,6 +95,7 @@ function AppRoutes() {
         {/* Welcome tour routes — use the REAL page components (no duplicate data layers) */}
         <Route path="/welcome/commitments" element={<ShellLayout />}>
           <Route index element={<Commitments />} />
+          <Route path=":id" element={<WelcomeCommitmentDetailWrapper />} />
         </Route>
         <Route path="/welcome/commitments/new" element={<NewCommitment />} />
         <Route path="/welcome/analytics" element={<ShellLayout />}>
