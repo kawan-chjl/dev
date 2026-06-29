@@ -636,7 +636,10 @@ export function WorkspaceLayout() {
         onNext: () => setSubStep('analytics')
       },
       share: { target: '.ending-btn--share', hintText: 'You did it. Open "Share your win" to celebrate.' },
-      analytics: { target: '.workspace-back-btn', hintText: 'Head to Analytics to see what you achieved.' }
+      analytics: {
+        target: '.workspace-back-btn',
+        hintText: "You completed it. Open your commitment's details page to look it over."
+      }
     }
     setOverride(overrides[subStep])
     return () => setOverride(null)
@@ -749,13 +752,15 @@ export function WorkspaceLayout() {
         <button
           type="button"
           className="workspace-back-btn"
-          aria-label={tourActive && tourStep === 2 ? 'Continue to analytics' : 'Back to commitment'}
+          aria-label={tourActive && tourStep === 2 ? 'Open commitment details' : 'Back to commitment'}
           onClick={() =>
-            tourActive && tourStep === 2 ? navigate('/welcome/analytics') : navigate(`/commitments/${commitmentId}`)
+            tourActive && tourStep === 2
+              ? navigate(`/welcome/commitments/${commitmentId}`)
+              : navigate(`/commitments/${commitmentId}`)
           }
         >
           <ArrowLeft size={16} aria-hidden="true" />
-          <span>{tourActive && tourStep === 2 ? 'Analytics' : 'Back'}</span>
+          <span>{tourActive && tourStep === 2 ? 'Details' : 'Back'}</span>
         </button>
         {workspaceTitle && (
           <h1 className="workspace-title" title={workspaceTitle}>
