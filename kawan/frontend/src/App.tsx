@@ -71,6 +71,17 @@ function TourNavigator() {
   return null
 }
 
+// ScrollToTop — resets the window scroll to the top on every route (pathname) change, so each
+// page visit starts at the top instead of inheriting the previous page's scroll position.
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  // biome-ignore lint/correctness/useExhaustiveDependencies: pathname is the intended trigger - the effect re-runs on each navigation to reset scroll, though the body does not read it.
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [pathname])
+  return null
+}
+
 function AppRoutes() {
   const location = useLocation()
   const helpButtonRoutes = new Set(['/home', '/commitments', '/analytics'])
@@ -78,6 +89,8 @@ function AppRoutes() {
 
   return (
     <>
+      {/* Reset scroll to top on every route change */}
+      <ScrollToTop />
       {/* Tour navigator — watches route changes and advances the step counter */}
       <TourNavigator />
       {/* Floating step bar — rendered above all routes, only visible when tour is active */}
