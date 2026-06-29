@@ -13,7 +13,7 @@ const DEMO_FEATURES = [
   {
     icon: ClipboardCheck,
     title: 'Create one guided commitment',
-    body: 'Walk through the same commitment flow a real user uses, with demo defaults filled in where typing would slow you down.'
+    body: 'Walk through the same commitment flow a real user uses, with defaults prefilled in where typing would slow you down.'
   },
   {
     icon: MessageCircle,
@@ -66,10 +66,10 @@ export function Welcome() {
       </header>
 
       <main className="welcome-main">
-        <p className="welcome-kicker">Demo mode</p>
-        <h1 className="welcome-heading">Take the guided walkthrough</h1>
+        <p className="welcome-kicker">Tutorial Mode</p>
+        <h1 className="welcome-heading">Take the Guided Walkthrough</h1>
         <p className="welcome-sub">
-          This short tour shows the hackathon demo flow without making you figure out where to click first.
+          This short tour teaches you how to use Kawan without making you figure out where to click first.
         </p>
 
         <div className="welcome-demo-grid">
@@ -93,7 +93,7 @@ export function Welcome() {
           onClick={handleStartWalkthrough}
           aria-label="Start the guided walkthrough"
         >
-          Start the walkthrough
+          Guide Me!
         </Button>
 
         <p className="welcome-demo-note">
