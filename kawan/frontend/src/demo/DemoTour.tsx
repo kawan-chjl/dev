@@ -22,9 +22,9 @@ export interface TourOverride {
   hintText: string
   showNext?: boolean
   onNext?: () => void
-  // 'left' floats the tooltip to the left of the target (for right-edge island targets whose
+  // Floats the tooltip to the left/right of the target (for edge-anchored drawer islands whose
   // own buttons a below-placed tooltip would cover). Default places it below/above the target.
-  placement?: 'left'
+  placement?: 'left' | 'right'
   // Label for the advance button (default 'Next'); e.g. 'Skip' to unblock a stuck step.
   nextLabel?: string
 }
@@ -55,9 +55,8 @@ const TOUR_STEPS: TourStep[] = [
   },
   {
     label: 'Done',
-    route: '/welcome/finished',
-    target: '[data-tour="finished-home"]',
-    hintText: 'Return home when you are ready.'
+    route: '/welcome/finished'
+    // No highlight/annotation on the "Go to home" CTA — the finished screen speaks for itself.
   }
 ]
 

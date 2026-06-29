@@ -77,18 +77,25 @@ export function Spotlight() {
 
   if (rect) {
     const belowTarget = rect.bottom + 96 < window.innerHeight
+    const sideTop = Math.min(Math.max(rect.top + rect.height / 2, 96), window.innerHeight - 96)
     const tooltipStyle: CSSProperties =
       placement === 'left'
         ? {
-            top: Math.min(Math.max(rect.top + rect.height / 2, 96), window.innerHeight - 96),
+            top: sideTop,
             right: Math.max(window.innerWidth - rect.left + 14, 12),
             transform: 'translateY(-50%)'
           }
-        : {
-            top: belowTarget ? rect.bottom + 14 : Math.max(96, rect.top - 14),
-            left: Math.min(Math.max(rect.left + rect.width / 2, TOOLTIP_HALF), window.innerWidth - TOOLTIP_HALF),
-            transform: belowTarget ? 'translate(-50%, 0)' : 'translate(-50%, -100%)'
-          }
+        : placement === 'right'
+          ? {
+              top: sideTop,
+              left: Math.min(rect.right + 14, window.innerWidth - 12),
+              transform: 'translateY(-50%)'
+            }
+          : {
+              top: belowTarget ? rect.bottom + 14 : Math.max(96, rect.top - 14),
+              left: Math.min(Math.max(rect.left + rect.width / 2, TOOLTIP_HALF), window.innerWidth - TOOLTIP_HALF),
+              transform: belowTarget ? 'translate(-50%, 0)' : 'translate(-50%, -100%)'
+            }
 
     return (
       <>

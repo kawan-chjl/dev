@@ -213,6 +213,14 @@ interface ComposeSectionProps {
   active: boolean
 }
 
+// Soft cap on the deliverable phrase so commitments stay short and scannable.
+const DELIVERABLE_WORD_LIMIT = 10
+
+function countWords(s: string): number {
+  const t = s.trim()
+  return t ? t.split(/\s+/).length : 0
+}
+
 function ComposeSection({
   action,
   setAction,
@@ -224,6 +232,7 @@ function ComposeSection({
   demoMode,
   active
 }: ComposeSectionProps) {
+  const deliverableWords = countWords(deliverable)
   return (
     <StepPanel id="nc-compose" active={active}>
       <div className="nc-section-inner">
@@ -254,11 +263,24 @@ function ComposeSection({
               type="text"
               placeholder="what you will deliver"
               value={deliverable}
-              onChange={(e) => setDeliverable(e.target.value)}
+              onChange={(e) => {
+                const next = e.target.value
+                const words = next.trim().split(/\s+/).filter(Boolean)
+                // Cap at the word limit by trimming to the first N words (handles typing + paste).
+                setDeliverable(
+                  words.length <= DELIVERABLE_WORD_LIMIT ? next : words.slice(0, DELIVERABLE_WORD_LIMIT).join(' ')
+                )
+              }}
               autoComplete="off"
               readOnly={demoMode}
               style={demoMode ? { cursor: 'not-allowed' } : undefined}
             />
+            <span
+              className={`nc-deliverable-counter${deliverableWords >= DELIVERABLE_WORD_LIMIT ? ' nc-deliverable-counter--full' : ''}`}
+              aria-hidden="true"
+            >
+              {deliverableWords}/{DELIVERABLE_WORD_LIMIT}
+            </span>
           </span>
           <span className="nc-madlib-prose">by</span>
           <span className="nc-madlib-field">

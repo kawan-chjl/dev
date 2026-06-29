@@ -7,9 +7,11 @@
 // Always visible (collapsible); variant drives late tone only, not visibility.
 
 import { Check, ChevronDown, ChevronUp, ClipboardCheck } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { type CheckinResponse, type EvidenceVerdict, triggerCheckin } from '../../commitments/api'
+import { useNotifications } from '../../notifications/NotificationProvider'
 import type { Emotion } from '../../types/api'
+import { fmtDuration } from '../formatTime'
 import type { CheckinStatus } from '../keyEvents'
 import { SubmissionPanel } from '../SubmissionPanel'
 import { VerdictCard } from '../VerdictCard'
@@ -35,12 +37,24 @@ export function CheckinIsland({
   onActivity,
   onVerdict
 }: CheckinIslandProps) {
+  const { notify } = useNotifications()
   const [expanded, setExpanded] = useState(true)
   const [phase, setPhase] = useState<Phase>('idle')
   const [checkin, setCheckin] = useState<CheckinResponse | null>(null)
   const [verdict, setVerdict] = useState<EvidenceVerdict | null>(null)
   const [checkedIn, setCheckedIn] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [now, setNow] = useState(() => Date.now())
+
+  // Tick once a second only while the countdown is on screen (idle, not yet checked in).
+  const showTimer = phase === 'idle' && !checkedIn && checkinStatus?.due_at != null
+  useEffect(() => {
+    if (!showTimer) return
+    setNow(Date.now())
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [showTimer])
+  const dueMs = checkinStatus?.due_at ? new Date(checkinStatus.due_at).getTime() - now : 0
 
   async function handleTrigger() {
     setError(null)
@@ -61,6 +75,18 @@ export function CheckinIsland({
     setVerdict(v)
     setPhase('verdict')
     onActivity()
+    // Surface the AI's evaluation as an in-app notification (every check-in submission).
+    notify(
+      v.verdict === 'pass'
+        ? 'Check-in approved'
+        : v.verdict === 'fail'
+          ? 'Check-in not approved'
+          : 'Check-in needs more context',
+      {
+        detail: v.reasoning?.trim() || undefined,
+        kind: v.verdict === 'pass' ? 'success' : v.verdict === 'fail' ? 'error' : 'info'
+      }
+    )
     let line = v.reasoning?.trim() ?? ''
     if (!line) {
       if (v.verdict === 'pass') line = "Logged. That's one more in the bank."
@@ -114,6 +140,17 @@ export function CheckinIsland({
                 {error && (
                   <p className="ws-island-error" role="alert">
                     {error}
+                  </p>
+                )}
+                {showTimer && (
+                  <p className="checkin-island-timer">
+                    {checkinStatus?.is_late || dueMs <= 0 ? (
+                      <span className="checkin-island-timer-late">Check-in overdue</span>
+                    ) : (
+                      <>
+                        Next check-in in <strong>{fmtDuration(dueMs)}</strong>
+                      </>
+                    )}
                   </p>
                 )}
                 <button type="button" className="checkin-island-trigger-btn" onClick={handleTrigger}>

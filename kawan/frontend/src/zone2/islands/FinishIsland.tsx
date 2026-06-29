@@ -7,6 +7,7 @@
 import { ChevronDown, ChevronUp, Trophy } from 'lucide-react'
 import { useState } from 'react'
 import type { EvidenceVerdict } from '../../commitments/api'
+import { useNotifications } from '../../notifications/NotificationProvider'
 import type { Emotion } from '../../types/api'
 import { SubmissionPanel } from '../SubmissionPanel'
 import { VerdictCard } from '../VerdictCard'
@@ -23,6 +24,7 @@ interface FinishIslandProps {
 type Phase = 'idle' | 'submitting' | 'verdict'
 
 export function FinishIsland({ commitmentId, onKawanSay, onActivity, onComplete, onVerdict }: FinishIslandProps) {
+  const { notify } = useNotifications()
   const [expanded, setExpanded] = useState(true)
   const [phase, setPhase] = useState<Phase>('idle')
   const [verdict, setVerdict] = useState<EvidenceVerdict | null>(null)
@@ -32,6 +34,7 @@ export function FinishIsland({ commitmentId, onKawanSay, onActivity, onComplete,
     // Gate the win on the backend-confirmed 'completed' status, not merely verdict === 'pass'.
     // The backend returns status:'completed' only when ?finish=true transitioned the state machine.
     if (v.status === 'completed') {
+      notify('Commitment completed!', { detail: 'You finished your commitment. Share your win.', kind: 'success' })
       onComplete(new Date().toISOString())
       return
     }
@@ -43,6 +46,11 @@ export function FinishIsland({ commitmentId, onKawanSay, onActivity, onComplete,
         ? 'Not enough to call it done. Add more proof and try again.'
         : 'That evidence did not meet the bar. Bring something stronger.')
     onKawanSay(line, v.verdict === 'unclear' ? 'neutral' : 'skeptical')
+    // Surface the AI's evaluation as an in-app notification (non-completing finish submission).
+    notify(v.verdict === 'unclear' ? 'Finish needs more context' : 'Finish evidence not approved', {
+      detail: v.reasoning?.trim() || undefined,
+      kind: v.verdict === 'unclear' ? 'info' : 'error'
+    })
     // Evidence was evaluated but didn't complete — let the walkthrough offer a Skip so a denied
     // demo submission can't dead-end the tour.
     onVerdict?.(v)
