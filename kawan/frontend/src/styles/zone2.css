@@ -2352,7 +2352,9 @@ fieldset.stage-intake-menu,
 fieldset.messages-intake-menu {
   border: none;
   padding: 0;
-  margin: 0;
+  /* Keep horizontal auto-centering: a plain `margin: 0` here (higher specificity than
+     .messages-intake-menu) was left-aligning the VN options off the centered thread column. */
+  margin: 0 auto;
 }
 
 /* ── T4: Intake VN action menu (Stage mode) ── */

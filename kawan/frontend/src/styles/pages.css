@@ -1911,7 +1911,7 @@
 /* Desktop: left content col + fixed-width right rail; fill viewport-minus-chrome */
 @media (min-width: 900px) {
   .home-bento-v5 {
-    grid-template-columns: 1fr 280px;
+    grid-template-columns: 1fr 364px;
     grid-template-rows: 1fr;
     /* min-height fills the content area so no deadspace appears below on tall monitors. */
     min-height: calc(100svh - var(--topbar-h) - 2 * var(--space-8) - 200px);
