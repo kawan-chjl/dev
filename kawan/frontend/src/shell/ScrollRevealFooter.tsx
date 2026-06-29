@@ -1,6 +1,4 @@
-// ScrollRevealFooter — Layer 4. Warm-dark band, revealed at end of scroll.
-// v4 hotfix: two-row right-aligned footer — logo lockup + clickable link row.
-// All links point to "/" as placeholder targets until real pages exist.
+// ScrollRevealFooter — Layer 4. Fixed band, revealed at end of scroll.
 // Footer copy uses no emdash per design-system.md §7.
 
 import { Link } from 'react-router-dom'
@@ -18,32 +16,11 @@ export function ScrollRevealFooter() {
         </div>
         {/* Row 2: Link row */}
         <div className="shell-footer-row shell-footer-row-links">
-          <Link to="/" className="shell-footer-link">
-            &copy; 2026 Kawan
-          </Link>
-          <span className="shell-footer-sep" aria-hidden="true">
-            &middot;
-          </span>
-          <Link to="/" className="shell-footer-link">
-            Contact Us
-          </Link>
-          <span className="shell-footer-sep" aria-hidden="true">
-            &middot;
-          </span>
-          <Link to="/" className="shell-footer-link">
-            How it Works
-          </Link>
-          <span className="shell-footer-sep" aria-hidden="true">
-            &middot;
-          </span>
-          <Link to="/" className="shell-footer-link">
-            Privacy Policy
-          </Link>
-          <span className="shell-footer-sep" aria-hidden="true">
-            &middot;
-          </span>
-          <Link to="/" className="shell-footer-link">
-            Terms &amp; Conditions
+          <a href="https://github.com/kawan-chjl/dev" target="_blank" rel="noreferrer" className="shell-footer-link">
+            GitHub
+          </a>
+          <Link to="/privacy" className="shell-footer-link">
+            Privacy
           </Link>
         </div>
       </div>

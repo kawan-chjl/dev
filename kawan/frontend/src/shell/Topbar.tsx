@@ -17,7 +17,8 @@ const ROUTE_TITLES: Record<string, string> = {
   '/timeline': 'Analytics',
   '/settings': 'Settings',
   '/history': 'History',
-  '/faq': 'FAQ'
+  '/faq': 'FAQ',
+  '/privacy': 'Privacy'
 }
 
 function usePageTitle(): string {

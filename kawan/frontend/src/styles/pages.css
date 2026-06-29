@@ -1768,6 +1768,137 @@
   max-width: 640px;
 }
 
+.faq-pagination {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.faq-page-node {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background var(--duration-ui) var(--ease-out),
+    border-color var(--duration-ui) var(--ease-out),
+    color var(--duration-ui) var(--ease-out),
+    transform var(--duration-ui) var(--ease-out);
+}
+
+.faq-page-node:hover {
+  background: var(--surface-sunk);
+  color: var(--ink);
+  transform: translateY(-1px);
+}
+
+.faq-page-node-active,
+.faq-page-node-active:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--surface-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .faq-page-node {
+    transition: none;
+  }
+
+  .faq-page-node:hover {
+    transform: none;
+  }
+}
+
+/* ── Privacy page ── */
+.privacy-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.privacy-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+@media (min-width: 860px) {
+  .privacy-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.privacy-card {
+  padding: var(--space-5);
+}
+
+.privacy-card h3 {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-display);
+  font-size: var(--text-h3);
+  color: var(--ink);
+}
+
+.privacy-card p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--text-small);
+  line-height: var(--lh-body);
+}
+
+.privacy-card p + p {
+  margin-top: var(--space-3);
+}
+
+.privacy-note {
+  color: var(--ink-faint);
+  font-style: italic;
+}
+
+.privacy-principles-list {
+  margin: var(--space-3) 0 0;
+  padding-left: var(--space-5);
+  color: var(--ink-soft);
+  font-size: var(--text-small);
+  line-height: var(--lh-body);
+}
+
+.privacy-principles-list li + li {
+  margin-top: var(--space-2);
+}
+
+.privacy-reference-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.privacy-reference-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
+  font-size: var(--text-small);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.privacy-reference-links a:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  text-decoration: none;
+}
+
 /* ── Home v5 bento (quick-actions + right rail) ── */
 
 /* Mobile: single column, natural height */

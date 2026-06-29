@@ -21,6 +21,7 @@ import { CommitmentDetail } from './shell/pages/CommitmentDetail'
 import { Commitments } from './shell/pages/Commitments'
 import { Faq } from './shell/pages/Faq'
 import { Home } from './shell/pages/Home'
+import { Privacy } from './shell/pages/Privacy'
 import { Settings } from './shell/pages/Settings'
 import { SettingsAudit } from './shell/pages/SettingsAudit'
 import { ShellLayout } from './shell/ShellLayout'
@@ -115,6 +116,7 @@ function AppRoutes() {
           <Route path="/history" element={<SettingsAudit />} />
           <Route path="/settings/audit" element={<Navigate to="/history" replace />} />
           <Route path="/faq" element={<Faq />} />
+          <Route path="/privacy" element={<Privacy />} />
         </Route>
 
         {/* 404 */}
