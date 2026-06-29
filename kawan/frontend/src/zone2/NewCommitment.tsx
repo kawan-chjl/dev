@@ -385,15 +385,6 @@ function PlanSection({
           </div>
         </div>
 
-        {/* AI roadmap - STUBBED (no POST .../plan call - Lane C absent, Open Q1) */}
-        {/* LANE C SEAM: replace this placeholder with the real roadmap renderer when
-            POST /api/commitments/{id}/plan and its roadmap schema land. */}
-        <div className="plan-roadmap-placeholder">
-          <p className="plan-placeholder-text">
-            Your plan shows up here after we talk it through (coming with the AI layer)
-          </p>
-        </div>
-
         {/* Safe hard-field GUI controls (GUI-set, user session, never AI - TR-25/26) */}
         {/* Un-boxed: dropdowns stand alone, no surrounding container */}
         <div className="nc-plan-settings">
