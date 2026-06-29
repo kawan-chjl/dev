@@ -32,113 +32,112 @@ const ICON_MAP: Record<string, LucideIcon> = {
 }
 const DEFAULT_ICON: LucideIcon = Medal
 const PREVIEW_LIMIT = 12
+const MOCK_EARNED: Record<string, string> = {
+  first_win: '2026-06-14T10:00:00Z',
+  clean_win: '2026-06-20T14:30:00Z',
+  screenshot_win: '2026-06-28T09:45:00Z'
+}
 
 function iconFor(code: string): LucideIcon {
   return ICON_MAP[code] ?? DEFAULT_ICON
 }
 
-// Mock fixture: earned + locked examples so the offline grid mirrors the real catalogue shape.
-const MOCK_ACHIEVEMENTS: Achievement[] = [
+const ACHIEVEMENT_CATALOG: Omit<Achievement, 'earned' | 'awarded_at'>[] = [
   {
     code: 'first_win',
     label: 'First Ship',
-    description: 'Your first verified win.',
-    earned: true,
-    awarded_at: '2026-06-14T10:00:00Z'
+    description: 'Your first verified win.'
   },
   {
     code: 'comeback',
     label: 'Comeback',
-    description: 'A verified win right after a miss.',
-    earned: false,
-    awarded_at: null
+    description: 'A verified win right after a miss.'
   },
   {
     code: 'clean_win',
     label: 'Clean Run',
-    description: 'Verified without spending a skip-day.',
-    earned: true,
-    awarded_at: '2026-06-20T14:30:00Z'
+    description: 'Verified without spending a skip-day.'
   },
   {
     code: 'early_bird',
     label: 'Early Bird',
-    description: 'Verified at least 24h before the deadline.',
-    earned: false,
-    awarded_at: null
+    description: 'Verified at least 24h before the deadline.'
   },
   {
     code: 'screenshot_win',
     label: "Show, Don't Tell",
-    description: 'A win verified by a screenshot.',
-    earned: false,
-    awarded_at: null
+    description: 'A win verified by a screenshot.'
   },
-  { code: 'on_fire', label: 'On Fire', description: 'Three verified wins in a row.', earned: false, awarded_at: null },
+  { code: 'on_fire', label: 'On Fire', description: 'Three verified wins in a row.' },
   {
     code: 'steady_signal',
     label: 'Steady Signal',
-    description: 'Checked in on three separate days.',
-    earned: false,
-    awarded_at: null
+    description: 'Checked in on three separate days.'
   },
   {
     code: 'deadline_cushion',
     label: 'Deadline Cushion',
-    description: 'Finished with room to breathe.',
-    earned: false,
-    awarded_at: null
+    description: 'Finished with room to breathe.'
   },
   {
     code: 'proofsmith',
     label: 'Proofsmith',
-    description: 'Shared evidence that made the verdict obvious.',
-    earned: false,
-    awarded_at: null
+    description: 'Shared evidence that made the verdict obvious.'
   },
   {
     code: 'no_skip_week',
     label: 'No-Skip Week',
-    description: 'Kept momentum for a full week without a skip.',
-    earned: false,
-    awarded_at: null
+    description: 'Kept momentum for a full week without a skip.'
   },
   {
     code: 'tiny_step',
     label: 'Tiny Step',
-    description: 'Shipped a small commitment instead of over-scoping.',
-    earned: false,
-    awarded_at: null
+    description: 'Shipped a small commitment instead of over-scoping.'
   },
   {
     code: 'follow_through',
     label: 'Follow Through',
-    description: 'Closed the loop with a debrief after a verdict.',
-    earned: false,
-    awarded_at: null
+    description: 'Closed the loop with a debrief after a verdict.'
   },
   {
     code: 'warm_start',
     label: 'Warm Start',
-    description: 'Logged evidence soon after creating the commitment.',
-    earned: false,
-    awarded_at: null
+    description: 'Logged evidence soon after creating the commitment.'
   },
   {
     code: 'receipts_ready',
     label: 'Receipts Ready',
-    description: 'Kept your proof trail tidy across commitments.',
-    earned: false,
-    awarded_at: null
+    description: 'Kept your proof trail tidy across commitments.'
   },
   {
     code: 'momentum_maker',
     label: 'Momentum Maker',
-    description: 'Turned repeated check-ins into visible progress.',
-    earned: false,
-    awarded_at: null
+    description: 'Turned repeated check-ins into visible progress.'
   }
 ]
+
+function mergeAchievementCatalog(serverItems: Achievement[]): Achievement[] {
+  const byCode = new Map(serverItems.map((item) => [item.code, item]))
+  const merged = ACHIEVEMENT_CATALOG.map((item) => {
+    const serverItem = byCode.get(item.code)
+    return {
+      ...item,
+      earned: serverItem?.earned ?? false,
+      awarded_at: serverItem?.awarded_at ?? null
+    }
+  })
+  const customItems = serverItems.filter(
+    (item) => !ACHIEVEMENT_CATALOG.some((catalogItem) => catalogItem.code === item.code)
+  )
+  return [...merged, ...customItems]
+}
+
+// Mock fixture: earned + locked examples so the offline grid mirrors the real catalogue shape.
+const MOCK_ACHIEVEMENTS: Achievement[] = ACHIEVEMENT_CATALOG.map((item) => ({
+  ...item,
+  earned: item.code in MOCK_EARNED,
+  awarded_at: MOCK_EARNED[item.code] ?? null
+}))
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-MY', {
@@ -182,10 +181,10 @@ export function Achievements() {
       return
     }
     fetchAchievements()
-      .then((a) => setItems(a ?? []))
+      .then((a) => setItems(mergeAchievementCatalog(a ?? [])))
       .catch(() => {
-        // Backend unreachable: show empty collection as safe default.
-        setItems([])
+        // Backend unreachable: show the full locked catalogue as a safe default.
+        setItems(mergeAchievementCatalog([]))
       })
   }, [])
 
