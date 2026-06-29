@@ -64,6 +64,15 @@ function ReadOnlyField({ label, value }: { label: string; value: string | null }
   )
 }
 
+function SectionHeading({ children, tooltip }: { children: string; tooltip: string }) {
+  return (
+    <h2 className="detail-section-heading">
+      {children}
+      <Tooltip text={tooltip} />
+    </h2>
+  )
+}
+
 function commitmentTitle(commitment: Commitment): string {
   return `I will ${commitment.action} ${commitment.deliverable}`
 }
@@ -135,7 +144,9 @@ function OverviewSection({
 
   return (
     <section id="section-overview" className="detail-section">
-      <h2 className="detail-section-heading">Overview</h2>
+      <SectionHeading tooltip="A compact summary of this commitment's current state and latest activity.">
+        Overview
+      </SectionHeading>
       <Card className="detail-overview-card">
         <div className="detail-overview-copy">
           <p className="detail-overview-title">{commitmentTitle(commitment)}</p>
@@ -267,7 +278,9 @@ function NextStepSection({
 
   return (
     <section id="section-next-step" className="detail-section">
-      <h2 className="detail-section-heading">Next step</h2>
+      <SectionHeading tooltip="The single most relevant action based on check-in timing and commitment status.">
+        Next step
+      </SectionHeading>
       <Card className={`detail-next-step-card detail-next-step-card-${nextStep.tone}`}>
         <div className="detail-next-step-content">
           <p className="detail-next-step-eyebrow">{nextStep.eyebrow}</p>
@@ -304,7 +317,7 @@ function ProgressSection({
 
   return (
     <section id="section-progress" className="detail-section">
-      <h2 className="detail-section-heading">Progress</h2>
+      <SectionHeading tooltip="Evidence and check-in counts derived from this commitment's timeline.">Progress</SectionHeading>
       <Card className="detail-progress-card">
         <div className="detail-progress-item">
           <span className="detail-progress-value">{verified}</span>
@@ -327,10 +340,7 @@ function ProgressSection({
 function TermsSection({ commitment }: { commitment: Commitment }) {
   return (
     <section id="section-terms" className="detail-section">
-      <h2 className="detail-section-heading">
-        Terms
-        <Tooltip text="These are the commitment terms Kawan reads during check-ins. They stay user-owned." />
-      </h2>
+      <SectionHeading tooltip="The user-owned commitment terms Kawan reads during check-ins.">Terms</SectionHeading>
       <Card className="detail-card">
         <p className="detail-fields-note">Only you can change these fields. Kawan reads them but never edits them.</p>
         <div className="detail-fields">
@@ -354,7 +364,9 @@ function TermsSection({ commitment }: { commitment: Commitment }) {
 function TimelineSection({ state, events }: { state: TimelineState; events: TimelineEvent[] }) {
   return (
     <section id="section-timeline" className="detail-section">
-      <h2 className="detail-section-heading">Timeline</h2>
+      <SectionHeading tooltip="A chronological record of check-ins, evidence verdicts, and proposal changes.">
+        Timeline
+      </SectionHeading>
       {state === 'loading' && (
         <Card>
           <div className="skeleton-card-content" aria-hidden="true">
@@ -384,7 +396,7 @@ function TimelineSection({ state, events }: { state: TimelineState; events: Time
 function DangerZoneSection({ deleting, onDelete }: { deleting: boolean; onDelete: () => void }) {
   return (
     <section id="section-danger-zone" className="detail-section">
-      <h2 className="detail-section-heading">Danger zone</h2>
+      <SectionHeading tooltip="Permanent destructive actions for this commitment.">Danger zone</SectionHeading>
       <Card className="detail-danger-card">
         <div className="detail-danger-copy">
           <AlertTriangle size={18} aria-hidden="true" />
