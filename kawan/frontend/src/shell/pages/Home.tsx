@@ -146,8 +146,15 @@ function HomeLayout({ commitments }: { commitments: Commitment[] }) {
               <ul className="home-recent-list-v5">
                 {recentItems.map((c) => (
                   <li key={c.id} className="home-recent-item">
-                    <button type="button" className="home-recent-btn" onClick={() => navigate(`/commitments/${c.id}`)}>
-                      <span className="home-recent-action">{c.action}</span>
+                    <button
+                      type="button"
+                      className="home-recent-btn"
+                      onClick={() => navigate(`/commitments/${c.id}`)}
+                      aria-label={`View commitment: ${c.action} ${c.deliverable}`}
+                    >
+                      <span className="home-recent-action">
+                        {c.action} {c.deliverable}
+                      </span>
                       <Chip variant={c.status === 'active' ? 'sage' : 'default'}>{statusLabel(c.status)}</Chip>
                     </button>
                   </li>
