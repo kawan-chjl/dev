@@ -21,9 +21,31 @@
   padding: 0 var(--space-4);
   height: 52px;
   flex-shrink: 0;
+  /* Own stacking context above the stage so the notification + account popovers (which open
+     downward into the stage) render in front of it instead of behind the stage. */
+  position: relative;
+  z-index: 50;
   background: rgba(22, 16, 9, 0.82);
   backdrop-filter: var(--blur-backdrop);
   border-bottom: 1px solid rgba(244, 236, 225, 0.07);
+}
+
+/* Commitment sentence (Title Case, no deadline), centered over the always-dark topbar. */
+.workspace-title {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  max-width: min(46vw, 520px);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--text-body);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: rgba(244, 236, 225, 0.92);
+  pointer-events: none;
 }
 
 .workspace-back-btn {
@@ -118,6 +140,8 @@
   min-height: 0;
   overflow: hidden;
   position: relative;
+  /* Accent top outline on the outer stage section (full width), not the inner dialogue card. */
+  border-top: 2px solid var(--accent);
 }
 
 /* ── 2.1: workspace loading overlay — stronger blur, single labeled spinner above the stage ── */
@@ -357,7 +381,6 @@
   width: min(860px, calc(100vw - var(--space-8)));
   background: rgba(26, 18, 10, 0.88);
   border: 1.5px solid rgba(244, 236, 225, 0.1);
-  border-top: 2px solid var(--accent);
   border-radius: var(--radius-card);
   backdrop-filter: blur(16px) saturate(160%);
   padding: var(--space-6) var(--space-7);
@@ -1341,6 +1364,21 @@
 .nc-madlib-deliverable-wrap {
   flex: 1;
   min-width: 200px;
+  position: relative;
+}
+/* In-field word-limit counter (e.g. "3/10") pinned to the right edge of the deliverable input. */
+.nc-deliverable-counter {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--text-caption);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+  pointer-events: none;
+}
+.nc-deliverable-counter--full {
+  color: var(--accent);
 }
 
 /* Inline deliverable text input styled to match the Select trigger height */
@@ -1362,6 +1400,10 @@
 }
 .nc-madlib-input::placeholder {
   color: var(--ink-faint);
+}
+/* Reserve room on the right of the deliverable input for the word-limit counter. */
+.nc-madlib-deliverable-wrap .nc-madlib-input {
+  padding-right: 48px;
 }
 
 /* Compose step — align Select trigger to match input/datepicker height (44px) */
@@ -2361,14 +2403,17 @@ fieldset.messages-intake-menu {
   cursor: default;
 }
 .stage-intake-btn--secondary {
-  color: rgba(244, 236, 225, 0.55);
+  /* The dashed "answer in my own words" option sits on the always-dark stage; keep its text and
+     border legible without a hover (item 4). */
+  color: rgba(244, 236, 225, 0.88);
   border-style: dashed;
-  background: transparent;
+  border-color: rgba(244, 236, 225, 0.38);
+  background: rgba(244, 236, 225, 0.05);
 }
 .stage-intake-btn--secondary:hover:not(:disabled) {
-  color: rgba(244, 236, 225, 0.85);
-  background: rgba(244, 236, 225, 0.06);
-  border-color: rgba(244, 236, 225, 0.25);
+  color: #f4ece1;
+  background: rgba(244, 236, 225, 0.1);
+  border-color: rgba(244, 236, 225, 0.6);
 }
 .stage-intake-btn--skip {
   color: rgba(244, 236, 225, 0.4);
@@ -2503,13 +2548,16 @@ fieldset.messages-intake-menu {
   cursor: default;
 }
 .messages-intake-btn--secondary {
-  color: rgba(244, 236, 225, 0.5);
+  /* Match the stage variant: legible dashed option on the dark thread without needing hover. */
+  color: rgba(244, 236, 225, 0.88);
   border-style: dashed;
-  background: transparent;
+  border-color: rgba(244, 236, 225, 0.38);
+  background: rgba(244, 236, 225, 0.05);
 }
 .messages-intake-btn--secondary:hover:not(:disabled) {
-  color: rgba(244, 236, 225, 0.82);
-  background: rgba(244, 236, 225, 0.05);
+  color: #f4ece1;
+  background: rgba(244, 236, 225, 0.1);
+  border-color: rgba(244, 236, 225, 0.6);
 }
 .messages-intake-btn--skip {
   color: rgba(244, 236, 225, 0.38);
@@ -2550,6 +2598,12 @@ fieldset.messages-intake-menu {
   background: rgba(22, 16, 9, 0.75);
   backdrop-filter: var(--blur-backdrop);
   align-items: center;
+  /* Center on the thread column (matches the chat input row + intake menu) instead of spanning
+     edge-to-edge, which split the input far-left from the send button far-right (item 1). */
+  max-width: 720px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .messages-intake-own-field {
@@ -2558,6 +2612,7 @@ fieldset.messages-intake-menu {
 }
 
 .messages-input--with-send {
+  width: 100%;
   padding-right: 52px;
 }
 
@@ -3014,6 +3069,34 @@ div.ws-island-header:hover {
   line-height: var(--lh-body);
 }
 
+/* ── Details island ── */
+.details-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-1) 0;
+  border-bottom: 1px solid rgba(244, 236, 225, 0.07);
+}
+.details-row:last-child {
+  border-bottom: none;
+}
+.details-label {
+  font-size: var(--text-caption);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--accent);
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+.details-value {
+  font-size: var(--text-caption);
+  color: rgba(244, 236, 225, 0.85);
+  text-align: right;
+  line-height: var(--lh-body);
+}
+
 /* ── Plan island ── */
 .plan-island-body {
   max-height: 240px;
@@ -3093,6 +3176,21 @@ div.ws-island-header:hover {
   font-size: var(--text-caption);
   color: var(--accent);
   line-height: var(--lh-body);
+}
+
+/* Countdown to the next check-in, shown above the Start check-in CTA. */
+.checkin-island-timer {
+  font-size: var(--text-caption);
+  color: rgba(244, 236, 225, 0.7);
+  text-align: center;
+}
+.checkin-island-timer strong {
+  color: rgba(244, 236, 225, 0.95);
+  font-variant-numeric: tabular-nums;
+}
+.checkin-island-timer-late {
+  color: var(--accent);
+  font-weight: 600;
 }
 
 .checkin-island-brief {
@@ -3744,8 +3842,6 @@ div.ws-island-header:hover {
 [data-theme="light"] .stage-dialogue-box {
   background: color-mix(in srgb, var(--surface) 90%, transparent);
   border-color: var(--line);
-  /* Keep the accent top outline; the border-color shorthand above would otherwise clobber it. */
-  border-top-color: var(--accent);
   box-shadow: var(--shadow-lg);
 }
 
@@ -4147,6 +4243,17 @@ div.ws-island-header:hover {
   color: var(--ink);
 }
 
+[data-theme="light"] .details-row {
+  border-bottom-color: var(--line);
+}
+[data-theme="light"] .details-label {
+  color: var(--ink-soft);
+  opacity: 1;
+}
+[data-theme="light"] .details-value {
+  color: var(--ink);
+}
+
 [data-theme="light"] .plan-island-row {
   border-bottom-color: var(--line);
 }
@@ -4181,6 +4288,13 @@ div.ws-island-header:hover {
 
 [data-theme="light"] .checkin-island-denial-text {
   color: var(--ink-soft);
+}
+
+[data-theme="light"] .checkin-island-timer {
+  color: var(--ink-soft);
+}
+[data-theme="light"] .checkin-island-timer strong {
+  color: var(--ink);
 }
 
 [data-theme="light"] .finish-island-denial-text {

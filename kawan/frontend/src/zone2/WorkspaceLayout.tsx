@@ -22,6 +22,7 @@ import { EndingSequence } from './EndingSequence'
 import { ActivityCard, type ActivityMilestone } from './islands/ActivityCard'
 import { CheckinIsland } from './islands/CheckinIsland'
 import { ContextIsland } from './islands/ContextIsland'
+import { DetailsIsland } from './islands/DetailsIsland'
 import { FinishIsland } from './islands/FinishIsland'
 import { PlanIsland } from './islands/PlanIsland'
 import {
@@ -41,7 +42,18 @@ type ViewMode = 'stage' | 'messages'
 export type WorkspacePhase = 'intake' | 'chat'
 
 // Workspace coachmark sub-tour steps (only meaningful while the demo tour is on the workspace step).
-type SubStep = 'intake' | 'islands' | 'checkin' | 'finish' | 'share' | 'analytics'
+type SubStep =
+  | 'intake'
+  | 'leftTab'
+  | 'leftContext'
+  | 'leftPlan'
+  | 'leftActivity'
+  | 'rightTab'
+  | 'rightDetails'
+  | 'rightCheckin'
+  | 'rightFinish'
+  | 'share'
+  | 'analytics'
 
 // Slot progress: how many of the 4 soft-context slots are filled.
 export interface SlotProgress {
@@ -87,6 +99,43 @@ function mockChatReply(userText: string): WorkspaceMessage {
     emotion: pick?.emotion ?? 'neutral',
     responseType: 'coaching'
   }
+}
+
+// Minor words stay lowercase in title case unless first/last (e.g. "I Will Write an Essay").
+const TITLE_MINOR_WORDS = new Set([
+  'a',
+  'an',
+  'the',
+  'and',
+  'but',
+  'or',
+  'nor',
+  'for',
+  'so',
+  'yet',
+  'at',
+  'by',
+  'in',
+  'of',
+  'on',
+  'to',
+  'up',
+  'as',
+  'off',
+  'per',
+  'via',
+  'with'
+])
+
+function titleCase(s: string): string {
+  const words = s.trim().split(/\s+/)
+  return words
+    .map((w, i) => {
+      const lower = w.toLowerCase()
+      if (i !== 0 && i !== words.length - 1 && TITLE_MINOR_WORDS.has(lower)) return lower
+      return lower.charAt(0).toUpperCase() + lower.slice(1)
+    })
+    .join(' ')
 }
 
 export function WorkspaceLayout() {
@@ -483,7 +532,7 @@ export function WorkspaceLayout() {
   // ── Demo sub-tour (workspace step): event-driven coachmark flow ──────────────────────────
   // intake done -> islands intro (Next) -> check-in upload -> finish upload -> share -> analytics.
   const handleCheckinVerdict = useCallback(() => {
-    setSubStep((s) => (s === 'checkin' ? 'finish' : s))
+    setSubStep((s) => (s === 'rightCheckin' ? 'rightFinish' : s))
   }, [])
 
   // A denied/unclear Finish verdict won't roll the win, so surface a Skip in the finish coachmark.
@@ -499,10 +548,20 @@ export function WorkspaceLayout() {
     }
   }, [])
 
-  // Intake complete -> reveal the islands intro.
+  // Intake complete -> prompt opening the left drawer.
   useEffect(() => {
-    if (phase === 'chat') setSubStep((s) => (s === 'intake' ? 'islands' : s))
+    if (phase === 'chat') setSubStep((s) => (s === 'intake' ? 'leftTab' : s))
   }, [phase])
+
+  // Detect the user opening a drawer at a "tab" step, then advance into that drawer's islands
+  // (which force it open via tourDrawer, holding it for the per-island walkthrough).
+  useEffect(() => {
+    if (!(tourActive && tourStep === 2)) return
+    const leftOpen = drawerPinned.left || drawerHovered === 'left'
+    const rightOpen = drawerPinned.right || drawerHovered === 'right'
+    if (subStep === 'leftTab' && leftOpen) setSubStep('leftContext')
+    else if (subStep === 'rightTab' && rightOpen) setSubStep('rightDetails')
+  }, [tourActive, tourStep, subStep, drawerPinned, drawerHovered])
 
   // Finish completed (win overlay shown) -> guide the share step.
   useEffect(() => {
@@ -517,21 +576,56 @@ export function WorkspaceLayout() {
     }
     const overrides: Record<SubStep, TourOverride> = {
       intake: { hintText: "Answer Kawan's 4 questions to unlock your workspace tools." },
-      islands: {
-        target: '.ws-drawer--right .ws-drawer-panel',
-        hintText:
-          'These are your tools. Context tracks what Kawan learned, Plan is your roadmap, Check-In logs progress, and Finish completes the commitment.',
+      leftTab: {
+        target: '.ws-drawer--left .ws-drawer-tab',
+        hintText: 'Hover the Plan tab on the left to open your drawer.',
+        placement: 'right'
+      },
+      leftContext: {
+        target: '.ws-drawer--left .context-island',
+        hintText: 'Context is what Kawan learned about you during intake.',
+        placement: 'right',
         showNext: true,
-        onNext: () => setSubStep('checkin'),
+        onNext: () => setSubStep('leftPlan')
+      },
+      leftPlan: {
+        target: '.ws-drawer--left .plan-island',
+        hintText: 'Plan is your roadmap from here to the deadline.',
+        placement: 'right',
+        showNext: true,
+        onNext: () => setSubStep('leftActivity')
+      },
+      leftActivity: {
+        target: '.ws-drawer--left .activity-card',
+        hintText: 'Activity logs every check-in and milestone.',
+        placement: 'right',
+        showNext: true,
+        onNext: () => {
+          setDrawerPinned({ left: false, right: false })
+          setSubStep('rightTab')
+        }
+      },
+      rightTab: {
+        target: '.ws-drawer--right .ws-drawer-tab',
+        hintText: 'Now hover the Check-ins tab on the right.',
         placement: 'left'
       },
-      checkin: {
-        target: '.checkin-island',
-        hintText: 'Open Check-In and upload a file to log your progress.',
-        placement: 'left'
+      rightDetails: {
+        target: '.ws-drawer--right .details-island',
+        hintText: 'Details holds your commitment terms: deadline, cadence, evidence.',
+        placement: 'left',
+        showNext: true,
+        onNext: () => setSubStep('rightCheckin')
       },
-      finish: {
-        target: '.finish-island',
+      rightCheckin: {
+        target: '.ws-drawer--right .checkin-island',
+        hintText: 'Open Check-In and upload a file to log your progress, or continue.',
+        placement: 'left',
+        showNext: true,
+        onNext: () => setSubStep('rightFinish')
+      },
+      rightFinish: {
+        target: '.ws-drawer--right .finish-island',
         hintText: finishEvaluated
           ? "If Kawan won't pass your evidence, tap Skip to wrap up the walkthrough."
           : 'Now open Finish Now and upload your final evidence to complete the commitment.',
@@ -614,15 +708,21 @@ export function WorkspaceLayout() {
 
   const isLoading = initializing || openerLoading || viewSwitching || (viewMode === 'stage' && !stageReady)
 
-  // Side-drawer open state. The tour forces the right drawer open for the island-targeting steps so
-  // its spotlight lands on the island inside (see the override block + spec).
-  const tourDrawer: 'left' | 'right' | null =
-    tourActive && tourStep === 2 && (subStep === 'islands' || subStep === 'checkin' || subStep === 'finish')
-      ? 'right'
-      : null
-  const leftDrawerOpen = drawerPinned.left || drawerHovered === 'left'
+  // Side-drawer open state. During the per-island tour steps, force (and hold) the matching drawer
+  // open so its spotlight lands on the island inside; the "tab" steps leave it to the user.
+  const onWorkspaceTour = tourActive && tourStep === 2
+  const tourDrawer: 'left' | 'right' | null = !onWorkspaceTour
+    ? null
+    : subStep === 'leftContext' || subStep === 'leftPlan' || subStep === 'leftActivity'
+      ? 'left'
+      : subStep === 'rightDetails' || subStep === 'rightCheckin' || subStep === 'rightFinish'
+        ? 'right'
+        : null
+  const leftDrawerOpen = drawerPinned.left || drawerHovered === 'left' || tourDrawer === 'left'
   const rightDrawerOpen = drawerPinned.right || drawerHovered === 'right' || tourDrawer === 'right'
-  const showLeftDrawer = phase === 'chat' && !isFailure && !winDateIso
+  // Both drawers show from intake on: the left holds Context (which fills during intake), the right
+  // holds Details. Plan/Activity and Check-In/Finish only populate once chat starts.
+  const showLeftDrawer = !isFailure && !winDateIso
   const showRightDrawer = !isFailure && !winDateIso
   const anyDrawerOpen =
     commitmentId != null && ((showLeftDrawer && leftDrawerOpen) || (showRightDrawer && rightDrawerOpen))
@@ -630,6 +730,9 @@ export function WorkspaceLayout() {
   function setHovered(side: 'left' | 'right', hovered: boolean) {
     setDrawerHovered((cur) => (hovered ? side : cur === side ? null : cur))
   }
+
+  // Commitment sentence minus the deadline, Title Cased (e.g. "I Will Write an Essay").
+  const workspaceTitle = commitment ? titleCase(`I will ${commitment.action} ${commitment.deliverable}`) : ''
 
   return (
     <div className={`workspace-root${tourActive ? ' workspace-root--tour' : ''}`}>
@@ -646,6 +749,11 @@ export function WorkspaceLayout() {
           <ArrowLeft size={16} aria-hidden="true" />
           <span>{tourActive && tourStep === 2 ? 'Analytics' : 'Back'}</span>
         </button>
+        {workspaceTitle && (
+          <h1 className="workspace-title" title={workspaceTitle}>
+            {workspaceTitle}
+          </h1>
+        )}
         <TopbarControls />
       </div>
 
@@ -697,7 +805,7 @@ export function WorkspaceLayout() {
           onHoverChange={(h) => setHovered('right', h)}
           onToggle={() => setDrawerPinned((p) => ({ ...p, right: !p.right }))}
         >
-          <ContextIsland commitmentId={commitmentId} slotProgress={slotProgress} />
+          {commitment && <DetailsIsland commitment={commitment} />}
           {phase === 'chat' && (
             <>
               <CheckinIsland
@@ -727,11 +835,17 @@ export function WorkspaceLayout() {
           side="left"
           label="Plan"
           open={leftDrawerOpen}
+          instant={tourDrawer === 'left'}
           onHoverChange={(h) => setHovered('left', h)}
           onToggle={() => setDrawerPinned((p) => ({ ...p, left: !p.left }))}
         >
-          <PlanIsland plan={plan} commitment={commitment} generating={planGenerating} />
-          <ActivityCard commitmentId={commitmentId} milestones={milestones} refreshSignal={activitySignal} />
+          <ContextIsland commitmentId={commitmentId} slotProgress={slotProgress} />
+          {phase === 'chat' && (
+            <>
+              <PlanIsland plan={plan} commitment={commitment} generating={planGenerating} />
+              <ActivityCard commitmentId={commitmentId} milestones={milestones} refreshSignal={activitySignal} />
+            </>
+          )}
         </WorkspaceDrawer>
       )}
 
