@@ -26,6 +26,9 @@ _INFERENCE_ERROR_BODY = {"say": "Kawan couldn't reply just now — try again.", 
 router = APIRouter(prefix="/commitments")
 
 _SOFT_SLOTS = ("why", "obstacles", "time_constraints", "skill")
+# Deterministic closing line forced once every soft slot is filled, so a stale model reply can
+# never re-ask for context after the intake stage is complete (guardrail, not model-trusted).
+_INTAKE_DONE_LINE = "Good. That's enough context to work with. No more questions from me, now let's see if you actually deliver."
 _OPEN_STATUSES = ("draft", "active", "lapsed", "verifying", "grace")
 # In-flight statuses count against the 3-active cap (PO override; excludes draft and terminal).
 _IN_FLIGHT_STATUSES = ("active", "lapsed", "verifying", "grace")
@@ -178,6 +181,12 @@ async def context_turn(body: ContextTurnIn, c: Commitment = Depends(_owned), db:
     filled = {k: getattr(sc, k) for k in _SOFT_SLOTS}
     result["slots"] = filled
     result["intake_complete"] = all(v is not None for v in filled.values())
+    # Guardrail: once every slot is filled, override the model's reply with a deterministic closing
+    # line. The small model still sees the pre-turn snapshot when it writes `say`, so on the turn
+    # that fills the last slot it tends to re-ask; this forces the transition out of intake instead.
+    if result["intake_complete"]:
+        result["say"] = _INTAKE_DONE_LINE
+        result["emotion"] = "pleased"
     # Persist transcript: skip the empty opener user turn so history starts with the AI message.
     if body.say:
         db.add(Message(commitment_id=c.id, role="user", content=body.say))

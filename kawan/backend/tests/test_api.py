@@ -55,6 +55,20 @@ async def test_intake_writes_only_soft_context(client, db):
     assert sc is not None and sc.why  # soft context written (the only AI-reachable write)
 
 
+async def test_intake_complete_forces_closing_line(client):
+    """Guardrail: once all four soft slots are filled, the reply is the deterministic closing
+    line, never a re-ask, regardless of what the model returned for `say`."""
+    from app.routes.commitments import _INTAKE_DONE_LINE
+
+    cid = (await client.post("/api/commitments",
+                             json={"action": "ship", "deliverable": "d", "deadline": _future()})).json()["id"]
+    last = {}
+    for ans in ("because job hunt", "no spare time", "hard deadline", "senior dev"):
+        last = (await client.post(f"/api/commitments/{cid}/context/turn", json={"say": ans})).json()
+    assert last["intake_complete"] is True
+    assert last["say"] == _INTAKE_DONE_LINE
+
+
 async def test_siwc_login_redirects_to_idp(client):
     # Browser-navigable (GET) and a 303 so the hop to the IdP authorize endpoint is a GET.
     r = await client.get("/api/auth/siwc/login", follow_redirects=False)

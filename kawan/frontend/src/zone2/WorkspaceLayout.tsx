@@ -12,6 +12,7 @@ import type { ContextTurnResponse } from '../commitments/api'
 import { contextTurn, fetchCommitmentById } from '../commitments/api'
 import { type TourOverride, useDemoTour } from '../demo/DemoTour'
 import { mockConversation } from '../mock/fixtures'
+import { TopbarControls } from '../shell/TopbarControls'
 import type { Commitment, Emotion } from '../types/api'
 import type { WorkspaceMessage } from '../workspace/api'
 import { workspaceTurn } from '../workspace/api'
@@ -34,6 +35,7 @@ import {
 import { MessagesMode } from './MessagesMode'
 import { generatePlan, type PlanResult } from './planApi'
 import { StageMode } from './StageMode'
+import { WorkspaceDrawer } from './WorkspaceDrawer'
 
 type ViewMode = 'stage' | 'messages'
 export type WorkspacePhase = 'intake' | 'chat'
@@ -93,6 +95,13 @@ export function WorkspaceLayout() {
   const { active: tourActive, currentStep: tourStep, setOverride } = useDemoTour()
   const [viewMode, setViewMode] = useState<ViewMode>('stage')
   const [viewSwitching, setViewSwitching] = useState(false)
+  // False until the Live2D model has settled in the stage. Switching to Messages unmounts the
+  // stage, so re-entering Stage reloads it; hold the loader until onStageReady fires again.
+  const [stageReady, setStageReady] = useState(false)
+  // Side-drawer open state. `pinned` is the click-to-pin latch; `hovered` is the transient peek
+  // (the cursor is only ever over one drawer). The demo tour can also force a side open.
+  const [drawerPinned, setDrawerPinned] = useState<{ left: boolean; right: boolean }>({ left: false, right: false })
+  const [drawerHovered, setDrawerHovered] = useState<'left' | 'right' | null>(null)
   const [messages, setMessages] = useState<WorkspaceMessage[]>([])
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -509,7 +518,7 @@ export function WorkspaceLayout() {
     const overrides: Record<SubStep, TourOverride> = {
       intake: { hintText: "Answer Kawan's 4 questions to unlock your workspace tools." },
       islands: {
-        target: '.workspace-island-topright',
+        target: '.ws-drawer--right .ws-drawer-panel',
         hintText:
           'These are your tools. Context tracks what Kawan learned, Plan is your roadmap, Check-In logs progress, and Finish completes the commitment.',
         showNext: true,
@@ -545,12 +554,16 @@ export function WorkspaceLayout() {
   // 2.1: brief loading state on viewMode switch — clears on next paint via requestAnimationFrame.
   function handleViewModeSwitch(next: ViewMode) {
     if (next === viewMode) return
+    // Re-entering Stage remounts the Live2D model; gate the loader until it reports ready again.
+    if (next === 'stage') setStageReady(false)
     setViewSwitching(true)
     setViewMode(next)
     requestAnimationFrame(() => {
       requestAnimationFrame(() => setViewSwitching(false))
     })
   }
+
+  const handleStageReady = useCallback(() => setStageReady(true), [])
 
   // The Stage/Messages toggle is rendered inside each view (in the dialogue box for stage,
   // at the top for messages) rather than floated over the stage, so it never overlaps content.
@@ -599,7 +612,24 @@ export function WorkspaceLayout() {
   // 3.6: commitment failure — overlay the ending sequence instead of the normal workspace
   const isFailure = keyEvent === 'failure' && commitment !== null
 
-  const isLoading = initializing || openerLoading || viewSwitching
+  const isLoading = initializing || openerLoading || viewSwitching || (viewMode === 'stage' && !stageReady)
+
+  // Side-drawer open state. The tour forces the right drawer open for the island-targeting steps so
+  // its spotlight lands on the island inside (see the override block + spec).
+  const tourDrawer: 'left' | 'right' | null =
+    tourActive && tourStep === 2 && (subStep === 'islands' || subStep === 'checkin' || subStep === 'finish')
+      ? 'right'
+      : null
+  const leftDrawerOpen = drawerPinned.left || drawerHovered === 'left'
+  const rightDrawerOpen = drawerPinned.right || drawerHovered === 'right' || tourDrawer === 'right'
+  const showLeftDrawer = phase === 'chat' && !isFailure && !winDateIso
+  const showRightDrawer = !isFailure && !winDateIso
+  const anyDrawerOpen =
+    commitmentId != null && ((showLeftDrawer && leftDrawerOpen) || (showRightDrawer && rightDrawerOpen))
+
+  function setHovered(side: 'left' | 'right', hovered: boolean) {
+    setDrawerHovered((cur) => (hovered ? side : cur === side ? null : cur))
+  }
 
   return (
     <div className={`workspace-root${tourActive ? ' workspace-root--tour' : ''}`}>
@@ -616,12 +646,16 @@ export function WorkspaceLayout() {
           <ArrowLeft size={16} aria-hidden="true" />
           <span>{tourActive && tourStep === 2 ? 'Analytics' : 'Back'}</span>
         </button>
-        <div className="workspace-spacer" aria-hidden="true" />
+        <TopbarControls />
       </div>
 
       {/* Main stage area — wrapper gets blur class while loading; stage never remounts */}
       <div className={`workspace-stage${isLoading ? ' workspace-loading' : ''}`} aria-busy={isLoading}>
-        {viewMode === 'stage' ? <StageMode {...sharedProps} /> : <MessagesMode {...sharedProps} />}
+        {viewMode === 'stage' ? (
+          <StageMode {...sharedProps} onStageReady={handleStageReady} />
+        ) : (
+          <MessagesMode {...sharedProps} />
+        )}
 
         {/* 3.6: Commitment failure overlay — replaces normal workspace interaction */}
         {isFailure && (
@@ -642,43 +676,64 @@ export function WorkspaceLayout() {
             />
           </div>
         )}
+      </div>
 
-        {/* Context island — top-right, always shown during intake and chat (never in failure/win) */}
-        {!isFailure && !winDateIso && commitmentId && (
-          <div className="workspace-island-topright">
-            <ContextIsland commitmentId={commitmentId} slotProgress={slotProgress} />
-            {phase === 'chat' && (
-              <>
-                <CheckinIsland
+      {/* Side drawers hold the islands so the stage stays uninterrupted. The backdrop blurs and
+          dims everything beneath the open drawer(s); clicking it unpins them. */}
+      {anyDrawerOpen && (
+        <div
+          className="ws-drawer-backdrop"
+          aria-hidden="true"
+          onClick={() => setDrawerPinned({ left: false, right: false })}
+        />
+      )}
+
+      {commitmentId && showRightDrawer && (
+        <WorkspaceDrawer
+          side="right"
+          label="Check-ins"
+          open={rightDrawerOpen}
+          instant={tourDrawer === 'right'}
+          onHoverChange={(h) => setHovered('right', h)}
+          onToggle={() => setDrawerPinned((p) => ({ ...p, right: !p.right }))}
+        >
+          <ContextIsland commitmentId={commitmentId} slotProgress={slotProgress} />
+          {phase === 'chat' && (
+            <>
+              <CheckinIsland
+                commitmentId={commitmentId}
+                checkinStatus={checkinStatus}
+                variant={keyEvent === 'late-checkin' ? 'late-checkin' : keyEvent === 'checkin' ? 'checkin' : null}
+                onKawanSay={sayAsKawan}
+                onActivity={bumpActivity}
+                onVerdict={handleCheckinVerdict}
+              />
+              {commitment && (
+                <FinishIsland
                   commitmentId={commitmentId}
-                  checkinStatus={checkinStatus}
-                  variant={keyEvent === 'late-checkin' ? 'late-checkin' : keyEvent === 'checkin' ? 'checkin' : null}
                   onKawanSay={sayAsKawan}
                   onActivity={bumpActivity}
-                  onVerdict={handleCheckinVerdict}
+                  onComplete={handleFinishComplete}
+                  onVerdict={handleFinishVerdict}
                 />
-                {commitment && (
-                  <FinishIsland
-                    commitmentId={commitmentId}
-                    onKawanSay={sayAsKawan}
-                    onActivity={bumpActivity}
-                    onComplete={handleFinishComplete}
-                    onVerdict={handleFinishVerdict}
-                  />
-                )}
-              </>
-            )}
-          </div>
-        )}
+              )}
+            </>
+          )}
+        </WorkspaceDrawer>
+      )}
 
-        {/* Plan + Activity — top-left column, chat phase only (Plan stacked above Activity) */}
-        {phase === 'chat' && !isFailure && !winDateIso && commitmentId && (
-          <div className="workspace-island-topleft">
-            <PlanIsland plan={plan} commitment={commitment} generating={planGenerating} />
-            <ActivityCard commitmentId={commitmentId} milestones={milestones} refreshSignal={activitySignal} />
-          </div>
-        )}
-      </div>
+      {commitmentId && showLeftDrawer && (
+        <WorkspaceDrawer
+          side="left"
+          label="Plan"
+          open={leftDrawerOpen}
+          onHoverChange={(h) => setHovered('left', h)}
+          onToggle={() => setDrawerPinned((p) => ({ ...p, left: !p.left }))}
+        >
+          <PlanIsland plan={plan} commitment={commitment} generating={planGenerating} />
+          <ActivityCard commitmentId={commitmentId} milestones={milestones} refreshSignal={activitySignal} />
+        </WorkspaceDrawer>
+      )}
 
       {/* 2.1: single labeled spinner sits outside the blurred stage */}
       {isLoading && (
