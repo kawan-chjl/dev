@@ -54,8 +54,15 @@ async def _count_in_flight(db: AsyncSession, user_id: str) -> int:
 
 
 @router.post("", response_model=CommitmentOut, status_code=status.HTTP_201_CREATED)
-async def create(body: CommitmentCreate, user: User = Depends(current_user), db: AsyncSession = Depends(get_session)):
-    if await _count_in_flight(db, user.id) >= _MAX_ACTIVE:
+async def create(
+    body: CommitmentCreate,
+    demo: bool = Query(False),
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_session),
+):
+    # The guided demo creates a throwaway commitment that is discarded on completion/skip, so it
+    # bypasses the active-commitment cap; otherwise three real commitments would block the walkthrough.
+    if not demo and await _count_in_flight(db, user.id) >= _MAX_ACTIVE:
         raise HTTPException(
             status.HTTP_409_CONFLICT,
             "You can have at most 3 active commitments at once. Complete or end one first.",
@@ -261,7 +268,9 @@ async def plan(c: Commitment = Depends(_owned), db: AsyncSession = Depends(get_s
 
 @router.post("/{commitment_id}/start", response_model=CommitmentOut)
 async def start(request: Request, c: Commitment = Depends(_owned), db: AsyncSession = Depends(get_session)):
-    if await _count_in_flight(db, c.user_id) >= _MAX_ACTIVE:
+    # The guided demo bypasses the active-commitment cap (its commitment is discarded on completion/skip).
+    is_demo = request.query_params.get("demo")
+    if not is_demo and await _count_in_flight(db, c.user_id) >= _MAX_ACTIVE:
         raise HTTPException(
             status.HTTP_409_CONFLICT,
             "You can have at most 3 active commitments at once. Complete or end one first.",

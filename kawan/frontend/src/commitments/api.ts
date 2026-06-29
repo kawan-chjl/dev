@@ -100,12 +100,15 @@ export async function fetchActiveCommitment(): Promise<Commitment | null> {
  * POST /api/commitments — create a new commitment.
  * 201 → CommitmentOut. Throws on non-201, with the response body surfaced for 422 (past deadline).
  */
-export async function createCommitment(body: {
-  action: string
-  deliverable: string
-  deadline: string
-}): Promise<Commitment> {
-  const res = await fetch('/api/commitments', {
+export async function createCommitment(
+  body: {
+    action: string
+    deliverable: string
+    deadline: string
+  },
+  demo = false
+): Promise<Commitment> {
+  const res = await fetch(`/api/commitments${demo ? '?demo=1' : ''}`, {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
@@ -158,8 +161,8 @@ export async function patchCommitment(
  * POST /api/commitments/{id}/start — draft → active; registers scheduler jobs.
  * 200 → CommitmentOut with status:'active'.
  */
-export async function startCommitment(id: string): Promise<Commitment> {
-  const res = await fetch(`/api/commitments/${id}/start`, {
+export async function startCommitment(id: string, demo = false): Promise<Commitment> {
+  const res = await fetch(`/api/commitments/${id}/start${demo ? '?demo=1' : ''}`, {
     method: 'POST',
     credentials: 'include'
   })
