@@ -68,14 +68,22 @@ export function CheckinIsland({
   const [error, setError] = useState<string | null>(null)
   const [now, setNow] = useState(() => Date.now())
 
+  const serverLocked =
+    checkinStatus?.last_pass_at != null && now - new Date(checkinStatus.last_pass_at).getTime() < cadenceToMs(cadence)
+  const isCheckedIn = checkedIn || serverLocked
+
   // Project the next check-in: one cadence period after the reference tick. Before checking in the
   // reference is the backend's last tick (due_at); after a pass this session it's that moment.
-  const referenceTick = checkedIn ? checkedInAt : (checkinStatus?.due_at ?? null)
+  const referenceTick = checkedIn
+    ? checkedInAt
+    : serverLocked
+      ? (checkinStatus?.last_pass_at ?? null)
+      : (checkinStatus?.due_at ?? null)
   const nextDueMs = referenceTick ? new Date(referenceTick).getTime() + cadenceToMs(cadence) : null
   const remainingMs = nextDueMs != null ? nextDueMs - now : null
 
   // Tick once a second while the countdown is on screen (idle before check-in, or the locked state after).
-  const showTimer = referenceTick != null && (checkedIn || phase === 'idle')
+  const showTimer = referenceTick != null && (isCheckedIn || phase === 'idle')
   useEffect(() => {
     if (!showTimer) return
     setNow(Date.now())
@@ -121,6 +129,7 @@ export function CheckinIsland({
           : 'Check-in needs more context',
       {
         detail: v.reasoning?.trim() || undefined,
+        href: `/commitments/${commitmentId}`,
         kind: v.verdict === 'pass' ? 'success' : v.verdict === 'fail' ? 'error' : 'info'
       }
     )
@@ -156,14 +165,14 @@ export function CheckinIsland({
         onClick={() => setExpanded((v) => !v)}
       >
         <ClipboardCheck size={14} aria-hidden="true" />
-        <span className="ws-island-title">{checkedIn ? 'Checked-In' : isLate ? 'Late Check-In' : 'Check-In'}</span>
+        <span className="ws-island-title">{isCheckedIn ? 'Checked-In' : isLate ? 'Late Check-In' : 'Check-In'}</span>
         {expanded ? <ChevronUp size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />}
       </button>
 
       {/* Body stays mounted (hidden when collapsed) so an in-progress evidence attachment in the
           SubmissionPanel survives collapse/re-expand instead of resetting. */}
       <div className="ws-island-body" hidden={!expanded}>
-        {checkedIn ? (
+        {isCheckedIn ? (
           <div className="checkin-island-locked">
             <Check size={14} aria-hidden="true" />
             <span>Checked in. You're set until the next check-in window.</span>

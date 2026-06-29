@@ -178,3 +178,4 @@ class CheckinStatusOut(BaseModel):
     due_at: str | None
     is_late: bool
     escalation: int
+    last_pass_at: str | None = None

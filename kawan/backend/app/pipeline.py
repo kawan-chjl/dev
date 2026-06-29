@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 from datetime import timedelta
 import logging
+import time
 
 import httpx
 from sqlalchemy import select
@@ -255,15 +256,24 @@ async def safe_judge(adapter, c: Commitment, bundle: EvidenceBundle) -> Verdict:
     verdict instead of a 500 (spec §9.3 — unclear never punishes, and the whole state
     machine/UI already handle it). Bounds the wait so the demo fails fast rather than
     hanging on a stalled vision model: the live `/evidence` 500 hung >2 min first."""
+    # Timing instrumentation: surface where evidence judging spends its time (primary vision call
+    # vs. the secondary fallback) so a slow ~2-3 min judgment can be diagnosed from the logs.
+    t0 = time.perf_counter()
     try:
-        return await asyncio.wait_for(adapter.judge(c, bundle, LLM), EVIDENCE_JUDGE_TIMEOUT)
+        verdict = await asyncio.wait_for(adapter.judge(c, bundle, LLM), EVIDENCE_JUDGE_TIMEOUT)
+        logger.info("evidence judge: primary ok in %.1fs for commitment %s", time.perf_counter() - t0, c.id)
+        return verdict
     except (ChutesError, httpx.HTTPError, asyncio.TimeoutError) as exc:
-        logger.warning("evidence judge failed for commitment %s: %r", c.id, exc)
+        logger.warning("evidence judge: primary failed after %.1fs for commitment %s: %r",
+                       time.perf_counter() - t0, c.id, exc)
         # Secondary judge for image evidence when the primary vision call fails (kept implicit).
         b64 = bundle.items[0].get("b64") if bundle.items and isinstance(bundle.items[0], dict) else None
         if b64:
             from app import fallback_judge
+            t1 = time.perf_counter()
             fallback = await fallback_judge.judge_screenshot(c, b64)
+            logger.info("evidence judge: fallback %s in %.1fs for commitment %s",
+                        "ok" if fallback is not None else "empty", time.perf_counter() - t1, c.id)
             if fallback is not None:
                 return fallback
         return Verdict("unclear", 0.0, ["evidence could not be judged right now"],

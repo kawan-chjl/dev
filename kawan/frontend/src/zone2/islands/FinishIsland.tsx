@@ -37,6 +37,7 @@ export function FinishIsland({ commitmentId, onKawanSay, onActivity, onComplete,
     if (v.verdict === 'pass' || v.status === 'completed') {
       notify('Commitment completed!', {
         detail: v.reasoning?.trim() || 'Your final evidence was accepted.',
+        href: `/commitments/${commitmentId}`,
         kind: 'success'
       })
       onComplete(new Date().toISOString())
@@ -53,6 +54,7 @@ export function FinishIsland({ commitmentId, onKawanSay, onActivity, onComplete,
     // Surface the AI's evaluation as an in-app notification (non-completing finish submission).
     notify(v.verdict === 'unclear' ? 'Finish needs more context' : 'Finish evidence not approved', {
       detail: v.reasoning?.trim() || undefined,
+      href: `/commitments/${commitmentId}`,
       kind: v.verdict === 'unclear' ? 'info' : 'error'
     })
     // Evidence was evaluated but didn't complete — let the walkthrough offer a Skip so a denied
