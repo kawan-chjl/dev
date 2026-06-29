@@ -50,27 +50,21 @@ def _mime(b64: str) -> str:
     return "image/png"
 
 
-async def judge_screenshot(commitment: "Commitment", image_b64: str) -> Verdict | None:
-    """Judge a screenshot via the secondary provider. Returns a Verdict, or None if the
-    provider is unconfigured or the call fails (caller then degrades to 'unclear')."""
+def _commitment_line(commitment: "Commitment") -> str:
+    return (
+        f"Commitment: I will {commitment.action} {commitment.deliverable} "
+        f"by {commitment.deadline:%Y-%m-%d %H:%M}."
+    )
+
+
+async def _call_gemini(parts: list[dict]) -> Verdict | None:
+    """POST a single user turn to the secondary provider and parse its structured verdict.
+    Returns None if the provider is unconfigured or anything at all goes wrong -- this path
+    must never raise, so the caller can degrade to a neutral 'unclear'."""
     if not settings.gemini_api_key:
         return None
-    prompt = (
-        f"{JUDGE_SYSTEM}\n\n"
-        f"Commitment: I will {commitment.action} {commitment.deliverable} "
-        f"by {commitment.deadline:%Y-%m-%d %H:%M}.\n"
-        "Judge this screenshot as evidence of the deliverable. Return the JSON verdict."
-    )
     payload = {
-        "contents": [
-            {
-                "role": "user",
-                "parts": [
-                    {"text": prompt},
-                    {"inline_data": {"mime_type": _mime(image_b64), "data": image_b64}},
-                ],
-            }
-        ],
+        "contents": [{"role": "user", "parts": parts}],
         "generationConfig": {"responseMimeType": "application/json", "responseSchema": _RESPONSE_SCHEMA},
     }
     try:
@@ -91,3 +85,29 @@ async def judge_screenshot(commitment: "Commitment", image_b64: str) -> Verdict 
     except Exception as exc:  # noqa: BLE001 - fallback must never raise; degrade to None
         logger.warning("fallback judge failed: %r", exc)
         return None
+
+
+async def judge_screenshot(commitment: "Commitment", image_b64: str) -> Verdict | None:
+    """Judge a screenshot via the secondary provider. Returns a Verdict, or None if the
+    provider is unconfigured or the call fails (caller then degrades to 'unclear')."""
+    prompt = (
+        f"{JUDGE_SYSTEM}\n\n{_commitment_line(commitment)}\n"
+        "Judge this screenshot as evidence of the deliverable. Return the JSON verdict."
+    )
+    return await _call_gemini([
+        {"text": prompt},
+        {"inline_data": {"mime_type": _mime(image_b64), "data": image_b64}},
+    ])
+
+
+async def judge_text(commitment: "Commitment", evidence_text: str) -> Verdict | None:
+    """Judge text-based evidence (file contents or GitHub commits) via the secondary provider.
+    Returns a Verdict, or None if unconfigured, the evidence is empty, or the call fails."""
+    if not (evidence_text or "").strip():
+        return None
+    prompt = (
+        f"{JUDGE_SYSTEM}\n\n{_commitment_line(commitment)}\n"
+        f"Evidence:\n{evidence_text[:6000]}\n"
+        "Judge whether this evidence shows real progress toward the deliverable. Return the JSON verdict."
+    )
+    return await _call_gemini([{"text": prompt}])

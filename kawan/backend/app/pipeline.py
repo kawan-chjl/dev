@@ -252,6 +252,30 @@ async def run_final_verify(db: AsyncSession, c: Commitment) -> Evidence:
 EVIDENCE_JUDGE_TIMEOUT = 60.0
 
 
+def _evidence_text(bundle: EvidenceBundle) -> str:
+    """Render a non-image bundle (file / GitHub) into a compact prompt body for the secondary
+    text judge, mirroring what the primary adapter sends. Returns '' when nothing is judgeable."""
+    parts: list[str] = []
+    for item in bundle.items or []:
+        if isinstance(item, dict):
+            if item.get("b64"):
+                continue  # images go through judge_screenshot, never here
+            if item.get("text"):
+                parts.append(f"File: {item.get('filename', 'file')}\n{str(item['text'])[:4000]}")
+            elif item.get("message"):
+                message = str(item.get("message") or "")
+                first = message.splitlines()[0].strip() if message.strip() else ""
+                parts.append(f"- {first} ({item.get('total', '?')} lines changed)")
+            else:
+                parts.append(str(item)[:500])
+        elif item:
+            parts.append(str(item)[:500])
+    body = "\n".join(p for p in parts if p).strip()
+    if not body and (bundle.summary or "").strip():
+        body = bundle.summary.strip()
+    return body[:6000]
+
+
 async def safe_judge(adapter, c: Commitment, bundle: EvidenceBundle) -> Verdict:
     """Judge evidence, degrading a flaky/slow inference call to a neutral 'unclear'
     verdict instead of a 500 (spec §9.3 — unclear never punishes, and the whole state
@@ -267,16 +291,27 @@ async def safe_judge(adapter, c: Commitment, bundle: EvidenceBundle) -> Verdict:
     except (ChutesError, httpx.HTTPError, asyncio.TimeoutError) as exc:
         logger.warning("evidence judge: primary failed after %.1fs for commitment %s: %r",
                        time.perf_counter() - t0, c.id, exc)
-        # Secondary judge for image evidence when the primary vision call fails (kept implicit).
+        # Secondary judge when the primary fails: vision for screenshots, text for file / GitHub
+        # evidence. It must never raise -- any failure degrades to a neutral 'unclear' (spec §9.3).
         b64 = bundle.items[0].get("b64") if bundle.items and isinstance(bundle.items[0], dict) else None
-        if b64:
+        kind = "screenshot" if b64 else "text"
+        fallback: Verdict | None = None
+        t1 = time.perf_counter()
+        try:
             from app import fallback_judge
-            t1 = time.perf_counter()
-            fallback = await fallback_judge.judge_screenshot(c, b64)
-            logger.info("evidence judge: fallback %s in %.1fs for commitment %s",
-                        "ok" if fallback is not None else "empty", time.perf_counter() - t1, c.id)
-            if fallback is not None:
-                return fallback
+            if b64:
+                fallback = await fallback_judge.judge_screenshot(c, b64)
+            else:
+                evidence_text = _evidence_text(bundle)
+                if evidence_text:
+                    fallback = await fallback_judge.judge_text(c, evidence_text)
+        except Exception as fexc:  # noqa: BLE001 - the secondary judge must never raise either
+            logger.warning("evidence judge: %s fallback raised after %.1fs for commitment %s: %r",
+                           kind, time.perf_counter() - t1, c.id, fexc)
+        logger.info("evidence judge: %s fallback %s in %.1fs for commitment %s",
+                    kind, "ok" if fallback is not None else "empty", time.perf_counter() - t1, c.id)
+        if fallback is not None:
+            return fallback
         return Verdict("unclear", 0.0, ["evidence could not be judged right now"],
                        "I couldn't get a clear read on that just now. Give it another try in a moment.", None)
 
