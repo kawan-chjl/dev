@@ -473,7 +473,10 @@ function CommitmentDetailReady({
         title={commitmentTitle(commitment)}
         subtitle="Details, timing, and activity for this commitment."
         actions={
-          <Button variant="accent" onClick={() => navigate(`/workspace/${commitment.id}`)}>
+          <Button
+            variant="accent"
+            onClick={() => window.open(`/workspace/${commitment.id}`, '_blank', 'noopener,noreferrer')}
+          >
             <ExternalLink size={16} aria-hidden="true" />
             Open workspace
           </Button>
