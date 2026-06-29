@@ -472,6 +472,7 @@ function CommitmentDetailReady({
       <PageHeader
         title={commitmentTitle(commitment)}
         subtitle="Details, timing, and activity for this commitment."
+        imageSrc="/illustrations/commitment-card.webp"
         actions={
           <Button
             variant="accent"
