@@ -603,6 +603,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-4);
+  max-width: calc(100vw - var(--space-4));
   padding: var(--space-2) var(--space-4);
   background: var(--surface-2);
   border: 1px solid var(--line);
@@ -621,6 +622,16 @@
   font-size: var(--text-caption);
   font-weight: 600;
   color: var(--accent);
+}
+
+.demo-step-mobile-label {
+  display: none;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--accent);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  text-overflow: ellipsis;
 }
 
 .demo-step-list {
@@ -682,15 +693,21 @@
   font-size: var(--text-caption);
 }
 
-/* Hide step labels on very small screens, keep dots */
-@media (max-width: 480px) {
-  .demo-step-label {
+@media (max-width: 640px) {
+  .demo-step-bar {
+    gap: var(--space-2);
+    width: max-content;
+    max-width: calc(100vw - var(--space-4));
+    padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+  }
+
+  .demo-step-list {
     display: none;
   }
 
-  .demo-step-bar {
-    gap: var(--space-2);
-    padding: var(--space-2) var(--space-3);
+  .demo-step-mobile-label {
+    display: inline-block;
+    max-width: min(168px, calc(100vw - 176px));
   }
 }
 

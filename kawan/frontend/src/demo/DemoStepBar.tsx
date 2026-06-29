@@ -27,6 +27,10 @@ export function DemoStepBar() {
 
   return (
     <nav className="demo-step-bar" aria-label="Walkthrough progress">
+      <span className="demo-step-mobile-label">
+        Step {currentStep + 1}
+        {steps[currentStep]?.label ? ` · ${steps[currentStep].label}` : ''}
+      </span>
       <ol className="demo-step-list" aria-label="Steps">
         {steps.map((step, index) => {
           const isCurrent = index === currentStep
