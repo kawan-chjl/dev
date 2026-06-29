@@ -3,7 +3,7 @@
 // CTAs: go to home (staying signed in) or restart tour.
 
 import { PartyPopper } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useDemoTour } from '../demo/DemoTour'
 import { Button } from '../ui/Button'
 
@@ -23,7 +23,10 @@ export function WelcomeFinished() {
   return (
     <div className="welcome-root">
       <header className="welcome-header">
-        <img src="/kawan-logo.png" alt="Kawan" className="welcome-logo" />
+        <Link to="/" className="welcome-brand-link" aria-label="Kawan landing page">
+          <img src="/kawan-logo.png" alt="" className="welcome-logo" />
+          <span className="welcome-wordmark">KAWAN</span>
+        </Link>
       </header>
 
       <main className="welcome-main welcome-finished-main">

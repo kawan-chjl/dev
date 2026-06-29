@@ -413,8 +413,24 @@
   left: 0;
   z-index: 1;
   padding: var(--space-6) var(--space-6);
+}
+
+.welcome-brand-link {
   display: flex;
   align-items: center;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.welcome-brand-link:hover {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.welcome-brand-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: var(--radius-md);
 }
 
 .welcome-logo {
@@ -429,7 +445,8 @@
   font-weight: 600;
   color: var(--ink);
   margin-left: var(--space-3);
-  letter-spacing: -0.01em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .welcome-main {
@@ -444,6 +461,13 @@
   max-width: 1024px;
   margin: 0 auto;
   width: 100%;
+}
+
+@media (max-width: 719px) {
+  .welcome-main {
+    justify-content: flex-start;
+    padding-top: calc(var(--space-12) + var(--space-8));
+  }
 }
 
 .welcome-kicker {

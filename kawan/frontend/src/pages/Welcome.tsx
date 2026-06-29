@@ -2,7 +2,7 @@
 // "Start the walkthrough" → starts the DemoTour → /welcome/commitments.
 
 import { BarChart3, ClipboardCheck, MessageCircle } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { guestLogin } from '../auth/api'
 import { useDemoTour } from '../demo/DemoTour'
@@ -59,8 +59,10 @@ export function Welcome() {
   return (
     <div className="welcome-root">
       <header className="welcome-header">
-        <img src="/kawan-logo.png" alt="" className="welcome-logo" />
-        <span className="welcome-wordmark">Kawan</span>
+        <Link to="/" className="welcome-brand-link" aria-label="Kawan landing page">
+          <img src="/kawan-logo.png" alt="" className="welcome-logo" />
+          <span className="welcome-wordmark">KAWAN</span>
+        </Link>
       </header>
 
       <main className="welcome-main">
