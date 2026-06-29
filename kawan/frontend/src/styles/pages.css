@@ -3196,6 +3196,10 @@
 }
 
 .analytics-chart-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  align-self: flex-start;
   font-size: var(--text-small);
   font-weight: 600;
   color: var(--ink-soft);
@@ -3618,6 +3622,12 @@
   flex-shrink: 0;
 }
 
+.identity-title-name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
 .identity-title-label {
   font-family: var(--font-display);
   font-size: var(--text-h3);
@@ -3772,6 +3782,15 @@
   gap: var(--space-3);
 }
 
+.achievements-see-more {
+  display: flex;
+  justify-content: center;
+}
+
+.achievements-see-more-btn {
+  min-width: 132px;
+}
+
 .achievements-tile {
   display: flex;
   flex-direction: column;
@@ -3823,6 +3842,53 @@
   gap: var(--space-1);
   color: var(--ink-faint);
   margin-top: var(--space-1);
+}
+
+.achievements-modal-panel {
+  max-width: 920px;
+  padding: var(--space-5);
+  gap: var(--space-4);
+}
+
+.achievements-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.achievements-modal-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-h3);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.achievements-modal-subtitle {
+  margin: var(--space-1) 0 0;
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  color: var(--ink-soft);
+}
+
+.achievements-modal-close {
+  flex-shrink: 0;
+}
+
+.achievements-modal-grid {
+  overflow-y: auto;
+  padding-right: var(--space-1);
+}
+
+@media (max-width: 560px) {
+  .achievements-modal-panel {
+    padding: var(--space-4);
+  }
+
+  .achievements-modal-header {
+    flex-direction: column;
+  }
 }
 
 /* ── Win-receipt share card (A9, spec §11.4, TR-75) ── */

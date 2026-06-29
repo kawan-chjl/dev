@@ -23,6 +23,15 @@ CATALOG: tuple[tuple[str, str, str], ...] = (
     ("early_bird", "Early Bird", "Verified at least 24h before the deadline."),
     ("screenshot_win", "Show, Don't Tell", "A win verified by a screenshot."),
     ("on_fire", "On Fire", "Three verified wins in a row."),
+    ("steady_signal", "Steady Signal", "Checked in on three separate days."),
+    ("deadline_cushion", "Deadline Cushion", "Finished with room to breathe."),
+    ("proofsmith", "Proofsmith", "Shared evidence that made the verdict obvious."),
+    ("no_skip_week", "No-Skip Week", "Kept momentum for a full week without a skip."),
+    ("tiny_step", "Tiny Step", "Shipped a small commitment instead of over-scoping."),
+    ("follow_through", "Follow Through", "Closed the loop with a debrief after a verdict."),
+    ("warm_start", "Warm Start", "Logged evidence soon after creating the commitment."),
+    ("receipts_ready", "Receipts Ready", "Kept your proof trail tidy across commitments."),
+    ("momentum_maker", "Momentum Maker", "Turned repeated check-ins into visible progress."),
 )
 CODES = tuple(code for code, _, _ in CATALOG)
 

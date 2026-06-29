@@ -3,9 +3,20 @@
 // No streaks. Reduced-motion: animations disabled when prefers-reduced-motion is set.
 
 import { useEffect, useState } from 'react'
-import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import {
+  Bar,
+  BarChart,
+  Cell,
+  Pie,
+  PieChart,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  XAxis,
+  YAxis
+} from 'recharts'
 import type { TimelineEvent } from '../types/api'
 import { Card } from '../ui/Card'
+import { Tooltip as InfoTooltip } from '../ui/Tooltip'
 import { checkinsOverTime, evidencePassRate, verdictBreakdown, verifiedCount } from './metrics'
 
 function useReducedMotion(): boolean {
@@ -77,7 +88,10 @@ export function AnalyticsPanel({ events }: Props) {
       <div className="analytics-charts-row">
         {/* Bar chart: check-ins over time */}
         <Card className="analytics-chart-card">
-          <p className="analytics-chart-title">Check-ins over time</p>
+          <div className="analytics-chart-title">
+            <span>Check-ins over time</span>
+            <InfoTooltip text="Daily check-in volume for this commitment, grouped by calendar day." />
+          </div>
           {overTime.length === 0 ? (
             <p className="analytics-empty-text">No data yet.</p>
           ) : (
@@ -99,7 +113,7 @@ export function AnalyticsPanel({ events }: Props) {
                   axisLine={false}
                   allowDecimals={false}
                 />
-                <Tooltip
+                <RechartsTooltip
                   contentStyle={{
                     background: 'var(--surface-2)',
                     border: '1px solid var(--line)',
@@ -127,7 +141,10 @@ export function AnalyticsPanel({ events }: Props) {
 
         {/* Pie/donut chart: verdict mix */}
         <Card className="analytics-chart-card">
-          <p className="analytics-chart-title">Verdict mix</p>
+          <div className="analytics-chart-title">
+            <span>Verdict mix</span>
+            <InfoTooltip text="How Kawan classified your evidence: verified, not sure yet, or no pass." />
+          </div>
           {pieData.length === 0 ? (
             <p className="analytics-empty-text">No verdicts yet.</p>
           ) : (
@@ -147,7 +164,7 @@ export function AnalyticsPanel({ events }: Props) {
                     <Cell key={entry.name} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip
+                <RechartsTooltip
                   contentStyle={{
                     background: 'var(--surface-2)',
                     border: '1px solid var(--line)',

@@ -1,12 +1,15 @@
 // Achievements: surfaces the behavioral badge collection on the Analytics page (spec §11.4, B6, ADR-0004).
-// Read-only consumer of GET /api/me/achievements. Earned first, locked greyed. No backend change.
+// Read-only consumer of GET /api/me/achievements. Earned first, locked greyed.
 
 import type { LucideIcon } from 'lucide-react'
 import { Award, Camera, Flame, Lock, Medal, Repeat, Ship, Sparkles, Sunrise } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { MOCK_AUTH } from '../auth/api'
 import type { Achievement } from '../types/api'
+import { Button } from '../ui/Button'
 import { Card } from '../ui/Card'
+import { Modal } from '../ui/Modal'
+import { Tooltip } from '../ui/Tooltip'
 import { fetchAchievements } from './api'
 
 // code -> lucide icon map (verified present in lucide-react@1.21.0; no emoji)
@@ -16,15 +19,25 @@ const ICON_MAP: Record<string, LucideIcon> = {
   clean_win: Sparkles,
   early_bird: Sunrise,
   screenshot_win: Camera,
-  on_fire: Flame
+  on_fire: Flame,
+  steady_signal: Medal,
+  deadline_cushion: Sunrise,
+  proofsmith: Camera,
+  no_skip_week: Sparkles,
+  tiny_step: Ship,
+  follow_through: Award,
+  warm_start: Sunrise,
+  receipts_ready: Camera,
+  momentum_maker: Flame
 }
 const DEFAULT_ICON: LucideIcon = Medal
+const PREVIEW_LIMIT = 12
 
 function iconFor(code: string): LucideIcon {
   return ICON_MAP[code] ?? DEFAULT_ICON
 }
 
-// Mock fixture: 2 of 6 earned so the offline grid shows earned + locked and the chip reads "2 of 6".
+// Mock fixture: earned + locked examples so the offline grid mirrors the real catalogue shape.
 const MOCK_ACHIEVEMENTS: Achievement[] = [
   {
     code: 'first_win',
@@ -61,7 +74,70 @@ const MOCK_ACHIEVEMENTS: Achievement[] = [
     earned: false,
     awarded_at: null
   },
-  { code: 'on_fire', label: 'On Fire', description: 'Three verified wins in a row.', earned: false, awarded_at: null }
+  { code: 'on_fire', label: 'On Fire', description: 'Three verified wins in a row.', earned: false, awarded_at: null },
+  {
+    code: 'steady_signal',
+    label: 'Steady Signal',
+    description: 'Checked in on three separate days.',
+    earned: false,
+    awarded_at: null
+  },
+  {
+    code: 'deadline_cushion',
+    label: 'Deadline Cushion',
+    description: 'Finished with room to breathe.',
+    earned: false,
+    awarded_at: null
+  },
+  {
+    code: 'proofsmith',
+    label: 'Proofsmith',
+    description: 'Shared evidence that made the verdict obvious.',
+    earned: false,
+    awarded_at: null
+  },
+  {
+    code: 'no_skip_week',
+    label: 'No-Skip Week',
+    description: 'Kept momentum for a full week without a skip.',
+    earned: false,
+    awarded_at: null
+  },
+  {
+    code: 'tiny_step',
+    label: 'Tiny Step',
+    description: 'Shipped a small commitment instead of over-scoping.',
+    earned: false,
+    awarded_at: null
+  },
+  {
+    code: 'follow_through',
+    label: 'Follow Through',
+    description: 'Closed the loop with a debrief after a verdict.',
+    earned: false,
+    awarded_at: null
+  },
+  {
+    code: 'warm_start',
+    label: 'Warm Start',
+    description: 'Logged evidence soon after creating the commitment.',
+    earned: false,
+    awarded_at: null
+  },
+  {
+    code: 'receipts_ready',
+    label: 'Receipts Ready',
+    description: 'Kept your proof trail tidy across commitments.',
+    earned: false,
+    awarded_at: null
+  },
+  {
+    code: 'momentum_maker',
+    label: 'Momentum Maker',
+    description: 'Turned repeated check-ins into visible progress.',
+    earned: false,
+    awarded_at: null
+  }
 ]
 
 function formatDate(iso: string): string {
@@ -73,8 +149,32 @@ function formatDate(iso: string): string {
   })
 }
 
+function AchievementTile({ achievement }: { achievement: Achievement }) {
+  const Icon = iconFor(achievement.code)
+
+  return (
+    <li className={`achievements-tile${achievement.earned ? '' : ' is-locked'}`}>
+      <div className="achievements-tile-icon" aria-hidden="true">
+        <Icon size={20} />
+      </div>
+      <span className="achievements-tile-label">{achievement.label}</span>
+      <span className="achievements-tile-desc">{achievement.description}</span>
+      {achievement.earned && achievement.awarded_at !== null && (
+        <span className="achievements-tile-date">Earned {formatDate(achievement.awarded_at)}</span>
+      )}
+      {!achievement.earned && (
+        <span className="achievements-tile-locked-row">
+          <Lock size={11} aria-hidden="true" />
+          <span className="sr-only">Locked</span>
+        </span>
+      )}
+    </li>
+  )
+}
+
 export function Achievements() {
   const [items, setItems] = useState<Achievement[] | null>(null)
+  const [modalOpen, setModalOpen] = useState(false)
 
   useEffect(() => {
     if (MOCK_AUTH) {
@@ -97,12 +197,15 @@ export function Achievements() {
   const ordered = [...earned, ...locked]
   const earnedCount = earned.length
   const total = items.length
+  const hasOverflow = total > PREVIEW_LIMIT
+  const previewItems = hasOverflow ? ordered.slice(0, PREVIEW_LIMIT) : ordered
 
   return (
     <Card className="achievements-section">
       <div className="achievements-header">
         <Award size={16} aria-hidden="true" className="achievements-header-icon" />
         <span className="achievements-header-label">Achievements</span>
+        <Tooltip text="Badges for how you ship, not just how many wins you collect." />
         <span className="achievements-count-chip">
           {earnedCount} of {total}
         </span>
@@ -119,29 +222,43 @@ export function Achievements() {
       )}
 
       {total > 0 && (
-        <ul className="achievements-grid" aria-label="Achievement badges">
-          {ordered.map((achievement) => {
-            const Icon = iconFor(achievement.code)
-            return (
-              <li key={achievement.code} className={`achievements-tile${achievement.earned ? '' : ' is-locked'}`}>
-                <div className="achievements-tile-icon" aria-hidden="true">
-                  <Icon size={20} />
-                </div>
-                <span className="achievements-tile-label">{achievement.label}</span>
-                <span className="achievements-tile-desc">{achievement.description}</span>
-                {achievement.earned && achievement.awarded_at !== null && (
-                  <span className="achievements-tile-date">Earned {formatDate(achievement.awarded_at)}</span>
-                )}
-                {!achievement.earned && (
-                  <span className="achievements-tile-locked-row">
-                    <Lock size={11} aria-hidden="true" />
-                    <span className="sr-only">Locked</span>
-                  </span>
-                )}
-              </li>
-            )
-          })}
-        </ul>
+        <>
+          <ul className="achievements-grid" aria-label="Achievement badges">
+            {previewItems.map((achievement) => (
+              <AchievementTile key={achievement.code} achievement={achievement} />
+            ))}
+          </ul>
+          {hasOverflow && (
+            <div className="achievements-see-more">
+              <Button variant="secondary" className="achievements-see-more-btn" onClick={() => setModalOpen(true)}>
+                See more
+              </Button>
+            </div>
+          )}
+          <Modal
+            open={modalOpen}
+            onClose={() => setModalOpen(false)}
+            label="All achievements"
+            panelClassName="achievements-modal-panel"
+          >
+            <div className="achievements-modal-header">
+              <div>
+                <p className="achievements-modal-title">All achievements</p>
+                <p className="achievements-modal-subtitle">
+                  {earnedCount} earned, {total - earnedCount} still locked.
+                </p>
+              </div>
+              <Button variant="secondary" className="achievements-modal-close" onClick={() => setModalOpen(false)}>
+                Close
+              </Button>
+            </div>
+            <ul className="achievements-grid achievements-modal-grid" aria-label="All achievement badges">
+              {ordered.map((achievement) => (
+                <AchievementTile key={achievement.code} achievement={achievement} />
+              ))}
+            </ul>
+          </Modal>
+        </>
       )}
     </Card>
   )

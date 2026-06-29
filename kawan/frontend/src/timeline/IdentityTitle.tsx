@@ -5,6 +5,7 @@
 import { Trophy } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { MOCK_AUTH } from '../auth/api'
+import { Tooltip } from '../ui/Tooltip'
 import { fetchStats } from './api'
 
 export interface TitleInfo {
@@ -54,7 +55,10 @@ export function IdentityTitle() {
   return (
     <div className="identity-title-block">
       <Trophy size={16} aria-hidden="true" className="identity-title-icon" />
-      <span className="identity-title-label">{info.label}</span>
+      <span className="identity-title-name">
+        <span className="identity-title-label">{info.label}</span>
+        <Tooltip text="Your current Kawan title, based on verified wins. It only moves up." />
+      </span>
       {nextHint !== null && <span className="identity-title-hint">{nextHint}</span>}
     </div>
   )
