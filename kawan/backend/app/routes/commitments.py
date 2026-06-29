@@ -128,7 +128,18 @@ async def get_checkin_status(c: Commitment = Depends(_owned), db: AsyncSession =
     """Return due_at, is_late, and escalation sourced from assemble_progress so this
     endpoint and the workspace digest always agree (no independent lateness computation)."""
     progress = await pipeline.assemble_progress(db, c)
-    return CheckinStatusOut(due_at=progress["due_at"], is_late=progress["is_late"], escalation=c.escalation)
+    last_pass = await db.scalar(
+        select(Evidence)
+        .where(Evidence.commitment_id == c.id, Evidence.verdict == "pass")
+        .order_by(Evidence.created_at.desc())
+        .limit(1)
+    )
+    return CheckinStatusOut(
+        due_at=progress["due_at"],
+        is_late=progress["is_late"],
+        escalation=c.escalation,
+        last_pass_at=as_utc(last_pass.created_at).isoformat() if last_pass else None
+    )
 
 
 @router.patch("/{commitment_id}", response_model=CommitmentOut)

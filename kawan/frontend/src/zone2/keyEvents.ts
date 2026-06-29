@@ -13,6 +13,7 @@ export interface CheckinStatus {
   due_at: string | null
   is_late: boolean
   escalation: number
+  last_pass_at: string | null
 }
 
 /**

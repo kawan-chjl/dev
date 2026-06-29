@@ -2851,6 +2851,26 @@ fieldset.messages-intake-menu {
   background: transparent;
 }
 
+@media (max-width: 768px) {
+  .ws-drawer--open {
+    z-index: 60;
+  }
+
+  .ws-drawer--left.ws-drawer--open {
+    z-index: 61;
+  }
+
+  .ws-drawer--right.ws-drawer--open {
+    z-index: 60;
+  }
+
+  .ws-drawer-panel {
+    width: min(88vw, 360px);
+    max-height: calc(100svh - 52px - var(--space-6));
+    overflow-y: auto;
+  }
+}
+
 /* Bottom: Check-In or Finish island */
 .workspace-island-bottom {
   position: absolute;

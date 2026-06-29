@@ -10,7 +10,7 @@ from datetime import timedelta
 
 from sqlalchemy import select
 
-from app.models import Checkin, Commitment, SoftContext, User
+from app.models import Checkin, Commitment, Evidence, SoftContext, User
 from app.util import new_id, now_utc
 
 
@@ -136,8 +136,10 @@ async def test_checkin_status_shape(client):
     assert "due_at" in body
     assert "is_late" in body
     assert "escalation" in body
+    assert "last_pass_at" in body
     assert isinstance(body["is_late"], bool)
     assert isinstance(body["escalation"], int)
+    assert body["last_pass_at"] is None
 
 
 async def test_checkin_status_escalation_matches_commitment(client, db):
@@ -198,6 +200,25 @@ async def test_checkin_status_due_at_uses_last_checkin(client, db):
     from datetime import datetime, timezone
     due = datetime.fromisoformat(body["due_at"])
     diff = abs((due - tick_time.replace(tzinfo=timezone.utc)).total_seconds())
+    assert diff < 2
+
+
+async def test_checkin_status_last_pass_at_uses_latest_pass_evidence(client, db):
+    cid = await _create(client)
+    pass_time = now_utc() - timedelta(hours=3)
+    ev = Evidence(commitment_id=cid, adapter="screenshot", verdict="pass", reasoning="done")
+    ev.created_at = pass_time
+    db.add(ev)
+    await db.commit()
+
+    r = await client.get(f"/api/commitments/{cid}/checkin-status")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["last_pass_at"] is not None
+
+    from datetime import datetime, timezone
+    last_pass = datetime.fromisoformat(body["last_pass_at"])
+    diff = abs((last_pass - pass_time.replace(tzinfo=timezone.utc)).total_seconds())
     assert diff < 2
 
 

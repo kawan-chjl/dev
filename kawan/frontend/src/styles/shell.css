@@ -993,6 +993,20 @@
   background: var(--surface-sunk);
 }
 
+.notif-item-link {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
 .notif-item-body {
   flex: 1;
   min-width: 0;

@@ -4,6 +4,7 @@
 
 import { Bell, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useNotifications } from './NotificationProvider'
 
 function relativeTime(date: Date): string {
@@ -19,6 +20,7 @@ function relativeTime(date: Date): string {
 
 export function NotificationBell() {
   const { notifications, unreadCount, markAllRead, dismiss, clearAll } = useNotifications()
+  const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
 
@@ -86,16 +88,38 @@ export function NotificationBell() {
               <ul className="notif-list">
                 {notifications.map((n) => (
                   <li key={n.id} className="notif-item">
-                    <div className="notif-item-body">
-                      <p className="notif-item-title">{n.title}</p>
-                      {n.detail && <p className="notif-item-detail">{n.detail}</p>}
-                      <p className="notif-item-time">{relativeTime(n.at)}</p>
-                    </div>
+                    {n.href ? (
+                      <button
+                        type="button"
+                        className="notif-item-link"
+                        onClick={() => {
+                          const href = n.href
+                          if (!href) return
+                          navigate(href)
+                          setOpen(false)
+                        }}
+                      >
+                        <div className="notif-item-body">
+                          <p className="notif-item-title">{n.title}</p>
+                          {n.detail && <p className="notif-item-detail">{n.detail}</p>}
+                          <p className="notif-item-time">{relativeTime(n.at)}</p>
+                        </div>
+                      </button>
+                    ) : (
+                      <div className="notif-item-body">
+                        <p className="notif-item-title">{n.title}</p>
+                        {n.detail && <p className="notif-item-detail">{n.detail}</p>}
+                        <p className="notif-item-time">{relativeTime(n.at)}</p>
+                      </div>
+                    )}
                     <button
                       type="button"
                       className="notif-item-dismiss"
                       aria-label="Dismiss notification"
-                      onClick={() => dismiss(n.id)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        dismiss(n.id)
+                      }}
                     >
                       <X size={14} aria-hidden="true" />
                     </button>

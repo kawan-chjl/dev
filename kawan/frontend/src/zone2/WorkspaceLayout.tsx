@@ -142,6 +142,7 @@ export function WorkspaceLayout() {
   const navigate = useNavigate()
   const { id: commitmentId } = useParams<{ id: string }>()
   const { active: tourActive, currentStep: tourStep, setOverride } = useDemoTour()
+  const canHover = typeof window !== 'undefined' && window.matchMedia('(hover: hover)').matches
   const [viewMode, setViewMode] = useState<ViewMode>('stage')
   const [viewSwitching, setViewSwitching] = useState(false)
   // False until the Live2D model has settled in the stage. Switching to Messages unmounts the
@@ -728,6 +729,7 @@ export function WorkspaceLayout() {
     commitmentId != null && ((showLeftDrawer && leftDrawerOpen) || (showRightDrawer && rightDrawerOpen))
 
   function setHovered(side: 'left' | 'right', hovered: boolean) {
+    if (!canHover) return
     setDrawerHovered((cur) => (hovered ? side : cur === side ? null : cur))
   }
 
@@ -803,7 +805,10 @@ export function WorkspaceLayout() {
           open={rightDrawerOpen}
           instant={tourDrawer === 'right'}
           onHoverChange={(h) => setHovered('right', h)}
-          onToggle={() => setDrawerPinned((p) => ({ ...p, right: !p.right }))}
+          onToggle={() => {
+            setDrawerHovered(null)
+            setDrawerPinned((p) => ({ left: false, right: !p.right }))
+          }}
         >
           {commitment && <DetailsIsland commitment={commitment} />}
           {phase === 'chat' && (
@@ -838,7 +843,10 @@ export function WorkspaceLayout() {
           open={leftDrawerOpen}
           instant={tourDrawer === 'left'}
           onHoverChange={(h) => setHovered('left', h)}
-          onToggle={() => setDrawerPinned((p) => ({ ...p, left: !p.left }))}
+          onToggle={() => {
+            setDrawerHovered(null)
+            setDrawerPinned((p) => ({ left: !p.left, right: false }))
+          }}
         >
           <ContextIsland commitmentId={commitmentId} slotProgress={slotProgress} />
           {phase === 'chat' && (
