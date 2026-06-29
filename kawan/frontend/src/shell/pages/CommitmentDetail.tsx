@@ -1,11 +1,9 @@
 // CommitmentDetail - /commitments/:id
-// Two-column layout: content sections + sticky OnThisPage island.
-// Overview: honest derived summary from timeline events (Lane C AI not built).
-// Timeline section: event log using shared eventRows.tsx.
+// Details page with one operational next-step card and a retained spy-scroll index.
 // recordRecentCommitment called on mount so Home Recent Activity is updated.
 
-import { ExternalLink, Lock, Share2, Trash2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { AlertTriangle, ExternalLink, Lock, Share2, Trash2 } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthProvider'
 import { deleteCommitment, fetchCommitmentById } from '../../commitments/api'
@@ -16,17 +14,39 @@ import { ShareWinDialog } from '../../share/ShareWinDialog'
 import { CheckinEventRow, EvidenceEventRow, ProposalEventRow } from '../../timeline/eventRows'
 import { verifiedCount } from '../../timeline/metrics'
 import { useTimeline } from '../../timeline/useTimeline'
-import type { Commitment } from '../../types/api'
-import { Badge } from '../../ui/Badge'
+import type { Commitment, TimelineEvent } from '../../types/api'
 import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
 import { Chip } from '../../ui/Chip'
 import { Modal } from '../../ui/Modal'
 import { Skeleton } from '../../ui/Skeleton'
 import { Tooltip } from '../../ui/Tooltip'
+import { fmtDuration, fmtMYT } from '../../zone2/formatTime'
+import { type CheckinStatus, fetchCheckinStatus } from '../../zone2/keyEvents'
 import type { PageSection } from '../OnThisPage'
 import { OnThisPage } from '../OnThisPage'
 import { PageHeader } from '../PageHeader'
+
+const HOUR_MS = 3600000
+const DAY_MS = 86400000
+
+const escalationLabels: Record<0 | 1 | 2, string> = {
+  0: 'Gentle',
+  1: 'Direct',
+  2: 'Blunt'
+}
+
+const DETAIL_SECTIONS: PageSection[] = [
+  { id: 'section-overview', label: 'Overview' },
+  { id: 'section-next-step', label: 'Next step' },
+  { id: 'section-progress', label: 'Progress' },
+  { id: 'section-terms', label: 'Terms' },
+  { id: 'section-timeline', label: 'Timeline' },
+  { id: 'section-danger-zone', label: 'Danger zone' }
+]
+
+type LoadState = 'loading' | 'ready' | 'idle'
+type TimelineState = ReturnType<typeof useTimeline>['state']
 
 function LockIcon() {
   return <Lock size={13} color="var(--ink-faint)" aria-hidden="true" />
@@ -44,63 +64,87 @@ function ReadOnlyField({ label, value }: { label: string; value: string | null }
   )
 }
 
-const escalationLabels: Record<0 | 1 | 2, string> = {
-  0: 'Gentle',
-  1: 'Direct',
-  2: 'Blunt'
+function commitmentTitle(commitment: Commitment): string {
+  return `I will ${commitment.action} ${commitment.deliverable}`
 }
 
-const DETAIL_SECTIONS: PageSection[] = [
-  { id: 'section-overview', label: 'Overview' },
-  { id: 'section-action', label: 'Action' },
-  { id: 'section-deliverables', label: 'Deliverables' },
-  { id: 'section-deadline', label: 'Deadline' },
-  { id: 'section-evidence', label: 'Evidence' },
-  { id: 'section-accountability', label: 'Accountability' },
-  { id: 'section-rest-days', label: 'Rest days' },
-  { id: 'section-how-firm', label: 'How firm' },
-  { id: 'section-timeline', label: 'Timeline' }
-]
+function cadenceToMs(cadence: string | undefined): number {
+  if (!cadence) return DAY_MS
+  const c = cadence.toLowerCase().trim()
+  if (c === 'daily' || c.startsWith('daily_')) return DAY_MS
+  if (c === 'weekly') return 7 * DAY_MS
+  if (c === 'hourly') return HOUR_MS
+  const days = c.match(/every\s+(\d+)\s*days?/)
+  if (days) return Math.max(1, Number.parseInt(days[1], 10)) * DAY_MS
+  const hours = c.match(/every\s+(\d+)\s*hours?/)
+  if (hours) return Math.max(1, Number.parseInt(hours[1], 10)) * HOUR_MS
+  return DAY_MS
+}
 
-type LoadState = 'loading' | 'ready' | 'idle'
+function getNextDueMs(commitment: Commitment, checkinStatus: CheckinStatus | null): number | null {
+  if (!checkinStatus?.due_at) return null
+  const dueAtMs = new Date(checkinStatus.due_at).getTime()
+  if (Number.isNaN(dueAtMs)) return null
+  return dueAtMs + cadenceToMs(commitment.cadence)
+}
 
-function OverviewSection({ commitment }: { commitment: Commitment }) {
-  const { timeline } = useTimeline(commitment.id)
-  const { me } = useAuth()
-  const [shareOpen, setShareOpen] = useState(false)
-  const events = timeline?.events ?? []
-  const verified = verifiedCount(events)
-  const totalCheckins = events.filter((e) => e.type === 'evidence').length
-  const lastEvidence = [...events].reverse().find((e) => e.type === 'evidence') as
-    | Extract<(typeof events)[number], { type: 'evidence' }>
+function getLatestPassedEvidence(events: TimelineEvent[]) {
+  return [...events]
+    .reverse()
+    .find(
+      (event): event is Extract<TimelineEvent, { type: 'evidence' }> =>
+        event.type === 'evidence' && event.verdict === 'pass'
+    )
+}
+
+function isCheckedInForCurrentPeriod(
+  events: TimelineEvent[],
+  checkinStatus: CheckinStatus | null,
+  nextDueMs: number | null
+) {
+  if (!checkinStatus?.due_at || nextDueMs == null || nextDueMs <= Date.now()) return false
+  const latestPass = getLatestPassedEvidence(events)
+  if (!latestPass) return false
+  return new Date(latestPass.at).getTime() >= new Date(checkinStatus.due_at).getTime()
+}
+
+function OverviewSection({
+  commitment,
+  events,
+  verified,
+  totalCheckins
+}: {
+  commitment: Commitment
+  events: TimelineEvent[]
+  verified: number
+  totalCheckins: number
+}) {
+  const lastEvidence = [...events].reverse().find((event) => event.type === 'evidence') as
+    | Extract<TimelineEvent, { type: 'evidence' }>
     | undefined
-
+  const latestCheckin = [...events].reverse().find((event) => event.type === 'checkin') as
+    | Extract<TimelineEvent, { type: 'checkin' }>
+    | undefined
   const verdictLabel = lastEvidence
     ? lastEvidence.verdict === 'pass'
       ? 'pass'
       : lastEvidence.verdict === 'unclear'
         ? 'not sure yet'
         : 'no pass'
-    : null
-
-  // Win date: latest pass-verdict evidence event (OQ-A9-DATE decision).
-  const latestPassEvent = [...events]
-    .reverse()
-    .find(
-      (e): e is Extract<(typeof events)[number], { type: 'evidence' }> => e.type === 'evidence' && e.verdict === 'pass'
-    )
-  const winDateIso = latestPassEvent?.at ?? new Date().toISOString()
-
-  const showShareButton = verified > 0 && me?.persona != null
+    : 'none yet'
 
   return (
     <section id="section-overview" className="detail-section">
       <h2 className="detail-section-heading">Overview</h2>
       <Card className="detail-overview-card">
-        <p className="detail-overview-note">
-          This is a summary of your activity so far. A full Kawan AI conversation summary will appear here once the AI
-          layer is ready.
-        </p>
+        <div className="detail-overview-copy">
+          <p className="detail-overview-title">{commitmentTitle(commitment)}</p>
+          <p className="detail-overview-note">
+            {verified > 0
+              ? 'Kawan has accepted evidence for this commitment. Keep using the workspace for check-ins, revisions, and final evidence.'
+              : 'No evidence has been verified yet. Start from the next step below when you are ready to report progress.'}
+          </p>
+        </div>
         <div className="detail-overview-stats">
           <div className="detail-overview-stat">
             <span className="detail-overview-stat-number">{verified}</span>
@@ -110,40 +154,204 @@ function OverviewSection({ commitment }: { commitment: Commitment }) {
             <span className="detail-overview-stat-number">{totalCheckins}</span>
             <span className="detail-overview-stat-label">Check-ins</span>
           </div>
-        </div>
-        {verdictLabel !== null && (
-          <p className="detail-overview-last-verdict">
-            Latest verdict: <strong>{verdictLabel}</strong>
-          </p>
-        )}
-        {events.length === 0 && <p className="detail-overview-empty">No check-ins yet. Open the workspace to start.</p>}
-        {showShareButton && (
-          <div className="share-win-entry">
-            <Button variant="primary" onClick={() => setShareOpen(true)}>
-              <Share2 size={16} aria-hidden="true" />
-              Share win
-            </Button>
+          <div className="detail-overview-stat">
+            <span className="detail-overview-stat-number">{commitment.skip_days_total - commitment.skip_days_used}</span>
+            <span className="detail-overview-stat-label">Rest days left</span>
           </div>
-        )}
+        </div>
+        <div className="detail-overview-meta">
+          <span>Latest verdict: {verdictLabel}</span>
+          <span>{latestCheckin ? `Last check-in: ${fmtMYT(latestCheckin.at)}` : 'No check-ins yet'}</span>
+        </div>
       </Card>
-
-      {showShareButton && me?.persona != null && (
-        <ShareWinDialog
-          open={shareOpen}
-          onClose={() => setShareOpen(false)}
-          commitment={commitment}
-          winDateIso={winDateIso}
-          persona={me.persona}
-        />
-      )}
     </section>
   )
 }
 
-function TimelineSection({ commitmentId }: { commitmentId: string }) {
-  const { state, timeline } = useTimeline(commitmentId)
-  const events = timeline?.events ?? []
+interface NextStepCopy {
+  eyebrow: string
+  title: string
+  body: string
+  cta: string | null
+  tone: 'default' | 'good' | 'warning' | 'danger'
+}
 
+function getNextStepCopy(
+  commitment: Commitment,
+  checkinStatus: CheckinStatus | null,
+  events: TimelineEvent[],
+  canShareWin: boolean
+): NextStepCopy {
+  const now = Date.now()
+  const deadlineMs = new Date(commitment.deadline).getTime()
+  const nextDueMs = getNextDueMs(commitment, checkinStatus)
+  const checkedIn = isCheckedInForCurrentPeriod(events, checkinStatus, nextDueMs)
+
+  if (commitment.status === 'completed') {
+    return {
+      eyebrow: 'Done',
+      title: 'Commitment completed',
+      body: canShareWin
+        ? 'Your final evidence was accepted. Share the win when you want to show the result.'
+        : 'Your final evidence was accepted. The timeline below keeps the record.',
+      cta: canShareWin ? 'Share win' : null,
+      tone: 'good'
+    }
+  }
+
+  if (commitment.status === 'missed' || (commitment.status === 'lapsed' && deadlineMs < now)) {
+    return {
+      eyebrow: 'Closed',
+      title: 'This commitment was missed',
+      body: 'Check-ins are no longer available here. Review the timeline and start a new commitment when you are ready.',
+      cta: null,
+      tone: 'danger'
+    }
+  }
+
+  if (checkedIn && nextDueMs != null) {
+    return {
+      eyebrow: 'On track',
+      title: 'Checked in for this period',
+      body: `Next check-in ${nextDueMs > now ? `opens in ${fmtDuration(nextDueMs - now)}` : 'is available now'} (${fmtMYT(new Date(nextDueMs).toISOString())}).`,
+      cta: 'Open workspace',
+      tone: 'good'
+    }
+  }
+
+  if (checkinStatus?.is_late) {
+    return {
+      eyebrow: 'Needs attention',
+      title: 'Late check-in',
+      body: 'The check-in window has expired. Submit evidence now so Kawan can still evaluate your progress.',
+      cta: 'Late check-in',
+      tone: 'warning'
+    }
+  }
+
+  if (nextDueMs != null && nextDueMs > now) {
+    return {
+      eyebrow: 'Available',
+      title: 'Upcoming check-in',
+      body: `Your next scheduled check-in is ${fmtMYT(new Date(nextDueMs).toISOString())}. You can check in early if you already have progress to show.`,
+      cta: 'Check in early',
+      tone: 'default'
+    }
+  }
+
+  return {
+    eyebrow: 'Available',
+    title: 'Check-in available',
+    body: 'Open the workspace to start the check-in flow and submit evidence.',
+    cta: 'Check-in',
+    tone: 'default'
+  }
+}
+
+function NextStepSection({
+  commitment,
+  checkinStatus,
+  events,
+  canShareWin,
+  onWorkspace,
+  onShare
+}: {
+  commitment: Commitment
+  checkinStatus: CheckinStatus | null
+  events: TimelineEvent[]
+  canShareWin: boolean
+  onWorkspace: () => void
+  onShare: () => void
+}) {
+  const nextStep = getNextStepCopy(commitment, checkinStatus, events, canShareWin)
+
+  return (
+    <section id="section-next-step" className="detail-section">
+      <h2 className="detail-section-heading">Next step</h2>
+      <Card className={`detail-next-step-card detail-next-step-card-${nextStep.tone}`}>
+        <div className="detail-next-step-content">
+          <p className="detail-next-step-eyebrow">{nextStep.eyebrow}</p>
+          <h3 className="detail-next-step-title">{nextStep.title}</h3>
+          <p className="detail-next-step-body">{nextStep.body}</p>
+        </div>
+        {nextStep.cta && (
+          <Button
+            variant={nextStep.tone === 'warning' ? 'accent' : 'primary'}
+            onClick={canShareWin ? onShare : onWorkspace}
+          >
+            {canShareWin && nextStep.cta === 'Share win' ? <Share2 size={16} aria-hidden="true" /> : null}
+            {nextStep.cta}
+          </Button>
+        )}
+      </Card>
+    </section>
+  )
+}
+
+function ProgressSection({
+  events,
+  verified,
+  totalCheckins
+}: {
+  events: TimelineEvent[]
+  verified: number
+  totalCheckins: number
+}) {
+  const latestPass = getLatestPassedEvidence(events)
+  const latestEvidence = [...events].reverse().find((event) => event.type === 'evidence') as
+    | Extract<TimelineEvent, { type: 'evidence' }>
+    | undefined
+
+  return (
+    <section id="section-progress" className="detail-section">
+      <h2 className="detail-section-heading">Progress</h2>
+      <Card className="detail-progress-card">
+        <div className="detail-progress-item">
+          <span className="detail-progress-value">{verified}</span>
+          <span className="detail-progress-label">Verified evidence</span>
+        </div>
+        <div className="detail-progress-item">
+          <span className="detail-progress-value">{totalCheckins}</span>
+          <span className="detail-progress-label">Evidence submissions</span>
+        </div>
+        <div className="detail-progress-item detail-progress-item-wide">
+          <span className="detail-progress-value">{latestPass ? fmtMYT(latestPass.at) : 'Not yet'}</span>
+          <span className="detail-progress-label">Latest verified win</span>
+        </div>
+        {latestEvidence?.reasoning && <p className="detail-progress-reasoning">{latestEvidence.reasoning}</p>}
+      </Card>
+    </section>
+  )
+}
+
+function TermsSection({ commitment }: { commitment: Commitment }) {
+  return (
+    <section id="section-terms" className="detail-section">
+      <h2 className="detail-section-heading">
+        Terms
+        <Tooltip text="These are the commitment terms Kawan reads during check-ins. They stay user-owned." />
+      </h2>
+      <Card className="detail-card">
+        <p className="detail-fields-note">Only you can change these fields. Kawan reads them but never edits them.</p>
+        <div className="detail-fields">
+          <ReadOnlyField label="Action" value={commitment.action} />
+          <ReadOnlyField label="Deliverable" value={commitment.deliverable} />
+          <ReadOnlyField label="Deadline" value={fmtMYT(commitment.deadline)} />
+          <ReadOnlyField label="Cadence" value={commitment.cadence} />
+          <ReadOnlyField label="Evidence type" value={commitment.evidence_type} />
+          <ReadOnlyField
+            label="Accountability contact"
+            value={commitment.stake_enabled ? (commitment.stake_contact_name ?? 'Not set') : 'Not enabled'}
+          />
+          <ReadOnlyField label="Rest days" value={`${commitment.skip_days_used} used of ${commitment.skip_days_total}`} />
+          <ReadOnlyField label="How Kawan checks in" value={escalationLabels[commitment.escalation]} />
+        </div>
+      </Card>
+    </section>
+  )
+}
+
+function TimelineSection({ state, events }: { state: TimelineState; events: TimelineEvent[] }) {
   return (
     <section id="section-timeline" className="detail-section">
       <h2 className="detail-section-heading">Timeline</h2>
@@ -173,12 +381,32 @@ function TimelineSection({ commitmentId }: { commitmentId: string }) {
   )
 }
 
+function DangerZoneSection({ deleting, onDelete }: { deleting: boolean; onDelete: () => void }) {
+  return (
+    <section id="section-danger-zone" className="detail-section">
+      <h2 className="detail-section-heading">Danger zone</h2>
+      <Card className="detail-danger-card">
+        <div className="detail-danger-copy">
+          <AlertTriangle size={18} aria-hidden="true" />
+          <div>
+            <p className="detail-danger-title">Delete this commitment</p>
+            <p className="detail-danger-body">This permanently removes the commitment and its check-in history.</p>
+          </div>
+        </div>
+        <Button variant="danger" onClick={onDelete} disabled={deleting}>
+          <Trash2 size={16} aria-hidden="true" />
+          {deleting ? 'Deleting...' : 'Delete'}
+        </Button>
+      </Card>
+    </section>
+  )
+}
+
 function CommitmentDetailSkeleton() {
   return (
     <div className="detail-two-col" aria-hidden="true">
       <div className="detail-content">
-        <div className="detail-status-header">
-          <Skeleton variant="text" width={48} />
+        <div className="detail-status-strip">
           <Skeleton variant="block" width={72} height={24} radius="var(--radius-pill)" />
           <Skeleton variant="block" width={110} height={24} radius="var(--radius-pill)" />
         </div>
@@ -206,12 +434,90 @@ function CommitmentDetailSkeleton() {
   )
 }
 
+function CommitmentDetailReady({
+  commitment,
+  checkinStatus,
+  deleting,
+  onDelete
+}: {
+  commitment: Commitment
+  checkinStatus: CheckinStatus | null
+  deleting: boolean
+  onDelete: () => void
+}) {
+  const navigate = useNavigate()
+  const { me } = useAuth()
+  const [shareOpen, setShareOpen] = useState(false)
+  const { state: timelineState, timeline } = useTimeline(commitment.id)
+  const events = useMemo(() => timeline?.events ?? [], [timeline?.events])
+  const verified = verifiedCount(events)
+  const totalCheckins = events.filter((event) => event.type === 'evidence').length
+  const latestPassEvent = getLatestPassedEvidence(events)
+  const canShareWin = commitment.status === 'completed' && verified > 0 && me?.persona != null
+
+  return (
+    <>
+      <PageHeader
+        title={commitmentTitle(commitment)}
+        subtitle="Details, timing, and activity for this commitment."
+        actions={
+          <Button variant="accent" onClick={() => navigate(`/workspace/${commitment.id}`)}>
+            <ExternalLink size={16} aria-hidden="true" />
+            Open workspace
+          </Button>
+        }
+      />
+
+      <div className="detail-two-col">
+        <div className="detail-content">
+          <div className="detail-status-strip">
+            <Chip variant={commitment.status === 'active' ? 'sage' : 'default'}>{statusLabel(commitment.status)}</Chip>
+            <Chip variant={checkinStatus?.is_late ? 'accent' : 'default'}>
+              {checkinStatus?.is_late ? 'Late check-in' : commitment.cadence}
+            </Chip>
+            <span className="detail-deadline-pill">Due {fmtMYT(commitment.deadline)}</span>
+          </div>
+
+          <OverviewSection commitment={commitment} events={events} verified={verified} totalCheckins={totalCheckins} />
+          <NextStepSection
+            commitment={commitment}
+            checkinStatus={checkinStatus}
+            events={events}
+            canShareWin={canShareWin}
+            onWorkspace={() => navigate(`/workspace/${commitment.id}`)}
+            onShare={() => setShareOpen(true)}
+          />
+          <ProgressSection events={events} verified={verified} totalCheckins={totalCheckins} />
+          <TermsSection commitment={commitment} />
+          <TimelineSection state={timelineState} events={events} />
+          <DangerZoneSection deleting={deleting} onDelete={onDelete} />
+        </div>
+
+        <div className="detail-index-col">
+          <OnThisPage sections={DETAIL_SECTIONS} />
+        </div>
+      </div>
+
+      {canShareWin && me?.persona != null && (
+        <ShareWinDialog
+          open={shareOpen}
+          onClose={() => setShareOpen(false)}
+          commitment={commitment}
+          winDateIso={latestPassEvent?.at ?? new Date().toISOString()}
+          persona={me.persona}
+        />
+      )}
+    </>
+  )
+}
+
 export function CommitmentDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { notify } = useNotifications()
   const [state, setState] = useState<LoadState>('loading')
   const [commitment, setCommitment] = useState<Commitment | null>(null)
+  const [checkinStatus, setCheckinStatus] = useState<CheckinStatus | null>(null)
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
@@ -241,18 +547,30 @@ export function CommitmentDetail() {
     }
   }, [id])
 
-  const match = commitment
+  useEffect(() => {
+    if (commitment?.id) recordRecentCommitment(commitment.id)
+  }, [commitment?.id])
 
   useEffect(() => {
-    if (match?.id) recordRecentCommitment(match.id)
-  }, [match?.id])
+    let cancelled = false
+    if (!commitment?.id) {
+      setCheckinStatus(null)
+      return
+    }
+    fetchCheckinStatus(commitment.id).then((status) => {
+      if (!cancelled) setCheckinStatus(status)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [commitment?.id])
 
   async function handleDelete() {
-    if (match === null) return
+    if (commitment === null) return
     setConfirmDeleteOpen(false)
     setDeleting(true)
     try {
-      await deleteCommitment(match.id)
+      await deleteCommitment(commitment.id)
       notify('Commitment deleted.', { kind: 'success' })
       navigate('/commitments')
     } catch {
@@ -261,7 +579,7 @@ export function CommitmentDetail() {
     }
   }
 
-  if (match === null) {
+  if (commitment === null) {
     return (
       <div className="shell-page">
         <PageHeader title="Commitment" subtitle="Details and settings." />
@@ -270,26 +588,8 @@ export function CommitmentDetail() {
     )
   }
 
-  const headerActions = (
-    <>
-      <Button variant="accent" onClick={() => navigate(`/workspace/${match.id}`)}>
-        <ExternalLink size={16} aria-hidden="true" />
-        Open workspace
-      </Button>
-      <Button variant="primary" onClick={() => navigate(`/workspace/${match.id}`)}>
-        Check now
-      </Button>
-      <Button variant="danger" onClick={() => setConfirmDeleteOpen(true)} disabled={deleting}>
-        <Trash2 size={16} aria-hidden="true" />
-        {deleting ? 'Deleting...' : 'Delete'}
-      </Button>
-    </>
-  )
-
   return (
     <div className="shell-page">
-      <PageHeader title="Commitment" subtitle="Details and your activity so far." actions={headerActions} />
-
       <Modal
         open={confirmDeleteOpen}
         onClose={() => setConfirmDeleteOpen(false)}
@@ -310,99 +610,12 @@ export function CommitmentDetail() {
         </div>
       </Modal>
 
-      <div className="detail-two-col">
-        {/* Left: content sections */}
-        <div className="detail-content">
-          <div className="detail-status-header">
-            <span className="detail-status-label">Status</span>
-            <Chip variant={match.status === 'active' ? 'sage' : 'default'}>{statusLabel(match.status)}</Chip>
-            <Badge variant="muted">{match.id}</Badge>
-          </div>
-
-          <OverviewSection commitment={match} />
-
-          <p className="detail-fields-note">Only you can change these fields. Kawan reads them but never edits them.</p>
-
-          <section id="section-action" className="detail-section">
-            <h2 className="detail-section-heading">Action</h2>
-            <Card className="detail-card">
-              <ReadOnlyField label="Action" value={match.action} />
-            </Card>
-          </section>
-
-          <section id="section-deliverables" className="detail-section">
-            <h2 className="detail-section-heading">Deliverables</h2>
-            <Card className="detail-card">
-              <ReadOnlyField label="Deliverable" value={match.deliverable} />
-              <ReadOnlyField label="Cadence" value={match.cadence} />
-              <ReadOnlyField label="Evidence type" value={match.evidence_type} />
-            </Card>
-          </section>
-
-          <section id="section-deadline" className="detail-section">
-            <h2 className="detail-section-heading">Deadline</h2>
-            <Card className="detail-card">
-              <ReadOnlyField
-                label="Deadline"
-                value={new Date(match.deadline).toLocaleString('en-MY', { timeZone: 'Asia/Kuala_Lumpur' })}
-              />
-            </Card>
-          </section>
-
-          <section id="section-evidence" className="detail-section">
-            <h2 className="detail-section-heading">
-              Evidence
-              <Tooltip text="How Kawan verifies your work. Screenshot = you upload proof. GitHub = commits are checked automatically." />
-            </h2>
-            <Card className="detail-card">
-              <ReadOnlyField label="Evidence type" value={match.evidence_type} />
-            </Card>
-          </section>
-
-          <section id="section-accountability" className="detail-section">
-            <h2 className="detail-section-heading">
-              Accountability
-              <Tooltip text="An optional contact who receives a message if you miss your commitment." />
-            </h2>
-            <Card className="detail-card">
-              <ReadOnlyField
-                label="Accountability contact"
-                value={match.stake_enabled ? `${match.stake_contact_name ?? 'Not set'}` : 'Not enabled'}
-              />
-            </Card>
-          </section>
-
-          <section id="section-rest-days" className="detail-section">
-            <h2 className="detail-section-heading">
-              Rest days
-              <Tooltip text="Days you can skip a check-in without penalty. You set the total; Kawan tracks how many you have left." />
-            </h2>
-            <Card className="detail-card">
-              <ReadOnlyField
-                label="Rest days left"
-                value={`${match.skip_days_used} used of ${match.skip_days_total}`}
-              />
-            </Card>
-          </section>
-
-          <section id="section-how-firm" className="detail-section">
-            <h2 className="detail-section-heading">
-              How firm
-              <Tooltip text="Controls Kawan's tone during check-ins. Gentle is encouraging, Direct is no-nonsense, Blunt is maximum accountability." />
-            </h2>
-            <Card className="detail-card">
-              <ReadOnlyField label="How Kawan checks in" value={escalationLabels[match.escalation]} />
-            </Card>
-          </section>
-
-          <TimelineSection commitmentId={match.id} />
-        </div>
-
-        {/* Right: sticky spy-scroll index */}
-        <div className="detail-index-col">
-          <OnThisPage sections={DETAIL_SECTIONS} />
-        </div>
-      </div>
+      <CommitmentDetailReady
+        commitment={commitment}
+        checkinStatus={checkinStatus}
+        deleting={deleting}
+        onDelete={() => setConfirmDeleteOpen(true)}
+      />
     </div>
   )
 }
