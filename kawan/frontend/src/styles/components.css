@@ -521,6 +521,13 @@
   outline-offset: 2px;
 }
 
+@media (max-width: 768px) {
+  .help-button {
+    right: var(--space-4);
+    bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .help-button {
     transition: none;

@@ -652,6 +652,12 @@
   background: var(--bg);
 }
 
+@media (max-width: 768px) {
+  .page-scroll {
+    margin-bottom: 0;
+  }
+}
+
 .shell-page {
   padding: var(--space-6) var(--space-4);
   max-width: var(--content-max);
@@ -706,6 +712,12 @@
 @media (min-width: 769px) {
   .shell-footer {
     left: var(--sidebar-w);
+  }
+}
+
+@media (max-width: 768px) {
+  .shell-footer {
+    display: none;
   }
 }
 
