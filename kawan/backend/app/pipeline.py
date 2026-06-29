@@ -246,9 +246,10 @@ async def run_final_verify(db: AsyncSession, c: Commitment) -> Evidence:
     return ev
 
 
-# Ceiling for a TEE vision/judge call (spec §9.3). Matches the Chutes client's own per-request
-# timeout so a slow-but-valid vision call isn't cut short here; it still bounds a 5xx retry storm.
-EVIDENCE_JUDGE_TIMEOUT = 90.0
+# Ceiling for a TEE vision/judge call (spec §9.3). Intentionally tighter than the Chutes client's
+# own 90s per-request timeout: a cold/overloaded chute that has not answered in 60s almost never
+# recovers into a useful verdict, so we fail fast to the secondary judge instead of hanging.
+EVIDENCE_JUDGE_TIMEOUT = 60.0
 
 
 async def safe_judge(adapter, c: Commitment, bundle: EvidenceBundle) -> Verdict:
