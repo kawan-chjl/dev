@@ -23,7 +23,7 @@ export function WelcomeFinished() {
   return (
     <div className="welcome-root">
       <header className="welcome-header">
-        <Link to="/" className="welcome-brand-link" aria-label="Kawan landing page">
+        <Link to="/?bypass=1" className="welcome-brand-link" aria-label="Kawan landing page">
           <img src="/kawan-logo.png" alt="" className="welcome-logo" />
           <span className="welcome-wordmark">KAWAN</span>
         </Link>
