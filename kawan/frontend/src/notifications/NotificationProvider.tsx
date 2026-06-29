@@ -1,8 +1,8 @@
-// NotificationProvider — app-wide notification context.
+// NotificationProvider - app-wide notification context.
 // notify() pushes a stashed entry AND fires a react-hot-toast toast.
 // In-memory only; no localStorage needed for the demo.
 
-import { createContext, type ReactNode, useCallback, useContext, useState } from 'react'
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 
 export type NotifKind = 'success' | 'error' | 'info'
@@ -42,25 +42,53 @@ function nextId(): string {
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<StoredNotification[]>([])
 
+  // Ask once for OS notification permission so verdict/completion alerts can surface as real
+  // browser notifications, not just an easily-missed in-app toast.
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      void Notification.requestPermission()
+    }
+  }, [])
+
   const notify = useCallback((title: string, opts: NotifyOpts = {}) => {
     const kind: NotifKind = opts.kind ?? 'info'
+    const detail = opts.detail
     const entry: StoredNotification = {
       id: nextId(),
       title,
-      detail: opts.detail,
+      detail,
       kind,
       at: new Date(),
       read: false
     }
     setNotifications((prev) => [entry, ...prev].slice(0, 20))
 
-    // Fire the toast
+    // In-app toast: show the title and, when present, the AI evaluation detail, long enough to read.
+    const message = detail ? (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        <span style={{ fontWeight: 600 }}>{title}</span>
+        <span style={{ opacity: 0.8, fontSize: '0.92em' }}>{detail}</span>
+      </div>
+    ) : (
+      title
+    )
+    const toastOpts = { id: entry.id, duration: 6000 }
     if (kind === 'success') {
-      toast.success(title, { id: entry.id })
+      toast.success(message, toastOpts)
     } else if (kind === 'error') {
-      toast.error(title, { id: entry.id })
+      toast.error(message, toastOpts)
     } else {
-      toast(title, { id: entry.id })
+      toast(message, toastOpts)
+    }
+
+    // Real browser/OS notification carrying the AI evaluation, when the user granted permission.
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+      try {
+        // eslint-disable-next-line no-new
+        new Notification(title, detail ? { body: detail } : undefined)
+      } catch {
+        // Some environments (e.g. mobile browsers) require a service worker and throw on construction.
+      }
     }
   }, [])
 
