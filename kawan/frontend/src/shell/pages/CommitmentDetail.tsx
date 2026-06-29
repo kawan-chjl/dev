@@ -166,7 +166,9 @@ function OverviewSection({
             <span className="detail-overview-stat-label">Check-ins</span>
           </div>
           <div className="detail-overview-stat">
-            <span className="detail-overview-stat-number">{commitment.skip_days_total - commitment.skip_days_used}</span>
+            <span className="detail-overview-stat-number">
+              {commitment.skip_days_total - commitment.skip_days_used}
+            </span>
             <span className="detail-overview-stat-label">Rest days left</span>
           </div>
         </div>
@@ -317,7 +319,9 @@ function ProgressSection({
 
   return (
     <section id="section-progress" className="detail-section">
-      <SectionHeading tooltip="Evidence and check-in counts derived from this commitment's timeline.">Progress</SectionHeading>
+      <SectionHeading tooltip="Evidence and check-in counts derived from this commitment's timeline.">
+        Progress
+      </SectionHeading>
       <Card className="detail-progress-card">
         <div className="detail-progress-item">
           <span className="detail-progress-value">{verified}</span>
@@ -353,7 +357,10 @@ function TermsSection({ commitment }: { commitment: Commitment }) {
             label="Accountability contact"
             value={commitment.stake_enabled ? (commitment.stake_contact_name ?? 'Not set') : 'Not enabled'}
           />
-          <ReadOnlyField label="Rest days" value={`${commitment.skip_days_used} used of ${commitment.skip_days_total}`} />
+          <ReadOnlyField
+            label="Rest days"
+            value={`${commitment.skip_days_used} used of ${commitment.skip_days_total}`}
+          />
           <ReadOnlyField label="How Kawan checks in" value={escalationLabels[commitment.escalation]} />
         </div>
       </Card>
