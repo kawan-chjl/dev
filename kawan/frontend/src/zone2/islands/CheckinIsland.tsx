@@ -19,6 +19,8 @@ import { VerdictCard } from '../VerdictCard'
 interface CheckinIslandProps {
   commitmentId: string
   checkinStatus: CheckinStatus | null
+  /** Cadence string (e.g. "daily", "every 2 days") used to project the next check-in time. */
+  cadence?: string
   /** 'checkin' = normal, 'late-checkin' = reprimand variant (tone only, not gating) */
   variant: 'checkin' | 'late-checkin' | null
   onKawanSay: (text: string, emotion?: Emotion) => void
@@ -29,9 +31,28 @@ interface CheckinIslandProps {
 
 type Phase = 'idle' | 'checking' | 'submitting' | 'verdict'
 
+const HOUR_MS = 3600000
+const DAY_MS = 86400000
+
+// Project a cadence string to a period in ms. The backend's due_at is the last cadence tick
+// (last check-in or creation), so the next check-in is due one period after it.
+function cadenceToMs(cadence: string | undefined): number {
+  if (!cadence) return DAY_MS
+  const c = cadence.toLowerCase().trim()
+  if (c === 'daily') return DAY_MS
+  if (c === 'weekly') return 7 * DAY_MS
+  if (c === 'hourly') return HOUR_MS
+  const days = c.match(/every\s+(\d+)\s*days?/)
+  if (days) return Math.max(1, Number.parseInt(days[1], 10)) * DAY_MS
+  const hours = c.match(/every\s+(\d+)\s*hours?/)
+  if (hours) return Math.max(1, Number.parseInt(hours[1], 10)) * HOUR_MS
+  return DAY_MS
+}
+
 export function CheckinIsland({
   commitmentId,
   checkinStatus,
+  cadence,
   variant,
   onKawanSay,
   onActivity,
@@ -43,18 +64,34 @@ export function CheckinIsland({
   const [checkin, setCheckin] = useState<CheckinResponse | null>(null)
   const [verdict, setVerdict] = useState<EvidenceVerdict | null>(null)
   const [checkedIn, setCheckedIn] = useState(false)
+  const [checkedInAt, setCheckedInAt] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [now, setNow] = useState(() => Date.now())
 
-  // Tick once a second only while the countdown is on screen (idle, not yet checked in).
-  const showTimer = phase === 'idle' && !checkedIn && checkinStatus?.due_at != null
+  // Project the next check-in: one cadence period after the reference tick. Before checking in the
+  // reference is the backend's last tick (due_at); after a pass this session it's that moment.
+  const referenceTick = checkedIn ? checkedInAt : (checkinStatus?.due_at ?? null)
+  const nextDueMs = referenceTick ? new Date(referenceTick).getTime() + cadenceToMs(cadence) : null
+  const remainingMs = nextDueMs != null ? nextDueMs - now : null
+
+  // Tick once a second while the countdown is on screen (idle before check-in, or the locked state after).
+  const showTimer = referenceTick != null && (checkedIn || phase === 'idle')
   useEffect(() => {
     if (!showTimer) return
     setNow(Date.now())
     const id = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(id)
   }, [showTimer])
-  const dueMs = checkinStatus?.due_at ? new Date(checkinStatus.due_at).getTime() - now : 0
+
+  // The countdown line, reused before and after check-in.
+  const timerLine =
+    remainingMs != null && remainingMs > 0 ? (
+      <>
+        Next check-in in <strong>{fmtDuration(remainingMs)}</strong>
+      </>
+    ) : (
+      <span className="checkin-island-timer-late">Check-in available now</span>
+    )
 
   async function handleTrigger() {
     setError(null)
@@ -95,7 +132,10 @@ export function CheckinIsland({
     }
     const emotion: Emotion = v.verdict === 'pass' ? 'pleased' : v.verdict === 'fail' ? 'skeptical' : 'neutral'
     onKawanSay(line, emotion)
-    if (v.verdict === 'pass') setCheckedIn(true)
+    if (v.verdict === 'pass') {
+      setCheckedInAt(new Date().toISOString())
+      setCheckedIn(true)
+    }
     onVerdict?.(v)
   }
 
@@ -127,6 +167,7 @@ export function CheckinIsland({
           <div className="checkin-island-locked">
             <Check size={14} aria-hidden="true" />
             <span>Checked in. You're set until the next check-in window.</span>
+            {showTimer && <p className="checkin-island-timer">{timerLine}</p>}
           </div>
         ) : (
           <>
@@ -144,12 +185,10 @@ export function CheckinIsland({
                 )}
                 {showTimer && (
                   <p className="checkin-island-timer">
-                    {checkinStatus?.is_late || dueMs <= 0 ? (
+                    {checkinStatus?.is_late ? (
                       <span className="checkin-island-timer-late">Check-in overdue</span>
                     ) : (
-                      <>
-                        Next check-in in <strong>{fmtDuration(dueMs)}</strong>
-                      </>
+                      timerLine
                     )}
                   </p>
                 )}

@@ -31,10 +31,14 @@ export function FinishIsland({ commitmentId, onKawanSay, onActivity, onComplete,
 
   function handleVerdict(v: EvidenceVerdict) {
     onActivity()
-    // Gate the win on the backend-confirmed 'completed' status, not merely verdict === 'pass'.
-    // The backend returns status:'completed' only when ?finish=true transitioned the state machine.
-    if (v.status === 'completed') {
-      notify('Commitment completed!', { detail: 'You finished your commitment. Share your win.', kind: 'success' })
+    // A pass on the finish flow means the final evidence was accepted -> roll the win. We also
+    // accept the backend's explicit completed status. (Previously this gated only on status ===
+    // 'completed', which dead-ended a pass whose commitment didn't transition, e.g. past-deadline.)
+    if (v.verdict === 'pass' || v.status === 'completed') {
+      notify('Commitment completed!', {
+        detail: v.reasoning?.trim() || 'Your final evidence was accepted.',
+        kind: 'success'
+      })
       onComplete(new Date().toISOString())
       return
     }
