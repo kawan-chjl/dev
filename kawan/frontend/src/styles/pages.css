@@ -3,9 +3,30 @@
 /* ── Landing ── */
 .landing-root {
   min-height: 100svh;
+  position: relative;
+  background: var(--bg);
+}
+
+.landing-scroll {
+  position: relative;
+  z-index: 1;
+  min-height: 100svh;
   display: flex;
   flex-direction: column;
+  margin-bottom: 156px;
   background: var(--bg);
+}
+
+@media (min-width: 769px) {
+  .landing-root .shell-footer {
+    left: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .landing-scroll {
+    margin-bottom: 0;
+  }
 }
 
 .landing-header {
@@ -125,13 +146,6 @@
   height: 10px;
   border-radius: var(--radius-pill);
   background: var(--ink);
-}
-
-.landing-footer {
-  text-align: center;
-  padding: var(--space-6);
-  font-size: var(--text-caption);
-  color: var(--muted);
 }
 
 /* ── Landing: how-it-works band ── */
