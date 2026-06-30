@@ -2,7 +2,7 @@
 
 <!-- PROJECT BANNER -->
 <div align="center">
-  <img src="frontend/public/embed/kawan-banner.png" alt="Kawan — Be Accountable · Be Productive" width="100%">
+  <img src="https://raw.githubusercontent.com/kawan-chjl/dev/main/kawan/frontend/public/embed/kawan-banner.png" alt="Kawan — Be Accountable · Be Productive" width="100%">
 
   <h3>Kawan</h3>
 
@@ -77,13 +77,13 @@ It's wrapped in a warm, expressive interface: pick one of three **Live2D compani
 
 ## Screenshots
 
-|                         Landing                         |                              Sign in                               |
-| :-----------------------------------------------------: | :----------------------------------------------------------------: |
-|      ![Landing page](docs/screenshots/landing.png)      | ![Sign in with Chutes or as a guest](docs/screenshots/sign-in.png) |
-|                     **Guided tour**                     |                              **Home**                              |
-| ![Guided walkthrough](docs/screenshots/guided-tour.png) |            ![Home dashboard](docs/screenshots/home.png)            |
-|                     **Commitments**                     |                           **Analytics**                            |
-|  ![Commitments list](docs/screenshots/commitments.png)  |    ![Analytics & achievements](docs/screenshots/analytics.png)     |
+|                                                       Landing                                                       |                                                            Sign in                                                             |
+| :-----------------------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------------------------------------: |
+|      ![Landing page](https://raw.githubusercontent.com/kawan-chjl/dev/main/kawan/docs/screenshots/landing.png)      | ![Sign in with Chutes or as a guest](https://raw.githubusercontent.com/kawan-chjl/dev/main/kawan/docs/screenshots/sign-in.png) |
+|                                                   **Guided tour**                                                   |                                                            **Home**                                                            |
+| ![Guided walkthrough](https://raw.githubusercontent.com/kawan-chjl/dev/main/kawan/docs/screenshots/guided-tour.png) |            ![Home dashboard](https://raw.githubusercontent.com/kawan-chjl/dev/main/kawan/docs/screenshots/home.png)            |
+|                                                   **Commitments**                                                   |                                                         **Analytics**                                                          |
+|  ![Commitments list](https://raw.githubusercontent.com/kawan-chjl/dev/main/kawan/docs/screenshots/commitments.png)  |    ![Analytics & achievements](https://raw.githubusercontent.com/kawan-chjl/dev/main/kawan/docs/screenshots/analytics.png)     |
 
 <p align="right"><a href="#readme-top">&uarr;</a></p>
 
@@ -97,13 +97,13 @@ A commitment moves through a single, deterministic lifecycle — from drafting t
 
 `I will [complete] [a deliverable] by [a deadline].` One goal, one deadline. No room to be vague.
 
-![Compose your commitment](docs/screenshots/flow-1-compose.png)
+![Compose your commitment](https://raw.githubusercontent.com/kawan-chjl/dev/main/kawan/docs/screenshots/flow-1-compose.png)
 
 ### 2. Plan — set the terms
 
 Choose your evidence source (a GitHub repo to watch, or screenshot/file uploads), optionally name a **witness** who gets emailed if you miss, and a reminder email. _Only you can change these. Kawan reads them but never edits them._
 
-![Set your plan and stakes](docs/screenshots/flow-2-plan.png)
+![Set your plan and stakes](https://raw.githubusercontent.com/kawan-chjl/dev/main/kawan/docs/screenshots/flow-2-plan.png)
 
 ### 3. Companion — pick who holds you to it
 
@@ -115,31 +115,31 @@ Three personalities, same backbone:
 |   **Adik**   | Gentle Cheerleader  | Encouraging and kind. Celebrates every step.                    |
 | **Cik Maid** | Playful Taskmaster  | Brisk, playful, expects results — with a wink.                  |
 
-![Choose your companion](docs/screenshots/flow-3-companion.png)
+![Choose your companion](https://raw.githubusercontent.com/kawan-chjl/dev/main/kawan/docs/screenshots/flow-3-companion.png)
 
 ### 4. Check in — answer to your companion
 
 Your companion enters the workspace as a live, animated avatar. It gathers context (why, obstacles, time), then checks in on schedule and waits for evidence.
 
-![Live2D check-in in the workspace](docs/screenshots/flow-4-checkin.png)
+![Live2D check-in in the workspace](https://raw.githubusercontent.com/kawan-chjl/dev/main/kawan/docs/screenshots/flow-4-checkin.png)
 
 ### 5. Workspace — context, plan & evidence in one place
 
 A focused room around the conversation: captured context, an advisory plan, recent activity, a live countdown to the next check-in, and the **Submit final evidence** action.
 
-![The commitment workspace](docs/screenshots/flow-5-workspace.png)
+![The commitment workspace](https://raw.githubusercontent.com/kawan-chjl/dev/main/kawan/docs/screenshots/flow-5-workspace.png)
 
 ### 6. Track — overview, progress & terms
 
 Every commitment has a detail page: verified count, check-ins, latest verdict and reasoning, the immutable terms, and a full timeline.
 
-![Commitment detail page](docs/screenshots/flow-6-commitment-detail.png)
+![Commitment detail page](https://raw.githubusercontent.com/kawan-chjl/dev/main/kawan/docs/screenshots/flow-6-commitment-detail.png)
 
 ### 7. Finish — verified, and only then
 
 When the evidence passes, the commitment is closed as done. No participation trophies — a win counts because it was shown.
 
-![You did it — verified completion](docs/screenshots/flow-7-completion.png)
+![You did it — verified completion](https://raw.githubusercontent.com/kawan-chjl/dev/main/kawan/docs/screenshots/flow-7-completion.png)
 
 <p align="right"><a href="#readme-top">&uarr;</a></p>
 
@@ -295,7 +295,7 @@ Open **http://localhost:5173** and choose **Continue as guest** to start.
 
 ## Configuration
 
-All settings use the `KAWAN_` prefix and load from `kawan/.env`. See [`.env.example`](.env.example) for the fully annotated list. The most important knobs:
+All settings use the `KAWAN_` prefix and load from `kawan/.env`. See [`.env.example`](https://github.com/kawan-chjl/dev/blob/main/kawan/.env.example) for the fully annotated list. The most important knobs:
 
 | Variable                                    | What it does                                                                      |
 | ------------------------------------------- | --------------------------------------------------------------------------------- |
@@ -317,8 +317,8 @@ To use **real inference**, set `KAWAN_AI_BACKEND=chutes` and provide `KAWAN_CHUT
 
 ## Deployment
 
-- **Backend → Render.** [`backend/render.yaml`](backend/render.yaml) defines the web service (`uv sync` → `uvicorn`). Secrets and the cross-origin cookie settings (`KAWAN_COOKIE_SAMESITE=none`, `KAWAN_COOKIE_SECURE=true`) are set in the Render dashboard. Database notes (Supabase session vs. transaction pooler) live in [`backend/DEPLOY.md`](backend/DEPLOY.md).
-- **Frontend → Vercel.** [`frontend/vercel.json`](frontend/vercel.json) rewrites `/api/*` to the Render backend and serves the SPA. In production the WebSocket connects directly to Render, which is why prod runs `SameSite=None; Secure` cookies.
+- **Backend → Render.** [`backend/render.yaml`](https://github.com/kawan-chjl/dev/blob/main/kawan/backend/render.yaml) defines the web service (`uv sync` → `uvicorn`). Secrets and the cross-origin cookie settings (`KAWAN_COOKIE_SAMESITE=none`, `KAWAN_COOKIE_SECURE=true`) are set in the Render dashboard. Database notes (Supabase session vs. transaction pooler) live in [`backend/DEPLOY.md`](https://github.com/kawan-chjl/dev/blob/main/kawan/backend/DEPLOY.md).
+- **Frontend → Vercel.** [`frontend/vercel.json`](https://github.com/kawan-chjl/dev/blob/main/kawan/frontend/vercel.json) rewrites `/api/*` to the Render backend and serves the SPA. In production the WebSocket connects directly to Render, which is why prod runs `SameSite=None; Secure` cookies.
 
 <p align="right"><a href="#readme-top">&uarr;</a></p>
 
@@ -357,7 +357,7 @@ kawan/
 
 ## License
 
-Distributed under the MIT License. See [LICENSE](LICENSE) for details.
+Distributed under the MIT License. See [LICENSE](https://github.com/kawan-chjl/dev/blob/main/kawan/LICENSE) for details.
 
 <p align="right"><a href="#readme-top">&uarr;</a></p>
 
