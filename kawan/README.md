@@ -326,7 +326,7 @@ To use **real inference**, set `KAWAN_AI_BACKEND=chutes` and provide `KAWAN_CHUT
 
 ## Project Structure
 
-```
+```text
 kawan/
 ├── backend/             # FastAPI single-process service
 │   ├── app/
