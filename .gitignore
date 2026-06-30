@@ -15,3 +15,9 @@ Thumbs.db
 # Env files — never commit secrets at any level
 .env
 .env.*
+
+# Internal planning docs (kept local, excluded from the published repo)
+docs/design-system.md
+docs/kawan-spec.md
+docs/task-list.md
+docs/superpowers/
