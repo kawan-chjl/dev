@@ -13,6 +13,7 @@
 
   <!-- Tech badges -->
 
+![Chutes Hack Malaysia 2026](https://img.shields.io/badge/Chutes_Hack-Malaysia_2026-D9643A?style=for-the-badge&labelColor=2E7D5B)
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
 ![React](https://img.shields.io/badge/React-18-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
@@ -20,6 +21,10 @@
 ![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
 ![Live2D](https://img.shields.io/badge/Live2D-PixiJS_v6-FF7043?style=for-the-badge)
 ![Chutes](https://img.shields.io/badge/Inference-Chutes_TEE-2E7D5B?style=for-the-badge)
+
+  <!-- Quick links -->
+
+[Watch the Demo](https://youtu.be/B3u5ByG_-jk?si=akg3RFeiuUoWNiXA) · [Devpost](https://devpost.com/software/kawan) · [Pitch Deck](https://github.com/kawan-chjl/dev/blob/main/kawan/docs/kawan-pitch-deck.pdf) · [Live App](https://kawan-frontend.vercel.app)
 
 </div>
 
@@ -53,6 +58,7 @@
     <li><a href="#deployment">Deployment</a></li>
     <li><a href="#project-structure">Project Structure</a></li>
     <li><a href="#license">License</a></li>
+    <li><a href="#team">Team</a></li>
     <li><a href="#acknowledgments">Acknowledgments</a></li>
   </ol>
 </details>
@@ -358,6 +364,47 @@ kawan/
 ## License
 
 Distributed under the MIT License. See [LICENSE](https://github.com/kawan-chjl/dev/blob/main/kawan/LICENSE) for details.
+
+<p align="right"><a href="#readme-top">&uarr;</a></p>
+
+<!-- TEAM -->
+
+## Team
+
+Built by **Team CHJL** with 💖 for Chutes Hack Malaysia 2026.
+
+<div align="center">
+<table>
+  <tr>
+    <td align="center" width="25%">
+      <a href="https://github.com/AlaskanTuna"><img src="https://github.com/AlaskanTuna.png" width="96" alt="ZJ" /></a><br />
+      <b>ZJ</b><br />
+      <a href="https://github.com/AlaskanTuna">@AlaskanTuna</a>
+    </td>
+    <td align="center" width="25%">
+      <a href="https://github.com/kymil4"><img src="https://github.com/kymil4.png" width="96" alt="YK" /></a><br />
+      <b>YK</b><br />
+      <a href="https://github.com/kymil4">@kymil4</a>
+    </td>
+    <td align="center" width="25%">
+      <a href="https://github.com/WhiteAvocad0"><img src="https://github.com/WhiteAvocad0.png" width="96" alt="Jeremy" /></a><br />
+      <b>Jeremy</b><br />
+      <a href="https://github.com/WhiteAvocad0">@WhiteAvocad0</a>
+    </td>
+    <td align="center" width="25%">
+      <a href="https://github.com/c3638"><img src="https://github.com/c3638.png" width="96" alt="KH" /></a><br />
+      <b>KH</b><br />
+      <a href="https://github.com/c3638">@c3638</a>
+    </td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Frontend, the Live2D companion stage, and the workspace UI.</sub></td>
+    <td align="center"><sub>Backend core: auth, billing, the scheduler, and realtime.</sub></td>
+    <td align="center"><sub>The AI agent layer, Chutes integration, and evidence judging.</sub></td>
+    <td align="center"><sub>Voice, notifications, deployment, and demo integration.</sub></td>
+  </tr>
+</table>
+</div>
 
 <p align="right"><a href="#readme-top">&uarr;</a></p>
 
